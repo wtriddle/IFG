@@ -120,3 +120,4 @@ O([R])C(=O)N([R])[R] Carbamate
 O=C(O[R])N([R])[R] Carbamate
 O=C(N([R])[R])O[R] Carbamate
 [R]N([R])C(=O)O[R] Carbamate
+C#N Nitrile
