@@ -70,7 +70,7 @@ O=C([R])N([R])C([R])=O Imide
 [N+](=[N-])=N[R] Azide
 [N+](=N[R])=[N-] Azide
 [R]N=N[R] Azo
-sN([R])=N[R] Azo
+N([R])=N[R] Azo
 [R]OC#N Cynate
 N#CO[R] Cynate
 O([R])C#N Cynate
