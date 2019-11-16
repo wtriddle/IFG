@@ -45,7 +45,7 @@ PARENTHESIS = ['(', ')']
 BRACKETS = ['[', ']']
 BONDS = ['=', '#']
 NUMBERS = ['1','2','3','4','5','6','7','8','9']
-ATOMSREGEX = re.compile(r'[a-zA-Z]+')
+ATOMSREGEX = re.compile(r'[a-zA-Z]')
 NUMBERSREGEX = re.compile(r'[0-9]+')
 RGROUPREGEX = re.compile(r'R')
 
@@ -65,31 +65,31 @@ def ifg(SMILES):
 		SMILEScodePos += 1
 
 		if symbol in PARENTHESIS:
-			# print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the PARENTHESIS group")
+			print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the PARENTHESIS group")
 			continue
 
 		elif symbol in CHARGES:
-			# print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the CHARGE group")
+			print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the CHARGE group")
 			chargeGroup = chargeHandler(symbol, SMILEScodePos, atomIndex)
-			# print("chargeHandler found ", chargeGroup, "\n")
+			print("chargeHandler found ", chargeGroup, "\n")
 			if chargeGroup is not False:
 				FGdata.append(chargeGroup)
 			del(chargeGroup)
 
 		elif symbol in ATOMS and SMILEScodePos != 0 and SMILEScodePos != SMILEScodelength - 1:
 			atomIndex += 1
-			# print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the ATOMS group, and is atom number ", atomIndex)
+			print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the ATOMS group, and is atom number ", atomIndex)
 			directGroup = atomHandler(symbol, SMILEScodePos, atomIndex)
-			# print("atomHandler found ", directGroup, "\n")
+			print("atomHandler found ", directGroup, "\n")
 			if directGroup is not False:
 				for group in directGroup:
 					FGdata.append(group)
 			del(directGroup)
 
 		elif symbol in BONDS:
-			# print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the BONDS group")
+			print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the BONDS group")
 			bondGroup = bondHandler(symbol, SMILEScodePos, atomIndex)
-			# print("bondHandler found ", bondGroup, "\n")
+			print("bondHandler found ", bondGroup, "\n")
 			if bondGroup is not False:
 				FGdata.append(bondGroup)
 			del(bondGroup)
@@ -112,6 +112,9 @@ def ifg(SMILES):
 		del(keys)
 	print("Functional Groups Final Result:\n\n")
 	print(FGdataDict)
+	GITposition.clear()
+	FGdata.clear()
+	RINGPOSITIONS.clear()
 	return (FGdataFinal, FGdataDict)
 
 
@@ -125,6 +128,7 @@ def initializeRINGPOSITIONS():
 
 	# Main loop
 	for symbol in SMILEScode:
+		print(RINGPOSITIONS)
 		SMILEScodePos += 1
 
 		# Keep track of ATOM positional data for when a number is found
@@ -136,6 +140,8 @@ def initializeRINGPOSITIONS():
 
 		# When an unevalutaed number is found, evalute it
 		if symbol in NUMBERS and SMILEScodePos not in evaluatedNumbers:
+			print("Found ", symbol, " at position ", SMILEScodePos)
+			print(evaluatedNumbers)
 			# SMILEScodePos pointing at the position of the atom symbol in SMILEScode 1 space before the first occurance of the number
 
 			# However, if it is not an atom in this scope, then it must be a bracket surrounding a charged atom.
@@ -156,12 +162,11 @@ def initializeRINGPOSITIONS():
 				openingAtomPos = specialCounter
 
 			# subLoop counters
-			correlatingPos = SMILEScodePos - 1
+			correlatingPos = SMILEScodePos
 			correlatingIndex = atomIndex
 
 			# subLoop to find correlating atom in ring
-			for subSymbol in SMILEScode[SMILEScodePos:len(SMILEScode)]:
-
+			for subSymbol in SMILEScode[SMILEScodePos+1:len(SMILEScode)]:
 				correlatingPos += 1
 
 				# Keep track of ATOM positional data for when the correlating atom is found
@@ -172,6 +177,7 @@ def initializeRINGPOSITIONS():
 
 				# If the same number which began the sub loop is found, then append both opening and closing info
 				if subSymbol == symbol:
+					print("Correlating number ", subSymbol, " was found at position ", correlatingPos)
 
 					# If the ring opens with a charge, it must close with a charge. Re-assign positional variables
 					if chargeGroup != "":
@@ -186,6 +192,7 @@ def initializeRINGPOSITIONS():
 						correlatingAtomPos = specialCounter
 
 					RINGPOSITIONS.append([
+						[
 						SMILEScodePos,
 						openingAtom,
 						atomIndex,
@@ -193,7 +200,8 @@ def initializeRINGPOSITIONS():
 						[correlatingPos,
 						correlatingAtom,
 						correlatingIndex,
-						correlatingAtomPos])
+						correlatingAtomPos]
+						])
 
 					# Add numbers to evaluted list to prevent reevalutaion of correlatingAtom in main loop
 					evaluatedNumbers.append(SMILEScodePos)
@@ -451,6 +459,10 @@ def atomHandler(atomSymbol, atomPosition, atomIndex):
 	# Loop continues until an atom within the same grouping layer as atomSymbol is found to the right
 	loopCounter = 0
 	while rBlockCounter > 0 or RN not in ATOMS:
+		if RNPos == len(SMILEScode) - 1:
+			RN = ""
+			print("NO Right group exists...")
+			break
 		loopCounter += 1
 		if RN in ATOMS:
 			RNindex += 1
@@ -701,7 +713,7 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches)
 		# print("position of ", group," in ", template, " is ", posInTemplate)
 		leftRequiredPos = startPosition - posInTemplate
 		# print("leftRequiredPos is ", leftRequiredPos)
-		atomIndex = atomIndicies[0] - len(ATOMSREGEX.findall(template[0:posInTemplate]))  # Initialize as leftmostIndex in group subtracted from the number of atoms to the left of groups appearance in the template
+		atomIndex = atomIndicies[0]
 		# print("template is being cut from ", intialPosition, " to ", finalPosition)
 		groupToRight = template[posInTemplate + len(group):len(template)] # Symbols to the right of group within template.
 		# print("Group to right is ", groupToRight)
@@ -717,21 +729,24 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches)
 			continue
 		# requiredGroup works for noncontinguous SMILEScode groups
 		requiredGroup = leftRequiredGroup + group + rightRequiredGroup
-		# print("requiredGroup is ", requiredGroup)
 		finalAtomIndicies = []
-		# print("\nVARIABLES FOR THE PORTION GROUP: \n", portionGroup)
-		# print("atomIndicies = ", atomIndicies)
-		# print("template = ", template)
-		# print("group = ", group)
-		# print("difference = ", difference)
-		# print("posInTemplate = ", posInTemplate)
-		# print("startPosition = ", startPosition)
-		# print("rightRequiredPos = ", rightRequiredPos)
-		# print("leftRequiredPos = ", leftRequiredPos)
-		# print("endPosition = ", endPosition)
-		# print("requiredGroup = ", requiredGroup)
-		# print("Right required template = ", template[posInTemplate+len(group):len(template)])
-		# print("Expanding ", group, " into ", portionGroup, "where in the smiles code, the template is ", requiredGroup)
+		print("\nVARIABLES FOR THE PORTION GROUP: \n", portionGroup)
+		print("atomIndicies = ", atomIndicies)
+		print("template = ", template)
+		print("group = ", group)
+		print("leftRequiredGroup = ", leftRequiredGroup)
+		print("rightRequiredGroup = ", rightRequiredGroup)
+		print("requiredGroup = ", requiredGroup)
+		print("difference = ", difference)
+		print("posInTemplate = ", posInTemplate)
+		print("startPosition = ", startPosition)
+		print("rightRequiredPos = ", rightRequiredPos)
+		print("leftRequiredPos = ", leftRequiredPos)
+		print("endPosition = ", endPosition)
+		print("numLeftAtoms = ", numLeftAtoms)
+		print("numRightAtoms = ", numRightAtoms)
+		print("Right required template = ", template[posInTemplate+len(group):len(template)])
+		print("Expanding ", group, " into ", portionGroup, "where in the smiles code, the template is ", requiredGroup)
 		numCount = len(re.compile(r'/D').findall(requiredGroup))
 		# print("numCount = ", numCount)
 		if numCount != 0:
@@ -790,13 +805,19 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches)
 				continue
 			else:
 				finalAtomIndicies = []
-				for number in range(atomIndicies[0], atomIndicies[0] - numLeftAtoms, -1):
-					finalAtomIndicies.insert(0, atomIndex)
-				for index in atomIndicies[0:len(atomIndicies)-1]:
+				print("atomIndicies = ", atomIndicies)
+				print("numLeftAtoms = ", numLeftAtoms)
+				print("numRightAtoms = ", numRightAtoms)
+				for number in range(atomIndicies[0], atomIndicies[0] - numLeftAtoms - 1, -1):
+					finalAtomIndicies.insert(0, number)
+				print(finalAtomIndicies)
+				for index in atomIndicies[1:len(atomIndicies)-1]:
 					finalAtomIndicies.append(index)
+				print(finalAtomIndicies)
 				for number in range(atomIndicies[-1], atomIndicies[-1] + numRightAtoms + 1):
 					# print(finalAtomIndicies)
 					finalAtomIndicies.append(number)
+				print(finalAtomIndicies)
 					# print(finalAtomIndicies)
 				# print("Final atom indicies is ", finalAtomIndicies)
 				# print(atomIndicies[-1] + numRightAtoms)
