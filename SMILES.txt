@@ -539,7 +539,7 @@ COC(=O)C1=C(C)NC(=C(C1c1ccc(OC)cc1)C(=O)OC)C	PUJPUG
 CC1(O)C=C(C(O)c2ccc(cc2)C#N)C(=O)C(=C1)C(O)c1ccc(cc1)C#N	PUKZAX
 OC(=O)C1C(C(C1c1ccncc1)C(O)=O)c1ccncc1	PULCAB
 Nc1ccc(cc1N(=O)=O)C(O)=O	PUQFUD
-[H](OC(=O)c1ccc(O)c(c1)N(=O)=O)O=C(O)c1ccc(N)c(OC)c1	PUQGAK
+OC(=O)c1ccc(O)c(c1)N(=O)=OO=C(O)c1ccc(N)c(OC)c1	PUQGAK
 O=C1CCC2CC12N1C(C(OC1=O)c1ccccc1)c1ccccc1	PUTKAR
 OC1C(OC(=O)c2ccccc2)C(=O)OC1=O	QACXUP
 CC1CCC2=CC=C(O2)c2c(O)cc(O)cc2CC(=O)O1	QAGKOZ
