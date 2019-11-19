@@ -38,8 +38,8 @@ FGdata = []
 GITposition = []
 
 # Constants
-ATOMS = ['C','H','O','N','c','h','n','o']
-RGROUP = ['C','H','O','N','c','h','n','o']
+ATOMS = ['C','O','N','c','n','o']
+RGROUP = ['C','O','N','c','n','o']
 CHARGES = ['+','-']
 PARENTHESIS = ['(', ')']
 BRACKETS = ['[', ']']
@@ -393,9 +393,11 @@ def bondHandler(bondSymbol, bondPostion, atomIndex):
 		if LN in NUMBERS and lBlockCounter == 0:
 			lOuterNumGroup = numbersHandler(LNPos)
 		if lBlockCounter != 0:
-			lOuterParenthGroup.insert(0, symbol)
+			lOuterParenthGroup += symbol
 		if LN in ATOMS:
 			LNindex -= 1
+		if lBlockCounter != 0 and LN in ATOMS:
+			lOuterIndicies.append(LNindex)
 		LNPos -= 1
 		LN = SMILEScode[LNPos]
 	else:
@@ -412,18 +414,25 @@ def bondHandler(bondSymbol, bondPostion, atomIndex):
 		RNindex += 1
 
 	# lOuterParenthGroup evaluation to see if the group should be included in bondGroup
+	lOuterParenthGroup = lOuterParenthGroup[::-1] # Flip because appended from the left, so group appears backwards
 	atomCount = len(ATOMSREGEX.findall(lOuterParenthGroup))
 	numCount = len(NUMBERSREGEX.findall(lOuterParenthGroup))
-	if atomCount > 2 or numCount != 0:
+	if atomCount > 1 or numCount != 0:
 		lOuterParenthGroup = ""
 
-	# Bond Group creation
-	if lOuterNumGroup:
-		atomIndicies = [LNindex, lOuterNumGroup[1], RNindex]
+	# Bond Group creation according to the specific case
+	if lOuterNumGroup and lOuterParenthGroup:
+		atomIndicies = [LNindex, lOuterNumGroup[1], lOuterIndicies[0], RNindex]
 		bondGroup = LN + lOuterNumGroup[0] + lOuterParenthGroup + bondSymbol + RN
+	elif lOuterNumGroup and not lOuterParenthGroup:
+		atomIndicies = [LNindex, lOuterNumGroup[1], RNindex]
+		bondGroup = LN + lOuterNumGroup[0] + bondSymbol + RN
+	elif lOuterParenthGroup and not lOuterNumGroup:
+		atomIndicies = [LNindex, lOuterIndicies[0], RNindex]
+		bondGroup = LN + lOuterParenthGroup + bondSymbol + RN
 	else:
 		atomIndicies = [LNindex, RNindex]
-		bondGroup = LN + lOuterParenthGroup + bondSymbol + RN
+		bondGroup = LN + bondSymbol + RN
 
 	# Determine the group and return the info
 	FGinfo = whichGroup(LNPos, RNPos, bondGroup, atomIndicies)
@@ -470,7 +479,7 @@ def atomHandler(atomSymbol, atomPosition, atomIndex):
 		loopCounter += 1
 		if RN in ATOMS:
 			RNindex += 1
-		# Add RN numbers handler 
+		# Add RN numbers handler
 		# #print(loopCounter)
 		# IF RN in the same grouping layer as atomSymbol
 
@@ -610,11 +619,12 @@ def atomHandler(atomSymbol, atomPosition, atomIndex):
 	# #print("RN = ", RN)
 	if RN != "":
 		RNgroup = atomSymbol + RNbond + RN
-		# #print("RNgroup is ", RNgroup)
+		print("RNgroup is ", RNgroup)
 		RNindicies = [atomIndex, RNindex]
 		info = whichGroup(atomPosition, RNPos, RNgroup, RNindicies)
 		if info is not False:
 			FGinfo.append(info)
+		print("found, ", info)
 
 
 	# ----LN LOOP----
@@ -642,12 +652,13 @@ def atomHandler(atomSymbol, atomPosition, atomIndex):
 	# Combine LN info and determine whichGroup
 	if lOuterNumGroup:
 		LNindicies = [LNindex, lOuterNumGroup[1], atomIndex]
-		LNgroup = LN + LNbond + lOuterNumGroup[0] + atomSymbol
+		LNgroup = LN + LNbond + '(' +  lOuterNumGroup[0] + ')' + atomSymbol
+		print("LNgroup with number is ", LNgroup)
 	else:
 		LNindicies = [LNindex, atomIndex]
 		LNgroup = LN + LNbond + atomSymbol
 
-	# #print("LNpos is ", LNPos)
+
 	info = whichGroup(LNPos, atomPosition, LNgroup, LNindicies)
 	if info is not False:
 		FGinfo.append(info)
@@ -714,32 +725,32 @@ def whichGroup(startPosition, endPosition, group, atomIndicies):
 
 	# If a group was found without any portions, return group match information
 	if fullMatch and not portionMatches:
-		# #print("fullMatch True, portionMatches False")
+		print("fullMatch True, portionMatches False")
 		return fullInfo
 
 	# If a fullMatch and a portion was found, determine if on of the portions complete a group. Take expandGroup if it exists, otherwise take fullMatch
 	elif fullMatch and portionMatches:
 		expandedGroup = expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches)
 		if expandedGroup is not False:
-			# #print("Fullmatch with Expanded Group")
+			print("Fullmatch with Expanded Group")
 			return expandedGroup
 		else:
-			# #print("Fullmatch with NO Expand Group")
+			print("Fullmatch with NO Expand Group")
 			return fullInfo
 
 	# If there are portions, determine if they complete a group
 	elif fullMatch is False and portionMatches:
 		expandedGroup = expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches)
 		if expandedGroup is not False:
-			# #print("No full match but Expand Group")
+			print("No full match but Expand Group")
 			return expandedGroup
 		else:
-			# #print("No full match or expandGroup")
+			print("No full match or expandGroup")
 			return False
 
 	# If there is no matches at all, return False
 	elif fullMatch is False and not portionMatches:
-		# #print("No full match or portionMatches")
+		print("No full match or portionMatches")
 		return False
 
 
@@ -920,6 +931,7 @@ def createFGDict(FGindicies, FGtemplate):
 # if FULL=False, matches group within template as well
 def checkGroup(group, template, full=True):
 
+	group = group.upper()
 	difference = len(template) - len(group)
 	# #print("Checking ", group, " aginast ", template)
 	# #print("There is a difference of ", difference, " while full = " , full)
