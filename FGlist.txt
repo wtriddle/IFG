@@ -4,7 +4,8 @@ CO Alcohol
 [R]C(=O)[R] Ketone
 O=C([R])[R] Ketone
 [R]C([R])=O Ketone
-C(O) Alcohol
+[R](O) Alcohol
+O[R] Alcohol
 [R]C=O Aldehyde
 O=C[R] Aldehyde
 [R]OC(=O)O[R] Carbonate
@@ -22,6 +23,10 @@ O=C([R])O[R] Ester
 O=C(O[R])[R] Ester
 O([R])C(=O)[R] Ester
 [R]C(O[R])=O Ester
+[R]C(=O)O Carboxylicacid
+[R]C(O)=O Carboxylicacid
+O=C(O)[R] Carboxylicacid
+OC(=O)[R] Carboxylicacid
 [R]OO Hydroperoxide
 OO[R] Hydroperoxide
 O(O)[R] Hydroperoxide
