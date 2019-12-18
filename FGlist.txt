@@ -38,8 +38,6 @@ O([R])[R] Ether
 [R]C(=O)N([R])[R] Amide
 O=C([R])N([R])[R] Amide
 [R]N([R])C(=O)[R] Amide
-[R]N(C(=O)[R])[R] Amide
-[R]C(N([R])[R])=O Amide
 N[R] PrimaryAmine
 [R]N PrimaryAmine
 [R]N[R] SecondaryAmine
@@ -66,10 +64,6 @@ O=C([R])N([R])C(=O)[R] Imide
 O=C([R])N([R])C([R])=O Imide
 [R]C(=O)N([R])C(=O)[R] Imide
 [R]C(=O)N([R])C([R])=O Imide
-[R]N(C(=O)[R])C(=O)[R] Imide
-[R]N(C([R])=O)C(=O)[R] Imide
-[R]N(C(=O)[R])C([R])=O Imide
-[R]N(C([R])=O)C([R])=O Imide
 [R]N=[N+]=[N-] Azide
 [N-]=[N+]=N[R] Azide
 [N+](=[N-])=N[R] Azide
@@ -91,7 +85,6 @@ N(=C(=O))[R] Isocynate
 [R]O[N+](=O)[O-] Nitrate
 [O-][N+](=O)O[R] Nitrate
 O([R])[N+](=O)[O-] Nitrate
-O([N+](=O)[O-])[R] Nitrate
 [O-][N+](O[R])=O Nitrate
 O=[N+]([O-])O[R] Nitrate
 [R][N+]#[C-] Isonitrile
@@ -120,9 +113,7 @@ C([R])=NO Aldoxime
 [R]C(=NO)[R] Ketoxime
 ON=C([R])[R] Ketoxime
 [R]OC(=O)N([R])[R] Carbamate
-[R]OC(N([R])[R])=O Carbamate
 O([R])C(=O)N([R])[R] Carbamate
 O=C(O[R])N([R])[R] Carbamate
-O=C(N([R])[R])O[R] Carbamate
 [R]N([R])C(=O)O[R] Carbamate
 C#N Nitrile
