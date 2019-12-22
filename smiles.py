@@ -7,6 +7,6 @@ import re
 #     print("EVALUATING ", lineInfo[1])
 #     functionalGroupData = ifg.ifg(smiles)
 #     print(functionalGroupData)
-functionalGroupData = ifg.ifg("[N-]=[N+]=NC1=NN=NN1N=C1CCC(CC1)=NN1N=NN=C1N=[N+]=[N-]")
+functionalGroupData = ifg.ifg("CC12CCC(O)C3(C)C1C(OC2=O)C=C1COC(=O)C=C31")
 print(functionalGroupData)
-print("[N-]=[N+]=NC1=NN=NN1N=C1CCC(CC1)=NN1N=NN=C1N=[N+]=[N-]")
+print("CC12CCC(O)C3(C)C1C(OC2=O)C=C1COC(=O)C=C31")
