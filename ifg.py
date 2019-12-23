@@ -300,20 +300,20 @@ def evaluateFGdata():
 
 			# Determine if all of the group atoms are contained within the compareGroup
 			# i.e. check preemptively for group containment, for example a Ketone contained within an Ester
-			fullGroupContainment = all(Gindex in groupIndicies for Gindex in compareIndicies)
+			fullGroupContainment = all(index in compareIndicies for index in groupIndicies)
 
 			# If group is fully contained within a compareGroup, remove the group and restart loop without that group
 			if fullGroupContainment is True and len(groupIndicies) < len(compareIndicies):
-				formattedFGdata.pop(compareGroupCounter)
+				formattedFGdata.pop(groupCounter)
 				groupCounter = -1
 				break
 
 			# Similalry, check if comapreGroup satisfies this condition
-			fullCompareGroupContainment = all(Cindex in compareIndicies for Cindex in groupIndicies)
+			fullCompareGroupContainment = all(index in groupIndicies for index in compareIndicies)
 
 			# If group is fully contained within a compareGroup, remove the group and restart loop without that group
 			if fullCompareGroupContainment is True and len(compareIndicies) < len(groupIndicies):
-				formattedFGdata.pop(groupCounter)
+				formattedFGdata.pop(compareGroupCounter)
 				groupCounter = -1
 				break
 

@@ -20,6 +20,7 @@ O=C([R])[O-] Carboxylate
 [R]C([O-])=O Carboxylate
 [R]C(=O)O[R] Ester
 [R]OC(=O)[R] Ester
+[R]OC([R])=O Ester
 O=C([R])O[R] Ester
 O=C(O[R])[R] Ester
 O([R])C(=O)[R] Ester
@@ -36,6 +37,7 @@ O(O)[R] Hydroperoxide
 O([R])O[R] Peroxide
 [R]O[R] Ether
 O([R])[R] Ether
+[R](O)[R] Ether
 [R]C(=O)N([R])[R] Amide
 O=C([R])N([R])[R] Amide
 [R]N([R])C(=O)[R] Amide
