@@ -1,16 +1,38 @@
-# Written by William Riddle from 9/23/19 -
+# Written by William Riddle from 9/23/19 - 12/23/19
 
 import re
-import collections
 import sys
 
-# The data parsing functions written here slice the SMILEScode in various ways to obtain a string of a potential functionalGroup, represented in the FGlist.txt
-# To optimze the program, the data parsing functions can find the same group multiple times, such that a single functionalgroup may appear multiple times in FGdata
-# This is intended so that the SMILEScode can be looked at from various viewpoints, using its linearity, and to increase the accuracy and precision of the program
+# The data parsing functions written here slice the SMILEScode in various ways
+# to obtain a string of a potential functional group, represented as "templates"
+# in the file FGlist.txt. The template is just a string of characters, which
+# appears in the SMILEScode in different ways. The goal of this program is to
+# search the SMILEScode, with respect to how the molecules ring structure and
+# bond types appear, for these templates to match the corresponding functional
+# groups.
+
+# The program was optimzed by allowing the data parsing functions to find the
+# same functional group multiple times. This is to make sure that the SMILEScode
+# can be looked at from various viewpoints and from multiple "angles",
+# using its linearity. This maximizes the accuracy and precision of the program
+
+# The linearity of the SMILEScode is made possible by the parenthesis character
+# and integers which appear next to atom symbols and bonds. Analysis of hundreds
+# of SMILEScodes reveal the consistent patern of ring orientations and atom
+# bonding which is modeled throughout this program.
+
+# Essentially, the parenthesis and the number represent a so called "outer group",
+# or a specific atom or group of atoms which stems from a single atom. The number
+# strictly represents a single atom bound to another, while a parenthesis
+# represents another branch stemming from the atom which is directly next to the
+# opening parenthesis. The functional group templates recognize both as parenthesis
+# groups, whether it be an R group or a carbon bound inside of that outer group
+
+# The following variables are used throughout the program
 
 # VARIBLE DESCRIPTIONS
 
-# RN stands for rightNeighbor, and evalutes symbols to the right of the symbol of interest in the SMILEScode code
+# RN stands for rightNeighbor,   and evalutes symbols to the right of the symbol of interest in the SMILEScode code
 # LN stands for leftNeighbor, and evalutes symbols to the left of the symbol of interest in the SMILEScode code
 
 # FGinfo = (FGname, FGtemplate, FGindicies, FGdict) format of extracted functional group data from within the SMILEScode data parsing funcitons
@@ -63,7 +85,6 @@ RGROUPREGEX = re.compile(r'R')
 def ifg(SMILES):
 	global SMILEScode
 	SMILEScode = formatSMILEScode(SMILES) # Definition of SMILEScode
-	# #print("EVALUATING ", SMILEScode)
 	global SMILEScodelength
 	SMILEScodelength = len(SMILEScode)
 	SMILEScodePos = atomIndex = -1
@@ -78,21 +99,21 @@ def ifg(SMILES):
 
 		if symbol in PARENTHESIS:
 			# Do nothing
-			print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the PARENTHESIS group")
+			# #print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the PARENTHESIS group")
 			continue
 
 		elif symbol in CHARGES:
-			print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the CHARGE group")
+			# #print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the CHARGE group")
 			chargeGroup = chargeHandler(symbol, SMILEScodePos, atomIndex)
-			print("chargeHandler found ", chargeGroup, "\n")
+			# #print("chargeHandler found ", chargeGroup, "\n")
 			if chargeGroup is not False:
 				FGdata.append(chargeGroup)
 			del(chargeGroup)
 
 		elif symbol in ATOMS and SMILEScodePos != 0 and SMILEScodePos != SMILEScodelength - 1:
-			print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the ATOMS group, and is atom number ", atomIndex)
+			#print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the ATOMS group, and is atom number ", atomIndex)
 			directGroup = atomHandler(symbol, SMILEScodePos, atomIndex)
-			print("atomHandler found ", directGroup, "\n")
+			#print("atomHandler found ", directGroup, "\n")
 			if directGroup is not False:
 				# Direct group may have multiple FG's found, independently add them all
 				for group in directGroup:
@@ -100,31 +121,31 @@ def ifg(SMILES):
 			del(directGroup)
 
 		elif symbol in BONDS:
-			print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the BONDS group")
+			##print("SMILEScode[", SMILEScodePos, "] = ", symbol, " and belongs to the BONDS group")
 			bondGroup = bondHandler(symbol, SMILEScodePos, atomIndex)
-			print("bondHandler found ", bondGroup, "\n")
+			##print("bondHandler found ", bondGroup, "\n")
 			if bondGroup is not False:
 				FGdata.append(bondGroup)
 			del(bondGroup)
 
 	FGdataFinal = evaluateFGdata()
-	print(FGdataFinal)
+	##print(FGdataFinal)
 	FGdataDict = {}
 	for group in FGdataFinal:
 		keys = []
-		# #print("Group is ", group)
-		# #print(group[0])
+		# ###print("Group is ", group)
+		# ###print(group[0])
 		for key in FGdataDict.keys():
 			keys.append(key)
-		# #print(keys)
+		# ###print(keys)
 		if group[0] not in keys:
-			# #print(group[0], " is not in ", keys)
+			# ###print(group[0], " is not in ", keys)
 			FGdataDict.update({group[0] : 1})
 		else:
 			FGdataDict[group[0]] += 1
 		del(keys)
-	#print("Functional Groups Final Result:\n\n")
-	#print(FGdataDict)
+	###print("Functional Groups Final Result:\n\n")
+	###print(FGdataDict)
 	GITposition.clear()
 	FGdata.clear()
 	RINGPOSITIONS.clear()
@@ -141,7 +162,7 @@ def initializeRINGPOSITIONS():
 
 	# Main loop
 	for symbol in SMILEScode:
-		#print(RINGPOSITIONS)
+		##print(RINGPOSITIONS)
 		SMILEScodePos += 1
 
 		# Keep track of ATOM positional data for when a number is found
@@ -153,8 +174,8 @@ def initializeRINGPOSITIONS():
 
 		# When an unevalutaed number, or essentially a new ring, is found, evalute it
 		if symbol in NUMBERS and SMILEScodePos not in evaluatedNumbers:
-			#print("Found ", symbol, " at position ", SMILEScodePos)
-			#print(evaluatedNumbers)
+			##print("Found ", symbol, " at position ", SMILEScodePos)
+			##print(evaluatedNumbers)
 			# openingAtomPos pointing at the position of the atom symbol in SMILEScode 1 space before the first occurance of the number
 
 			# If the symbol before the number is not an atom, then it must be a bracket surrounding a charged atom.
@@ -195,7 +216,7 @@ def initializeRINGPOSITIONS():
 				# If the same number which began the sub loop is found, then the ring closure has been found
 				# The correlating atom positional data and opening atom data will be appended as a pair in RINGPOSITIONS
 				if subSymbol == symbol:
-					#print("Correlating number ", subSymbol, " was found at position ", correlatingPos)
+					##print("Correlating number ", subSymbol, " was found at position ", correlatingPos)
 
 					# If the ring opens with a charge, it must close with a charge. Re-assign positional variables
 					# This special case is evaluated in the same manner as in the opening case
@@ -264,7 +285,7 @@ def initializeRINGPOSITIONS():
 def evaluateFGdata():
 	formattedFGdata = []
 	groupCounter = -1
-	# print("FG data is ", FGdata)
+	# #print("FG data is ", FGdata)
 
 	# Intial loop removes reprititons of certain FG's in FGdata, places the result into formattedFGdata
 	for group in FGdata:
@@ -353,10 +374,10 @@ def isGroupInList(formattedFGdata, group):
 
 	# If there is an atom in formattedFGdata
 	if formattedFGdata:
-		# #print("formattedFGdata is ", formattedFGdata)
+		# ##print("formattedFGdata is ", formattedFGdata)
 
 		for compareGroup in formattedFGdata:
-			# #print("Compare group is ", compareGroup)
+			# ##print("Compare group is ", compareGroup)
 
 			# Comparative Variables
 			compareGroupTemplate = compareGroup[1]
@@ -373,6 +394,8 @@ def isGroupInList(formattedFGdata, group):
 			# Check for equivalent number of atoms
 			if len(compareGroupIndicies) == len(groupIndicies):
 				mainGroupCrossover = 0
+				print(groupDict, groupTemplate)
+				print(compareGroupDict, compareGroupTemplate)
 				for atom in groupDict:
 					for compareAtom in compareGroupDict:
 
@@ -398,14 +421,14 @@ def bondHandler(bondSymbol, bondPostion, atomIndex):
 	LNPos = RNPos = bondPostion # Initialized at the poistion of the bond
 	LNindex = RNindex = atomIndex # Initialized at the position of the previous atom to the left of where the bond appears
 	LN = RN = bondSymbol # Initialized as bondSymbol
-	print("LN = ", LN)
+	#print("LN = ", LN)
 
 
 	# Special case which occurs commonly as R(=R)
 	if SMILEScode[LNPos-1] == '(' and SMILEScode[LNPos-2] in ATOMS and SMILEScode[RNPos+1] in ATOMS and SMILEScode[RNPos+2] == ')':
 		atomIndicies = [atomIndex, atomIndex+1]
 		bondGroup = SMILEScode[LNPos-2] + "(=" + SMILEScode[RNPos+1] + ')'
-		# #print("Bond group from special case is ", bondGroup)
+		# ##print("Bond group from special case is ", bondGroup)
 		FGinfo = whichGroup(LNPos-2, RNPos+2, bondGroup, atomIndicies)
 		if FGinfo is not False:
 			FGinfo.append("specialLNgroup")
@@ -474,7 +497,7 @@ def bondHandler(bondSymbol, bondPostion, atomIndex):
 		bondGroup = LN + bondSymbol + RN
 
 	# Determine the group and return the info
-	print("Looking for group = ", bondGroup)
+	#print("Looking for group = ", bondGroup)
 	FGinfo = whichGroup(LNPos, RNPos, bondGroup, atomIndicies)
 	if FGinfo is not False:
 		FGinfo.append("regularBondGroup")
@@ -484,7 +507,7 @@ def bondHandler(bondSymbol, bondPostion, atomIndex):
 
 # Creates groups stemming from ATOMS symbol within SMILEScode
 def atomHandler(atomSymbol, atomPosition, atomIndex):
-	# #print("atomHandler is creating initial functional group shells...\n")
+	# ##print("atomHandler is creating initial functional group shells...\n")
 	# Initialize Variables
 	LNPos = atomPosition - 1
 	RNPos = atomPosition + 1
@@ -505,12 +528,12 @@ def atomHandler(atomSymbol, atomPosition, atomIndex):
 	# never collect the necessary group information. Therefore, the RNPos variable
 	# is incremented at the bottom of the loop instead of at the top and the information
 	# is analyzed in the next run of the loop as opposed to the immediate loop run
-	# #print("-----RN LOOP-----")
-	# #print("INTIAL CONDITIONS:\n")
-	# #print("rBlockCounter = ", rBlockCounter)
-	# #print("rInnerParenthGroup = ", rInnerParenthGroup, "\n")
-	# #print("SMILEScode[", RNPos, "] = RN = ", RN)
-	# #print("RNindex = ", atomIndex)
+	# ##print("-----RN LOOP-----")
+	# ##print("INTIAL CONDITIONS:\n")
+	# ##print("rBlockCounter = ", rBlockCounter)
+	# ##print("rInnerParenthGroup = ", rInnerParenthGroup, "\n")
+	# ##print("SMILEScode[", RNPos, "] = RN = ", RN)
+	# ##print("RNindex = ", atomIndex)
 	rBlockCounter = 0
 	rOuterGroups = 0
 	rInnerParenthGroup = "("
@@ -522,16 +545,16 @@ def atomHandler(atomSymbol, atomPosition, atomIndex):
 	loopCounter = 0
 	rOuterBoolean = True
 	while rBlockCounter > 0 or RN not in ATOMS:
-		#print(rOuterGroups)
+		##print(rOuterGroups)
 		if RNPos == SMILEScodelength - 1:
 			RN = ""
-			#print("NO Right group exists...")
+			##print("NO Right group exists...")
 			break
 		loopCounter += 1
 		if RN in ATOMS:
 			RNindex += 1
 		# Add RN numbers handler
-		# #print(loopCounter)
+		# ##print(loopCounter)
 		# IF RN in the same grouping layer as atomSymbol
 
 		# If scope of RN loop is within a parenthesis, capture the information inside of it with respect to atomSymbol
@@ -548,17 +571,17 @@ def atomHandler(atomSymbol, atomPosition, atomIndex):
 				rInnerParenthIndicies.append(numGroup[1])
 				rInnerParenthGroup += numGroup[0]
 		if rOuterBoolean is False and rBlockCounter == 0:
-			#print("Reset rOuterBoolean to ", rOuterBoolean)
+			##print("Reset rOuterBoolean to ", rOuterBoolean)
 			rOuterBoolean = True
-			#print("Found inner group and added one to ", rOuterGroups, " and set rOuterBoolean to ", rOuterBoolean)
+			##print("Found inner group and added one to ", rOuterGroups, " and set rOuterBoolean to ", rOuterBoolean)
 
-		# #print("RN LOOP INFO:\n")
-		# #print("rBlockCounter = ", rBlockCounter)
-		# #print("RNpos = ", RNPos)
-		# #print("SMILEScode[", RNPos, "] = RN = ", RN)
-		# #print("rInnerParenthGroup = ", rInnerParenthGroup)
-		# #print("RNindex = ", RNindex)
-		# #print("numGroup = ", numGroup)
+		# ##print("RN LOOP INFO:\n")
+		# ##print("rBlockCounter = ", rBlockCounter)
+		# ##print("RNpos = ", RNPos)
+		# ##print("SMILEScode[", RNPos, "] = RN = ", RN)
+		# ##print("rInnerParenthGroup = ", rInnerParenthGroup)
+		# ##print("RNindex = ", RNindex)
+		# ##print("numGroup = ", numGroup)
 		if RN in BONDS and rBlockCounter == 0:
 			RNbond = RN
 		if RN == '(':
@@ -573,30 +596,30 @@ def atomHandler(atomSymbol, atomPosition, atomIndex):
 
 		RNPos += 1
 		RN = SMILEScode[RNPos]
-		# #print("Made it to the end of this loop!")
-		# #print("RN = ", RN)
-		# #print("InnerLoop = ", innerLoop)
+		# ##print("Made it to the end of this loop!")
+		# ##print("RN = ", RN)
+		# ##print("InnerLoop = ", innerLoop)
 	else:
 		RNindex += 1
-		#print("CEASED ON ", loopCounter)
-		#print("\nRN LOOP RESULT:\n")
-		#print("rBlockCounter = ", rBlockCounter)
-		#print("RNpos = ", RNPos)
-		#print("SMILEScode[", RNPos, "] = RN = ", RN)
-		#print("rInnerParenthGroup = ", rInnerParenthGroup)
-		#print("RNindex = ", RNindex)
-		#print("numGroup = ", numGroup)
-		#print("Not terminated by a break!")
+		##print("CEASED ON ", loopCounter)
+		##print("\nRN LOOP RESULT:\n")
+		##print("rBlockCounter = ", rBlockCounter)
+		##print("RNpos = ", RNPos)
+		##print("SMILEScode[", RNPos, "] = RN = ", RN)
+		##print("rInnerParenthGroup = ", rInnerParenthGroup)
+		##print("RNindex = ", RNindex)
+		##print("numGroup = ", numGroup)
+		##print("Not terminated by a break!")
 
 # !!!!!!!!!!!!! RN LOOP END !!!!!!!!!!!!!!!!!!!
 
 	rInnerAtoms = ATOMSREGEX.findall(rInnerParenthGroup)
 
-	# #print("Matches = ", matches)
+	# ##print("Matches = ", matches)
 	atomCount = len(rInnerAtoms)
 
-	#print("atomCount == ", atomCount)
-	#print(rOuterGroups)
+	##print("atomCount == ", atomCount)
+	##print(rOuterGroups)
 
 	# If there are more than 2 atoms inside the inner RN group and there is only one parenthesis group
 	if atomCount > 2 and rOuterGroups < 1:
@@ -631,7 +654,7 @@ def atomHandler(atomSymbol, atomPosition, atomIndex):
 	elif atomCount == 1 and rOuterGroups < 1:
 
 		rInnerParenthGroup = atomSymbol + rInnerParenthGroup
-		# #print("Evalutating rInnerParenthGroup", rInnerParenthGroup)
+		# ##print("Evalutating rInnerParenthGroup", rInnerParenthGroup)
 		info = whichGroup(atomPosition, rInnerParenthGroupPositions[-1]+1, rInnerParenthGroup, [atomIndex, rInnerParenthIndicies[0]])
 		if info is not False:
 			info.append("singleInnerRNGroup")
@@ -659,8 +682,8 @@ def atomHandler(atomSymbol, atomPosition, atomIndex):
 		firstParenthesisGroupIndicies = rInnerParenthIndicies[0:firstEndAtom]
 		secondParenthesisGroup = '(' + rInnerParenthGroup[firstEndParenthesis:len(rInnerParenthGroup)]
 		secondParenthesisGroupIndicies = rInnerParenthIndicies[firstEndAtom:len(rInnerParenthIndicies)]
-		#print(firstParenthesisGroup, " with indicies ", firstParenthesisGroupIndicies)
-		#print(secondParenthesisGroup, " with indicies ", secondParenthesisGroupIndicies)
+		##print(firstParenthesisGroup, " with indicies ", firstParenthesisGroupIndicies)
+		##print(secondParenthesisGroup, " with indicies ", secondParenthesisGroupIndicies)
 		if firstParenthesisGroup != secondParenthesisGroup:
 			rInnerParenthGroupV1 = atomSymbol + '(' + firstParenthesisGroup[1] + ')' + secondParenthesisGroup[1]
 			info = whichGroup(atomPosition, rInnerSmilesPos + 1, rInnerParenthGroupV1, [atomIndex, firstParenthesisGroupIndicies[0], secondParenthesisGroupIndicies[0]])
@@ -673,20 +696,20 @@ def atomHandler(atomSymbol, atomPosition, atomIndex):
 				info.append("RNdoubleOuter/secondOuterInside")
 				FGinfo.append(info)
 	elif rOuterGroups > 2:
-		#print("There was an error")
+		##print("There was an error")
 		return 0
 
 	# Combine RN info and determine whichGroup. If RN is empty, do not run this portion of code
-	# #print("RN = ", RN)
+	# ##print("RN = ", RN)
 	if RN != "":
 		RNgroup = atomSymbol + RNbond + RN
-		print("RNgroup is ", RNgroup)
+		#print("RNgroup is ", RNgroup)
 		RNindicies = [atomIndex, RNindex]
 		info = whichGroup(atomPosition, RNPos, RNgroup, RNindicies)
 		if info is not False:
 			info.append("RNgroupWithBond")
 			FGinfo.append(info)
-		print("found, ", info)
+		#print("found, ", info)
 
 
 	# !!!!!!!!!!!!!  LN LOOP  !!!!!!!!!!!!!!!
@@ -717,18 +740,18 @@ def atomHandler(atomSymbol, atomPosition, atomIndex):
 	if lOuterNumGroup:
 		LNindicies = [LNindex, lOuterNumGroup[1], atomIndex]
 		LNgroup = LN + '(' +  lOuterNumGroup[0] + ')' + LNbond + atomSymbol
-		print("LNgroup with number is ", LNgroup)
+		#print("LNgroup with number is ", LNgroup)
 	else:
 		LNindicies = [LNindex, atomIndex]
 		LNgroup = LN + LNbond + atomSymbol
 
-	print("LN group is ", LNgroup, " with indicies ", LNindicies)
+	#print("LN group is ", LNgroup, " with indicies ", LNindicies)
 	info = whichGroup(LNPos, atomPosition, LNgroup, LNindicies)
 	if info is not False:
 		info.append("LNgroupWithNumber/Bond")
 		FGinfo.append(info)
 
-	# #print("atomHandler found the group info to be, ", FGinfo)
+	# ##print("atomHandler found the group info to be, ", FGinfo)
 	# If entries are in FGinfo, return it. Otherwise return False
 	if FGinfo:
 		return FGinfo
@@ -757,7 +780,7 @@ def chargeHandler(chargeSymbol, chargePostion, atomIndex):
 def whichGroup(startPosition, endPosition, group, atomIndicies):
 
 
-	# #print("finding the group for ", group)
+	# ##print("finding the group for ", group)
 	# Holds templates which contain group, sent to expandGroup to attempt a fullMatch
 	portionMatches = []
 
@@ -777,7 +800,7 @@ def whichGroup(startPosition, endPosition, group, atomIndicies):
 
 		match = checkGroup(group, FGtemplate, False)
 		# if FGname == "SecondaryAmine":
-		# 	#print("match between ", group, " and ", FGtemplate, " is, ", match)
+		# 	##print("match between ", group, " and ", FGtemplate, " is, ", match)
 		# If group is larger than the template, or no match was found, skip
 		if difference < 0 or match is False:
 			continue
@@ -794,32 +817,32 @@ def whichGroup(startPosition, endPosition, group, atomIndicies):
 
 	# If a group was found without any portions, return group match information
 	if fullMatch and not portionMatches:
-		print("fullMatch True, portionMatches False")
+		#print("fullMatch True, portionMatches False")
 		return fullInfo
 
 	# If a fullMatch and a portion was found, determine if on of the portions complete a group. Take expandGroup if it exists, otherwise take fullMatch
 	elif fullMatch and portionMatches:
 		expandedGroup = expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches)
 		if expandedGroup is not False:
-			print("Fullmatch with Expanded Group")
+			#print("Fullmatch with Expanded Group")
 			return expandedGroup
 		else:
-			print("Fullmatch with NO Expand Group")
+			#print("Fullmatch with NO Expand Group")
 			return fullInfo
 
 	# If there are portions, determine if they complete a group
 	elif fullMatch is False and portionMatches:
 		expandedGroup = expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches)
 		if expandedGroup is not False:
-			print("No full match but Expand Group")
+			#print("No full match but Expand Group")
 			return expandedGroup
 		else:
-			print("No full match or expandGroup")
+			#print("No full match or expandGroup")
 			return False
 
 	# If there is no matches at all, return False
 	elif fullMatch is False and not portionMatches:
-		print("No full match or portionMatches")
+		#print("No full match or portionMatches")
 		return False
 
 
@@ -882,9 +905,9 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches,
 				finalAtomIndicies.append(index)
 		numRequiredGroupAtoms = len(ATOMSREGEX.findall(requiredGroup))
 		if recursive is True and numRequiredGroupAtoms != len(atomIndicies):
-			print("atomIndicies IS popped")
+			#print("atomIndicies IS popped")
 			finalAtomIndicies.pop(-1)
-			print(atomIndicies)
+			#print(atomIndicies)
 		print("leftExpand = ", leftExpand)
 		print("rightExpand = ", rightExpand)
 		print("requiredGroup = ", requiredGroup)
@@ -905,7 +928,7 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches,
 		while leftExpand is True:
 			LNPos -= 1
 			LNtempPos -= 1
-			print("leftExpansionFail = ", leftExpansionFail)
+			#print("leftExpansionFail = ", leftExpansionFail)
 			if len(requiredGroup) == numLeftRequired or leftExpansionFail is True:
 				break
 			if LNPos < 0:
@@ -956,7 +979,7 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches,
 						if LN == '(':
 							lBlockCounter -= 1
 						if lBlockCounter != 0 and LN in ATOMS:
-							LNindex -= 1
+							LNIndex -= 1
 						if (lBlockCounter == 0 and LN not in BRACKETS) or LNPos < 0:
 							leftExpansionFail = True
 							break
@@ -1032,18 +1055,20 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches,
 					leftExpansionFail = True
 					break
 			elif LNtemp in BONDS:
-				print("LNtemp = ", LNtemp)
-				print("LN = ", LN)
-				if LN not in BONDS and SMILEScode[LNPos-1] not in BONDS:
-					print("LN != BONDS and LN-1 != BONDS")
+				#print("LNtemp = ", LNtemp)
+				#print("LN = ", LN)
+				if LN in NUMBERS and (LNPos-1) >= 0:
+					if SMILEScode[LNPos-1] == LNtemp:
+						requiredGroup += SMILEScode[LNPos-1]
+						LNPos -= 1
+					else:
+						leftExpansionFail = True
+						break
+				if LN == LNtemp:
+					requiredGroup += LN
+				else:
 					leftExpansionFail = True
 					break
-				if LN in BONDS:
-					requiredGroup += LN
-				elif SMILEScode[LNPos-1] in BONDS:
-					LNPos -= 1
-					LN = SMILEScode[LNPos]
-					requiredGroup += LN
 			elif LNtemp in CHARGES:
 				if LN not in CHARGES:
 					leftExpansionFail = True
@@ -1057,7 +1082,7 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches,
 				else:
 					requiredGroup += LN
 		if leftExpansionFail is True: # If loop failed, then match is impossible within SMILEScode
-			print("leftExpansion failed, continuing")
+			#print("leftExpansion failed, continuing")
 			continue
 		# If there was a leftExpansion and the loop did not fail, then attatch the group and indicies to finalAtomIndicies
 		# If there was no leftExpansion, requiredGroup is already equal to group, see above the loop
@@ -1074,14 +1099,14 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches,
 
 		RNPos = endPosition # RNPosition in SMILEScode
 		RNIndex = atomIndicies[-1] # RNindex in SMILEScode
-		RNtempPos = posInTemplate + len(group) - 1 # RNtemplateposition, intialized at final position of group within template
+		RNtempPos = len(requiredGroup) - 1 # RNtemplateposition, intialized at final position of group within template
 		if leftExpand is False:
 			RNtempPos = len(group) - 1
 		while rightExpand is True:
 			RNPos += 1
 			RNtempPos += 1
 			if len(requiredGroup) == len(template): # If requiredGroup reaches the length of the template, then a match has been found
-				print(requiredGroup, " == ", template)
+				#print(requiredGroup, " == ", template)
 				break
 			if RNPos > SMILEScodelength - 1 or rightExpansionFail is True:
 				rightExpansionFail = True
@@ -1232,12 +1257,12 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches,
 					RNtempPos += 1
 					RNtemp = template[RNtempPos]
 					parenthesiedTemp += RNtemp
-				print("parenthesiedTemp = ", parenthesiedTemp)
+				#print("parenthesiedTemp = ", parenthesiedTemp)
 				if RN in NUMBERS:
 					numGroup = numbersHandler(RNPos)
 					outerParenthesied = '(' + numGroup[0] + ')'
 					validNumGroup = checkGroup(outerParenthesied, parenthesiedTemp, True)
-					print("validNumGroup = ", validNumGroup)
+					#print("validNumGroup = ", validNumGroup)
 					if validNumGroup is False:
 						rightExpansionFail = True
 						break
@@ -1250,8 +1275,8 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches,
 					outerParenthesied = '(' + SMILEScode[correlatingParenthPos+1:correlatingParenthPos+1+len(parenthesiedTemp)-2] + ')'
 					innerExpand = checkGroup(innerParenthesied, parenthesiedTemp, True)
 					outerExpand = checkGroup(outerParenthesied, parenthesiedTemp, True)
-					print("innerParenthesied = ", innerParenthesied)
-					print("outerParenthesied = ", outerParenthesied)
+					#print("innerParenthesied = ", innerParenthesied)
+					#print("outerParenthesied = ", outerParenthesied)
 					if innerExpand is True:
 						indicies = []
 						for index in finalAtomIndicies:
@@ -1260,7 +1285,7 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches,
 						for number in range(0,numAtoms):
 							indicies.append(innerIndex+number)
 						indicies.append(outerIndex-1) # Ensure that OuterExpansion begins on the correct index
-						print("Outer expanding with ", requiredGroup+innerParenthesied, " and the index's", indicies)
+						#print("Outer expanding with ", requiredGroup+innerParenthesied, " and the index's", indicies)
 						OuterExpansion = expandGroup(startPosition, correlatingParenthPos, requiredGroup+innerParenthesied, indicies, [portionGroup], True)
 						if OuterExpansion is not False:
 							matches.append(OuterExpansion)
@@ -1273,7 +1298,7 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches,
 						for number in range(0,numAtoms):
 							indicies.append(outerIndex+number)
 						indicies.append(innerIndex-1) # Ensure that InnerExpansion begins on the correct index
-						print("Inner expanding with ", requiredGroup+ outerParenthesied, " and the indicies ", indicies)
+						#print("Inner expanding with ", requiredGroup+ outerParenthesied, " and the indicies ", indicies)
 						InnerExpansion = expandGroup(startPosition, RNPos, requiredGroup+outerParenthesied, indicies, [portionGroup], True)
 						if InnerExpansion is not False:
 							matches.append(InnerExpansion)
@@ -1285,21 +1310,33 @@ def expandGroup(startPosition, endPosition, group, atomIndicies, portionMatches,
 					rightExpansionFail = True
 					break
 			elif RNtemp == ')':
-				next = 1
+				if RN in NUMBERS and (RNPos+1) < SMILEScodelength:
+					if SMILEScode[RNPos+1] == ')':
+						requiredGroup += SMILEScode[RNPos+1]
+						RNPos+=1
+					else:
+						rightExpansionFail = True
+						break
+				elif RN == ')':
+					requiredGroup += RN
+				else:
+					rightExpansionFail = True
+					break
+
 		if rightExpansionFail is True:
-			print("rightExpansionFail = ", rightExpansionFail)
+			#print("rightExpansionFail = ", rightExpansionFail)
 			continue
 		elif rightExpansionFail is False:
-			print("rightExpansionFail = ", rightExpansionFail)
+			#print("rightExpansionFail = ", rightExpansionFail)
 			finalCheck = checkGroup(requiredGroup, template, True)
-			print("finalCheck = ", finalCheck)
-			print(len(finalAtomIndicies), " == ", numTemplateAtoms)
+			#print("finalCheck = ", finalCheck)
+			#print(len(finalAtomIndicies), " == ", numTemplateAtoms)
 			# A final check for if the group is identical to requiredGroup and the number of atom indicies is equal to the number of atoms in the template
 			if finalCheck is True and len(finalAtomIndicies) == numTemplateAtoms:
 				finalDict = createFGDict(finalAtomIndicies, template)
 				FGinfo = [FGname, template, finalAtomIndicies, finalDict]
-				print(FGinfo)
-				print(len(portionMatches))
+				#print(FGinfo)
+				#print(len(portionMatches))
 				if len(portionMatches) == 1: # If only one portionMatch, then it must be a recursive call because expandGroup always has more than one portion
 					return FGinfo
 				else:
@@ -1346,15 +1383,15 @@ def numbersHandler(numPosition):
 def createFGDict(FGindicies, FGtemplate):
 	FGdict = []
 	indexCounter = -1
-	print(FGindicies)
+	#print(FGindicies)
 	numAtoms = len(ATOMSREGEX.findall(FGtemplate))
-	print(numAtoms)
+	#print(numAtoms)
 	for symbol in FGtemplate:
 		if symbol in ATOMS or symbol == 'R':
 			indexCounter += 1
-			print(indexCounter)
+			#print(indexCounter)
 			FGdict.append([symbol, FGindicies[indexCounter]])
-	print(FGdict)
+	#print(FGdict)
 	return FGdict
 
 
@@ -1366,8 +1403,8 @@ def checkGroup(group, template, full=True):
 
 	group = group.upper()
 	difference = len(template) - len(group)
-	# #print("Checking ", group, " aginast ", template)
-	# #print("There is a difference of ", difference, " while full = " , full)
+	# ##print("Checking ", group, " aginast ", template)
+	# ##print("There is a difference of ", difference, " while full = " , full)
 	# Group larger than template, return False
 	if difference < 0:
 		return False

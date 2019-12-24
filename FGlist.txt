@@ -37,7 +37,6 @@ O(O)[R] Hydroperoxide
 O([R])O[R] Peroxide
 [R]O[R] Ether
 O([R])[R] Ether
-[R](O)[R] Ether
 [R]C(=O)N([R])[R] Amide
 O=C([R])N([R])[R] Amide
 [R]N([R])C(=O)[R] Amide
