@@ -1,5 +1,4 @@
-# IFG
-(Identify Functional Groups)
+# IFG (Identify Functional Groups)
 A python script which extracts functional group data from SMILES (Simplified molecular-input line-entry system) codes
 
 The data parsing functions written in IFG.py slice and group the characters in
