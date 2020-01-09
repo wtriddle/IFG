@@ -134,8 +134,11 @@ def ifg(SMILES, SMILESWH):
 	else:
 		print("Fatal ring count error. Exiting..")
 		print(nonAromaticRingCount, " + ", aromaticRingCount, " != ", ringCount )
+		print(RINGPOSITIONS)
+		print(SMILEScode)
 
 	# Dump the data to prevent any data leaks or potential errors
+	# print(RINGPOSITIONS)
 	GITposition.clear()
 	FGdata.clear()
 	RINGPOSITIONS.clear()
@@ -151,10 +154,14 @@ def initializeRINGPOSITIONS():
 	# Initializations
 	SMILEScodePos = atomIndex = -1 # Counters
 	evaluatedNumbers = [] # List that tracks the string positions of the numbers whose ring junction information has already been determined
-	chargeGroup = "" # Holds charged atoms if a chargeGroup opens or closes a ring. Reset to "" for subsequent charge groups
 
 	# Main Loop
 	for symbol in SMILEScode:
+
+		# Two properoties which distinguish if a number is an outer group, i.e. ([R]), or a linear group, i.e. [R].
+		# See documentation for explanation of this SMILEScode analysis
+		openingProperty = ""
+		closingProperty = ""
 		##print(RINGPOSITIONS)
 		SMILEScodePos += 1
 
@@ -167,6 +174,7 @@ def initializeRINGPOSITIONS():
 
 		# When an unevalutaed number, or essentially a new ring, is encountered, evalute it
 		if symbol in NUMBERS and SMILEScodePos not in evaluatedNumbers:
+			chargeGroup = "" # Holds charged atoms if a chargeGroup opens or closes a ring. Reset to "" for subsequent charge groups
 			##print("Found ", symbol, " at position ", SMILEScodePos)
 			##print(evaluatedNumbers)
 
@@ -229,20 +237,58 @@ def initializeRINGPOSITIONS():
 							specialSymbol = SMILEScode[specialCounter]
 						correlatingChargeGroup = correlatingChargeGroup[::-1] # Flip because of leftward expansion
 
-						# Reset the variables in this special case
-						correlatingAtom = correlatingChargeGroup
-						correlatingAtomPos = specialCounter
+						# Charge group must be a length of at most 4. Anything larger suggests an error, so take the other atom first
+						if len(correlatingChargeGroup) <= 4:
+							# Reset the variables in this special case
+							correlatingAtom = correlatingChargeGroup
+							correlatingAtomPos = specialCounter
+
+					# Determine linear or outer distinctions for each atom
+
+					# Opening property distinction
+					RNPos = openingAtomPos
+					RN = SMILEScode[RNPos]
+					while openingProperty == "":
+						RNPos+=1
+						if RNPos >= SMILEScodelength - 1:
+							openingProperty = "Linear"
+							break
+						RN = SMILEScode[RNPos]
+						if RN in ATOMS or RN in BONDS:
+							openingProperty = "Outer"
+							break
+						if RN == ')':
+							openingProperty = "Linear"
+							break
+
+					# Correlating or closing property distinction
+					RNPos = correlatingPos
+					RN = SMILEScode[RNPos]
+					while closingProperty == "":
+						RNPos+=1
+						if RNPos >= (SMILEScodelength - 1):
+							closingProperty = "Linear"
+							break
+						RN = SMILEScode[RNPos]
+						if RN in ATOMS or RN in BONDS:
+							closingProperty = "Outer"
+							break
+						if RN == ')':
+							closingProperty = "Linear"
+							break
 
 					RINGPOSITIONS.append([
 						[
 						SMILEScodePos,
 						openingAtom,
 						atomIndex,
-						openingAtomPos],
+						openingAtomPos,
+						openingProperty],
 						[correlatingPos,
 						correlatingAtom,
 						correlatingIndex,
-						correlatingAtomPos]
+						correlatingAtomPos,
+						closingProperty]
 						])
 
 					# Add numbers to evaluted list
@@ -484,10 +530,10 @@ def bondHandler(bondSymbol, bondPostion, atomIndex):
 	# Bond Group creation according to the specific case
 	if lOuterNumGroup and lOuterParenthGroup:
 		atomindices = [LNindex, lOuterNumGroup[1], lOuterindices[0], RNindex]
-		bondGroup = LN + lOuterNumGroup[0] + lOuterParenthGroup + bondSymbol + RN
+		bondGroup = LN  + '(' +lOuterNumGroup[0] + ')' + lOuterParenthGroup + bondSymbol + RN
 	elif lOuterNumGroup and not lOuterParenthGroup:
 		atomindices = [LNindex, lOuterNumGroup[1], RNindex]
-		bondGroup = LN + lOuterNumGroup[0] + bondSymbol + RN
+		bondGroup = LN + '(' + lOuterNumGroup[0] + ')' + bondSymbol + RN
 	elif lOuterParenthGroup and not lOuterNumGroup:
 		atomindices = [LNindex, lOuterindices[0], RNindex]
 		bondGroup = LN + lOuterParenthGroup + bondSymbol + RN
@@ -564,7 +610,11 @@ def atomHandler(atomSymbol, atomPosition, atomIndex):
 			if RN in NUMBERS:
 				numGroup = numbersHandler(RNPos)
 				rInnerParenthindices.append(numGroup[1])
-				rInnerParenthGroup += numGroup[0]
+				if numGroup[3] == "Linear":
+					rInnerParenthGroup += numGroup[0]
+				elif numGroup[3] == "Outer":
+					outerGroup = '(' + numGroup[0] + ')'
+					rInnerParenthGroup += outerGroup
 		if rOuterBoolean is False and rBlockCounter == 0:
 			##print("Reset rOuterBoolean to ", rOuterBoolean)
 			rOuterBoolean = True
@@ -1142,12 +1192,20 @@ def expandGroup(startPosition, endPosition, group, atomindices, portionMatches, 
 							rightExpansionFail = True
 						elif OuterExpansion is not False and recursive is True:
 							return OuterExpansion
-				if RN in NUMBERS and (RNPos+1) < SMILEScodelength:
-					if SMILEScode[RNPos+1] in ATOMS:
-						RNIndex += 1
-						requiredGroup += SMILEScode[RNPos+1]
-						RNPos += 1
-						finalAtomindices.append(RNIndex)
+				if RN in NUMBERS:
+					numGroup = numbersHandler(RNPos)
+					if numGroup[3] == "Linear":
+						requiredGroup += numGroup[0]
+						finalAtomindices.append(numGroup[1])
+					elif (RNPos+1) < SMILEScodelength:
+						if SMILEScode[RNPos+1] in ATOMS:
+							RNIndex += 1
+							requiredGroup += SMILEScode[RNPos+1]
+							RNPos += 1
+							finalAtomindices.append(RNIndex)
+						else:
+							rightExpansionFail = True
+							break
 					else:
 						rightExpansionFail = True
 						break
@@ -1175,12 +1233,20 @@ def expandGroup(startPosition, endPosition, group, atomindices, portionMatches, 
 							rightExpansionFail = True
 						elif OuterExpansion is not False and recursive is True:
 							return OuterExpansion
-				if RN in NUMBERS and (RNPos+1) < SMILEScodelength:
-					if SMILEScode[RNPos+1] == RNtemp:
-						RNIndex += 1
-						requiredGroup += SMILEScode[RNPos+1]
-						RNPos += 1
-						finalAtomindices.append(RNIndex)
+				if RN in NUMBERS:
+					numGroup = numbersHandler(RNPos)
+					if numGroup[3] == "Linear" and numGroup[0] == RNtemp:
+						requiredGroup += numGroup[0]
+						finalAtomindices.append(numGroup[1])
+					elif (RNPos+1) < SMILEScodelength:
+						if SMILEScode[RNPos+1] == RNtemp:
+							RNIndex += 1
+							requiredGroup += SMILEScode[RNPos+1]
+							RNPos += 1
+							finalAtomindices.append(RNIndex)
+						else:
+							rightExpansionFail = True
+							break
 					else:
 						rightExpansionFail = True
 						break
@@ -1208,10 +1274,28 @@ def expandGroup(startPosition, endPosition, group, atomindices, portionMatches, 
 							rightExpansionFail = True
 						elif OuterExpansion is not False and recursive is True:
 							return OuterExpansion
-				if RN in NUMBERS and (RNPos+1) < SMILEScodelength:
-					if SMILEScode[RNPos+1] in BRACKETS:
-						requiredGroup += RN
-						RNPos += 1
+				if RN in NUMBERS:
+					numGroup = numbersHandler(RNPos)
+					if numGroup[3] == "Linear" and numGroup[0][0] == '[':
+						loopCounter = 0
+						for char in numGroup:
+							loopCounter += 1
+							if char != template[RNtempPos]:
+								break
+						if loopCounter == len(numGroup):
+							requiredGroup += numGroup[0]
+							finalAtomindices.append(numGroup[1])
+							RNtempPos += (len(numGroup[0]) - 2)
+						else:
+							rightExpansionFail = True
+							break
+					elif (RNPos+1) < SMILEScodelength:
+						if SMILEScode[RNPos+1] in BRACKETS:
+							requiredGroup += RN
+							RNPos += 1
+						else:
+							rightExpansionFail = True
+							break
 					else:
 						rightExpansionFail = True
 						break
@@ -1264,7 +1348,12 @@ def expandGroup(startPosition, endPosition, group, atomindices, portionMatches, 
 				# print("parenthesiedTemp = ", parenthesiedTemp)
 				if RN in NUMBERS:
 					numGroup = numbersHandler(RNPos)
-					outerParenthesied = '(' + numGroup[0] + ')'
+					# If group is outer, add it. If it is linear, incompatable and group does not exist where number is represented at
+					if numGroup[3] == "Outer":
+						outerParenthesied = '(' + numGroup[0] + ')'
+					else:
+						rightExpansionFail = True
+						break
 					validNumGroup = checkGroup(outerParenthesied, parenthesiedTemp, True)
 					# print("validNumGroup = ", validNumGroup)
 					if validNumGroup is False:
@@ -1377,11 +1466,11 @@ def numbersHandler(numPosition):
 
 		# If the number OPENS the group, return the CLOSING info
 		if RINGGROUP[0][0] == numPosition:
-			return(RINGGROUP[1][1], RINGGROUP[1][2], RINGGROUP[1][3])
+			return(RINGGROUP[1][1], RINGGROUP[1][2], RINGGROUP[1][3], RINGGROUP[0][4])
 
 		# If the number CLOSES the group, return the OPENING info
 		elif RINGGROUP[1][0] == numPosition:
-			return(RINGGROUP[0][1], RINGGROUP[0][2], RINGGROUP[0][3])
+			return(RINGGROUP[0][1], RINGGROUP[0][2], RINGGROUP[0][3], RINGGROUP[1][4])
 
 
 def createFGDict(FGindices, FGtemplate):
@@ -1477,7 +1566,7 @@ def initializeCYCLICINDICES():
 
 		if symbol in NUMBERS and SMILEScodePos not in evaluatedNumbers:
 			# print("Found ", symbol, " at position, ", SMILEScodePos)
-			print("\n")
+			# print("\n")
 
 			outerIndices = []
 			rBlockCounter = 0 # Counter to ensure same scope of indicies is appended to CYCLICINDICES

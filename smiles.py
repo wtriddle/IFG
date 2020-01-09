@@ -20,6 +20,7 @@ for line in open('FGlist.txt', 'r'):
     groupName = lineInfo[1]
     if groupName not in functionalGroups:
         functionalGroups.append(groupName)
+functionalGroups.append("Alcohol")
 
 # Sort them alphabetically
 functionalGroups.sort()
@@ -35,14 +36,19 @@ for name in holder:
         insertions += 1
     insertions += 1
 
+
 # Insert names into the top row
-for column in range(3, len(functionalGroups)):
+for column in range(3, len(functionalGroups)+3):
     fgSheet.cell(row=1,column=column).value = functionalGroups[column-3]
 
+fgSheet.cell(row=1, column=len(functionalGroups)+3).value = "aromaticRingCount"
+fgSheet.cell(row=1, column=len(functionalGroups)+4).value = "nonAromaticRingCount"
+fgSheet.cell(row=1, column=len(functionalGroups)+5).value = "RingCount"
+fgSheet.cell(row=1, column=len(functionalGroups)+6).value = "AminoAcid"
 
 rowCounter = 1
 maxColumn = fgSheet.max_column
-# print(functionalGroups)
+print(functionalGroups)
 
 for line in open('smiles.txt', 'r'):
     rowCounter += 1
@@ -61,5 +67,13 @@ for line in open('smiles.txt', 'r'):
         for column in range(2,maxColumn+1):
             if fgSheet.cell(row=1, column=column).value == group[0]:
                 fgSheet.cell(row=rowCounter, column=column).value = int(group[1])
+                if group[0] == "AminoAcid" and int(group[1]) == 1:
+                    fgSheet.cell(row=rowCounter, column=column).value = "Yes"
+                elif group[0] == "AminoAcid" and int(group[1]) == 0:
+                    fgSheet.cell(row=rowCounter, column=column).value = "No"
                 break
 fgWorkbook.save("functionalGroupData.xlsx")
+
+# data = ifg.ifg("CC1(C)OC(CC(O)=O)C(=O)O1","[CH3]C1([CH3])O[CH]([CH2]C(=O)[OH])C(=O)O1")
+# print("CC1(C)OC(CC(O)=O)C(=O)O1")
+# print(data)
