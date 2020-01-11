@@ -21,7 +21,7 @@ O=C([NH]c1[cH][cH][cH]c2[cH][cH][cH][cH]c12)[NH]c1[cH][cH][cH]c2[cH][cH][cH][cH]
 [CH3]C1([CH2][CH2][CH2][CH2][CH2]1)OC(=O)c1c2[cH][cH][cH][cH]c2[cH]c2[cH][cH][cH][cH]c12  CC1(CCCCC1)OC(=O)c1c2ccccc2cc2ccccc12  ANOBAH
 [CH3]C([CH3])([CH3])OC(=O)C12[CH]3c4[cH][cH][cH][cH]c4C([CH](c4[cH][cH][cH][cH]c14)c1[cH][cH][cH][cH]c21)(C(=O)OC([CH3])([CH3])[CH3])c1[cH][cH][cH][cH]c31  CC(C)(C)OC(=O)C12C3c4ccccc4C(C(c4ccccc14)c1ccccc21)(C(=O)OC(C)(C)C)c1ccccc31  ANODAJ
 [CH3]OC(=O)[CH]1[CH2][NH]c2[cH][cH][cH][cH]c2n2[cH][cH]nc2[CH]1[OH]  COC(=O)C1CNc2ccccc2N2C=CN=C2C1O  APENIT
-[CH3]O[CH]1O[CH]([CH2][OH])[CH]([OH])[CH]([OH])[CH]1[NH][CH]=O  COC1OC(CO)C(O)C(O)C1NC=O  APOLUN
+[CH3]O[CH]1O[CH]([CH2][OH])[CH]([OH])[CH]([OH])[CH]1[N`H][CH]=O  COC1OC(CO)C(O)C(O)C1NC=O  APOLUN
 [CH3]OC1(c2[cH][cH][cH][cH][cH]2)c2[cH][cH][cH][cH]c2C(O[CH3])(c2[cH][cH][cH][cH][cH]2)c2[cH][cH][cH][cH]c12  COC1(c2ccccc2)c2ccccc2C(OC)(c2ccccc2)c2ccccc12  APOXOT
 O=C1[NH][CH2][CH2][CH2][NH]1  O=C1NCCCN1  APYFEB01
 [CH3]Oc1[cH][cH]c([cH][cH]1)C1=NC([CH3])(OC21C(=O)N([CH3])c1[cH][cH][cH][cH]c21)C(=O)O[CH3]  COc1ccc(cc1)C1=NC(C)(OC21C(=O)N(C)c1ccccc21)C(=O)OC  ASOLUQ
