@@ -1,5 +1,4 @@
 C=C Alkene
-C([R])=C Alkene
 C#C Alkyne
 [R]C(=O)[R] Ketone
 O=C([R])[R] Ketone
@@ -34,21 +33,17 @@ O(O)[R] Hydroperoxide
 O([R])O[R] Peroxide
 [R]O[R] Ether
 O([R])[R] Ether
+[R]C(N)=O Amide
 [R]C(=O)N[R] Amide
 O=C([R])N[R] Amide
 [R]NC(=O)[R] Amide
 [R]NC([R])=O Amide
-[R]C(=O)N([R])[R] Amide
-O=C([R])N([R])[R] Amide
-[R]N([R])C(=O)[R] Amide
-[R]N([R])C([R])=O Amide
 N[R] PrimaryAmine
 [R]N PrimaryAmine
 [R]N[R] SecondaryAmine
 N([R])[R] SecondaryAmine
 [R]N([R]) SecondaryAmine
 [R]N([R])[R] TetiaryAmine
-[R][N+]([R][R])[R] AmmoniumIon
 [R]C(=N)[R] PrimaryKetimine
 N=C([R])[R] PrimaryKetimine
 [R]C([R])=N PrimaryKetimine
@@ -56,7 +51,6 @@ N=C([R])[R] PrimaryKetimine
 [R]N=C([R])[R] SecondaryKetimine
 [R]C(=N[R])[R] SecondaryKetimine
 N([R])=C([R])[R] SecondaryKetimine
-[R]C(=N) PrimaryAldimine
 [R]C=N PrimaryAldimine
 N=C[R] PrimaryAldimine
 N=C([R]) PrimaryAldimine
@@ -74,7 +68,6 @@ O=C([R])N([R])C([R])=O Imide
 [N+](=[N-])=N[R] Azide
 [N+](=N[R])=[N-] Azide
 [R]N=N[R] Azo
-N([R])=N[R] Azo
 [R]OC#N Cynate
 N#CO[R] Cynate
 O([R])C#N Cynate
