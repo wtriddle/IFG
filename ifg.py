@@ -33,7 +33,7 @@ def ifg(SMILES):
 	SMILEScodelength = len(SMILEScode) # Definition of SMILEScodelength
 	SMILEScodePos = atomIndex = -1 # Counters
 	initializeRINGPOSITIONS() # Create dynamic model of SMILEScode
-	initializeCYCLICINDICES() # Find the cyclic indices of the SMILEScode
+		initializeCYCLICINDICES() # Find the cyclic indices of the SMILEScode
 	numAtoms = len(ATOMSREGEX.findall(SMILEScode)) # Find total number of atoms
 
 	# Main Loop
