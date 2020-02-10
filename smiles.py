@@ -77,11 +77,11 @@ from openpyxl import Workbook
 #     del(functionalGroupData)
 # fgWorkbook.save("functionalGroupData.xlsx")
 
-data = ifg.ifg("CCOC(=O)C1=C(ON=C1C)C(C)=NN=C(C)C1=C(C(=O)OCC)C(=NO1)C")
+data = ifg.ifg(" CC1(C)OC2OC(C(O)C2O1)C(=O)C1CC2CC1C=C2")
 for thing in data:
     print("\n")
     print(thing)
-print("CCOC(=O)C1=C(ON=C1C)C(C)=NN=C(C)C1=C(C(=O)OCC)C(=NO1)C")
+print(" CC1(C)OC2OC(C(O)C2O1)C(=O)C1CC2CC1C=C2")
 
 # zero = 0
 # print(zero)
@@ -94,3 +94,15 @@ print("CCOC(=O)C1=C(ON=C1C)C(C)=NN=C(C)C1=C(C(=O)OCC)C(=NO1)C")
 # print(myRegex)
 # print(match)
 # print(match.group(0))
+
+# file = open("FGheirarchy.txt", "r+")
+#
+#
+# for line in open('FGheirarchy.txt', 'r'):
+#     lineInfo = re.compile(r'\S+').findall(line)
+#     heirarchy = lineInfo[0].split(":")
+#     print(heirarchy)
+#     if "PrimaryAmine" in heirarchy:
+#         print("Yessitmate")
+#     else:
+#         print("snowsir!nosnowsinthesnowsir!")

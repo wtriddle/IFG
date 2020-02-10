@@ -1,0 +1,3 @@
+PrimaryAmine:SecondaryAmine:TertiaryAmine
+PrimaryAldimine:SecondaryAldimine:PrimaryKetimine:SecondaryKetimine
+Aldoxime:Ketoxime

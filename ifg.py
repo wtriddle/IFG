@@ -146,11 +146,11 @@ def ifg(SMILES):
 					if SMILEScode[SMILEScodePos-2] == ')':
 						lBlockCounter = 1
 						numRGroups = 3
-						LNPos = SMILEScodePos - 2
+						LNPos = SMILEScodePos - 3
 					else:
 						numRGroups = 2
 						lBlockCounter = 0
-						LNPos = SMILEScodePos -1
+						LNPos = SMILEScodePos -2
 					# LN expansion logic to determine if an alcohol group exists at this particular oxygen
 					LN = SMILEScode[LNPos]
 					LNIndex = atomIndex
@@ -193,7 +193,7 @@ def ifg(SMILES):
 	FGdataFinalTuple = evaluateFGdata() # Validate and format FGdata to capture all present groups
 	FGdataFinal = FGdataFinalTuple[0] # Set FGdataFinal to formattedFGdata
 	nonRepeatedFGdataFinal = FGdataFinalTuple[1] # Grab the nonRepeatedFGdata from FGdataFinalTuple
-	determineAcetalGroups(FGdataFinal) # Determine the Acetal groups after evaluation
+	acetals = determineAcetalGroups(FGdataFinal) # Determine the Acetal groups after evaluation
 
 	# Count the alcohols to determine total amount and add FGInfo's of each alcohol with their carbon related index
 	alcoholCount = 0
@@ -427,6 +427,8 @@ def evaluateFGdata():
 	# Initializations
 	formattedFGdata = [] # Captures the correct groups from after FGdata is evaluted
 	groupCounter = -1 # Counter
+	tempDictA = {}
+	tempDictB4 = {}
 
 	# Intial loop removes reprititons of certain FG's in FGdata
 	# The result is placed into formattedFGdata
@@ -436,6 +438,18 @@ def evaluateFGdata():
 			continue
 		else:
 			formattedFGdata.append(group)
+
+	# print("AFTER INITAL LOOP, formattedFGdata is ")
+	# for temp in formattedFGdata:
+	# 	keys = []
+	# 	for key in tempDictB4.keys():
+	# 		keys.append(key)
+	# 	if temp[0] not in keys:
+	# 		tempDictB4.update({temp[0] : 1})
+	# 	else:
+	# 		tempDictB4[temp[0]] += 1
+	# 	del(keys)
+	# print(tempDictB4)
 
 	# Secondary loop removes alcohol groups without an alocholic index and sort primary/secondary/tertiary nomenclatures
 	# Functional groups with alcohol may still be found since alochols are implied in SMILEScode
@@ -449,9 +463,10 @@ def evaluateFGdata():
 		# Grab the group that groupCounter points to, and set its list contents to explicit varibales
 		group = formattedFGdata[groupCounter]
 		groupIndices = group[2]
+
 		# If the group contians an alcohol, validate that an alcoholic index is present
 		if len(re.compile(r'acid|oxide|oxime').findall(group[0])) != 0:
-			# Loop through each indivudal alcohol to find valid group
+			# Loop through each indivudal alcohol to find if an alcohol in the SMILEScode correlates to an alcohol in the functional group
 			validGroup = False # False until proven True
 			for alcohol in ALCOHOLICINDICES:
 				validGroup = any(index in groupIndices for index in alochol)
@@ -460,51 +475,56 @@ def evaluateFGdata():
 			# If the group which required an alocholic index did not have an alocholic index, then the group is False
 			# Discard its contents and reset the loop
 			if validGroup is False:
+				print("REMOVING NONALCOHOL GROUP", formattedFGdata[groupCounter])
 				formattedFGdata.pop(groupCounter)
 				groupCounter = -1
-		# If primary/secondary nomenclature is found, evalute it
-		elif len(re.compile(r'Primary|Secondary').findall(group[0])) != 0:
+				continue
 
-			compareGroupCounter = -1
+		for line in open('FGheirarchy.txt', 'r'):
 
-			# Seperate nomenclature and group from each other for evaluation
-			groupMatch = re.search(r'(?<=Primary)\S+',group[0]) # Matches group name if Primary
-			if groupMatch is None: # If not Primary, must be Secondary given scope of if statement
-				groupMatch = re.search(r'(?<=Secondary)\S+',group[0])
-			groupName = groupMatch.group(0) # Capture group name as only match in groups tuple
-			nomenclature = group[0][0:groupMatch.start()] # Capture nomenclature from 0 to start of groupName
+			# Collect heirarchy information
+			lineInfo = re.compile(r'\S+').findall(line)
+			heirarchy = lineInfo[0].split(":")
 
-			for compareGroup in formattedFGdata:
-				compareGroupCounter += 1
+			# Check if the current group is in that heirarchy
+			if group[0] in heirarchy:
 
-				# Find another group at least at Secondary since Primary nomenclature cannot contain another Primary groups
-				if len(re.compile(r'Secondary|Tertiary').findall(compareGroup[0])) != 0 and compareGroupCounter != groupCounter:
-					compareIndices = compareGroup[2]
+				# If a group was found, find another group in the same heirarchy
+				compareGroupCounter = -1
+				for compareGroup in formattedFGdata:
+					compareGroupCounter += 1
 
-					compareMatch = re.search(r'(?<=Secondary)\S+', compareGroup[0]) # Matches group name if Secondary
-					if compareMatch is None: # If not Secondary, must be Tertiary given scope of if statement
-						compareMatch = re.search(r'(?<=Tertiary)\S+', compareGroup[0])
-					compareName = compareMatch.group(0)
-					compareNomenclature = compareGroup[0][0:compareMatch.start()]
+					# Find two distinct groups in the same heirarchy
+					if compareGroup[0] in heirarchy and compareGroupCounter != groupCounter:
+						compareIndices = compareGroup[2]
 
-					if groupName == compareName: # If two distinct groups are found, compare them
-						# compareMatch must be Secondary or Tertiary, automatically higher order than Primary
-						# Only need containment then
-						if nomenclature == 'Primary':
+						if heirarchy.index(group[0]) >= heirarchy.index(compareGroup[0]): # If group is a higher order functional group
+							fullContainment = all(index in groupIndices for index in compareIndices)
+							if fullContainment is True:
+								print("REMOVING LOWER HIERARCHY", formattedFGdata[compareGroupCounter])
+								formattedFGdata.pop(compareGroupCounter)
+								groupCounter = -1
+								break
+						elif heirarchy.index(group[0]) <= heirarchy.index(compareGroup[0]): # If compareGroup is a higher order functional group
 							fullContainment = all(index in compareIndices for index in groupIndices)
 							if fullContainment is True:
+								print("REMOVING LOWER HIERARCHY", formattedFGdata[groupCounter])
 								formattedFGdata.pop(groupCounter)
 								groupCounter = -1
 								break
 
-						# If secondary, compareMatch must be Tertiary to derive any conclusions
-						if nomenclature == 'Secondary' and compareNomenclature == 'Tertiary':
-							print("found secondary and tertiary")
-							fullContainment = all(index in compareIndices for index in groupIndices)
-							if fullContainment is True:
-								formattedFGdata.pop(groupCounter)
-								groupCounter = -1
-								break
+
+	# print("AFTER SECOND LOOP, formattedFGdata is ")
+	# for temp2 in formattedFGdata:
+	# 	keys = []
+	# 	for key in tempDictA.keys():
+	# 		keys.append(key)
+	# 	if temp2[0] not in keys:
+	# 		tempDictA.update({temp2[0] : 1})
+	# 	else:
+	# 		tempDictA[temp2[0]] += 1
+	# 	del(keys)
+	# print(tempDictA)
 
 	nonRepeatedFGdata = copy.deepcopy(formattedFGdata) # Grab an individual copy of the slightly adjusted functional groups
 
@@ -607,6 +627,7 @@ def evaluateFGdata():
 def determineAcetalGroups(formattedFGdata):
 
 	# Initializations
+	acetalGroups = [] # Holds the acetal groups if found
 	etherGroups = [] # Holds all ether groups found in FGdataFinal
 	groupCounter = -1 # Counter for loops
 
@@ -645,6 +666,7 @@ def determineAcetalGroups(formattedFGdata):
 							HemiacetalIndices.append(index)
 						HemiacetalIndices.append(acetalCarbon[0])
 						formattedFGdata.append(['Hemiacetal', '', HemiacetalIndices ,[[]]])
+						acetalGroups.append(['Hemiacetal', '', HemiacetalIndices ,[[]]])
 						groupCounter = -1
 						break
 					elif numRgroups == 4: # 4 Rgroups means Hemiketal group
@@ -654,6 +676,7 @@ def determineAcetalGroups(formattedFGdata):
 							HemiketalIndices.append(index)
 						HemiketalIndices.append(acetalCarbon[0])
 						formattedFGdata.append(['Hemiketal', '', HemiketalIndices ,[[]]])
+						acetalGroups.append(['Hemiketal', '', HemiketalIndices ,[[]]])
 						groupCounter = -1
 						break
 					else: # 2 Rgroups means standalone alcohol
@@ -689,6 +712,7 @@ def determineAcetalGroups(formattedFGdata):
 						# And the templates are not necessary to determine cyclic or non-cyclic distinctions
 						acetal = ["Acetal", "", acetalIndices, []]
 						formattedFGdata.append(acetal)
+						acetalGroups.append(acetal)
 						# Pop the larger index first
 						if compareGroupCounter > groupCounter:
 							etherGroups.pop(compareGroupCounter)
@@ -705,7 +729,7 @@ def determineAcetalGroups(formattedFGdata):
 		# Re-append removed ether groups which were not involved in acetals
 		for group in etherGroups:
 			formattedFGdata.append(group)
-	return 0 # Returns 0 because function evaluates list
+	return acetalGroups # Returns 0 because function evaluates list
 
 
 def isGroupInList(formattedFGdata, group):
