@@ -77,11 +77,11 @@ from openpyxl import Workbook
 #     del(functionalGroupData)
 # fgWorkbook.save("functionalGroupData.xlsx")
 
-data = ifg.ifg(" CC1(C)OC2OC(C(O)C2O1)C(=O)C1CC2CC1C=C2")
+data = ifg.ifg("CC1(C)OC2OC(C(O)C2O1)C(=O)C1CC2CC1C=C2")
 for thing in data:
     print("\n")
     print(thing)
-print(" CC1(C)OC2OC(C(O)C2O1)C(=O)C1CC2CC1C=C2")
+print("CC1(C)OC2OC(C(O)C2O1)C(=O)C1CC2CC1C=C2")
 
 # zero = 0
 # print(zero)

@@ -150,7 +150,7 @@ def ifg(SMILES):
 					else:
 						numRGroups = 2
 						lBlockCounter = 0
-						LNPos = SMILEScodePos -2
+						LNPos = SMILEScodePos - 2
 					# LN expansion logic to determine if an alcohol group exists at this particular oxygen
 					LN = SMILEScode[LNPos]
 					LNIndex = atomIndex
@@ -190,20 +190,21 @@ def ifg(SMILES):
 					FGdata.append(group)
 			del(bondGroup) # Dump the data after evaluated
 
-	FGdataFinalTuple = evaluateFGdata() # Validate and format FGdata to capture all present groups
-	FGdataFinal = FGdataFinalTuple[0] # Set FGdataFinal to formattedFGdata
-	nonRepeatedFGdataFinal = FGdataFinalTuple[1] # Grab the nonRepeatedFGdata from FGdataFinalTuple
-	acetals = determineAcetalGroups(FGdataFinal) # Determine the Acetal groups after evaluation
+	# Evalute the FGdata to obtain the most accurate resultant lists
+	FGdataFinalTuple = evaluateFGdata()
+	FGdataFinal = FGdataFinalTuple[0]
+	allFGgroups = FGdataFinalTuple[1]
 
 	# Count the alcohols to determine total amount and add FGInfo's of each alcohol with their carbon related index
 	alcoholCount = 0
 	for group in ALCOHOLICINDICES:
 		FGdataFinal.append(['Alcohol', 'ROH', [group[0]], [['R', group[0]]]])
-		nonRepeatedFGdataFinal.append(['Alcohol', 'ROH', [group[0]], [['R', group[0]]]])
+		allFGgroups.append(['Alcohol', 'ROH', [group[0]], [['R', group[0]]]])
 		alcoholCount += 1
+
 	# Find the cyclic/aromatic functionalGroups if any exists for the two versions of evalutedFGdata
 	determineCyclicGroups(FGdataFinal)
-	determineCyclicGroups(nonRepeatedFGdataFinal)
+	determineCyclicGroups(allFGgroups)
 	FGdataDict = {}
 
 	# Add total alochol groups
@@ -220,17 +221,17 @@ def ifg(SMILES):
 		del(keys) # Delete the data after usage to prevent potential data leaks
 
 	# Loop through FGrepeated for easier representation in final output
-	nonRepeatedFGdataDict = {}
+	allFGs = {}
 	# Add total number of alcohols
-	nonRepeatedFGdataDict.update({"totalAlcohols" : alcoholCount})
-	for group in nonRepeatedFGdataFinal:
+	allFGs.update({"totalAlcohols" : alcoholCount})
+	for group in allFGgroups:
 		keys = []
-		for key in nonRepeatedFGdataDict.keys():
+		for key in allFGs.keys():
 			keys.append(key)
 		if group[0] not in keys:
-			nonRepeatedFGdataDict.update({group[0] : 1})
+			allFGs.update({group[0] : 1})
 		else:
-			nonRepeatedFGdataDict[group[0]] += 1
+			allFGs[group[0]] += 1
 		del(keys) # Delete the data after usage to prevent potential data leaks
 
 	# Occurance of [NH+],[NH2+], or [NH3+] gaurnetees amino acid strucutre
@@ -270,7 +271,7 @@ def ifg(SMILES):
 	ALCOHOLICINDICES.clear()
 
 	# Return the functional group data for the given SMILEScode
-	return (FGdataFinal, FGdataDict, nonRepeatedFGdataFinal, nonRepeatedFGdataDict) # Returns (FGdataFinal, FGdataDict) tuple
+	return (FGdataFinal, FGdataDict, allFGgroups, allFGs) # Returns (FGdataFinal, FGdataDict) tuple
 
 
 def initializeRINGPOSITIONS():
@@ -422,46 +423,38 @@ def initializeRINGPOSITIONS():
 	return 0 # Returns 0 because function intializes a global
 
 
-def evaluateFGdata():
+# Scrubs FG dataList for repeated groups
+def repetitionScrub(dataList):
 
 	# Initializations
-	formattedFGdata = [] # Captures the correct groups from after FGdata is evaluted
-	groupCounter = -1 # Counter
-	tempDictA = {}
-	tempDictB4 = {}
+	formattedData = [] # Captures the correct groups from after list is evaluted
 
-	# Intial loop removes reprititons of certain FG's in FGdata
-	# The result is placed into formattedFGdata
-	for group in FGdata:
-		inFormattedData = isGroupInList(formattedFGdata, group) # Check for group equivalnce in FGdata
+	# Removes repetitions of certain FG's in dataList
+	# The result is placed into formattedData
+	for group in dataList:
+		inFormattedData = isGroupInList(formattedData, group) # Check for group equivalnce in dataList
 		if inFormattedData is True:
 			continue
 		else:
-			formattedFGdata.append(group)
+			formattedData.append(group)
 
-	# print("AFTER INITAL LOOP, formattedFGdata is ")
-	# for temp in formattedFGdata:
-	# 	keys = []
-	# 	for key in tempDictB4.keys():
-	# 		keys.append(key)
-	# 	if temp[0] not in keys:
-	# 		tempDictB4.update({temp[0] : 1})
-	# 	else:
-	# 		tempDictB4[temp[0]] += 1
-	# 	del(keys)
-	# print(tempDictB4)
+	return formattedData
 
-	# Secondary loop removes alcohol groups without an alocholic index and sort primary/secondary/tertiary nomenclatures
-	# Functional groups with alcohol may still be found since alochols are implied in SMILEScode
-	# This is where they are evaluted to determine their validity against ALCOHOLICINDICES
-	# Secondary loop formats nonRepeatedFGdata
-	while groupCounter <= len(formattedFGdata):
+
+# Scrubs the FG dataList for any alcohol groups which in fact do not point to, or contain an, alcohol
+def alcoholScrub(dataList):
+
+	formattedData = copy.deepcopy(dataList) # Holds the corrected list after alcohol evalution
+	groupCounter = - 1 # Counter
+
+	while groupCounter <= len(formattedData):
 		groupCounter += 1 # Track index of group
+
 		# If the loop limit has been reached, then exit the loop
-		if groupCounter == len(formattedFGdata):
+		if groupCounter == len(formattedData):
 			break
 		# Grab the group that groupCounter points to, and set its list contents to explicit varibales
-		group = formattedFGdata[groupCounter]
+		group = formattedData[groupCounter]
 		groupIndices = group[2]
 
 		# If the group contians an alcohol, validate that an alcoholic index is present
@@ -475,10 +468,28 @@ def evaluateFGdata():
 			# If the group which required an alocholic index did not have an alocholic index, then the group is False
 			# Discard its contents and reset the loop
 			if validGroup is False:
-				print("REMOVING NONALCOHOL GROUP", formattedFGdata[groupCounter])
-				formattedFGdata.pop(groupCounter)
+				print("REMOVING NONALCOHOL GROUP", formattedData[groupCounter])
+				formattedData.pop(groupCounter)
 				groupCounter = -1
 				continue
+		return formattedData
+
+
+# Scrubs FG dataList for heirarchichal functional groups that may be removed
+def heirarchyScrub(dataList):
+
+	formattedData = copy.deepcopy(dataList)
+	groupCounter = -1
+
+	while groupCounter <= len(formattedData):
+		groupCounter += 1 # Track index of group
+
+		# If the loop limit has been reached, then exit the loop
+		if groupCounter == len(formattedData):
+			break
+		# Grab the group that groupCounter points to, and set its list contents to explicit varibales
+		group = formattedData[groupCounter]
+		groupIndices = group[2]
 
 		for line in open('FGheirarchy.txt', 'r'):
 
@@ -491,7 +502,7 @@ def evaluateFGdata():
 
 				# If a group was found, find another group in the same heirarchy
 				compareGroupCounter = -1
-				for compareGroup in formattedFGdata:
+				for compareGroup in formattedData:
 					compareGroupCounter += 1
 
 					# Find two distinct groups in the same heirarchy
@@ -501,44 +512,38 @@ def evaluateFGdata():
 						if heirarchy.index(group[0]) >= heirarchy.index(compareGroup[0]): # If group is a higher order functional group
 							fullContainment = all(index in groupIndices for index in compareIndices)
 							if fullContainment is True:
-								print("REMOVING LOWER HIERARCHY", formattedFGdata[compareGroupCounter])
-								formattedFGdata.pop(compareGroupCounter)
+								print("REMOVING LOWER HIERARCHY", formattedData[compareGroupCounter])
+								formattedData.pop(compareGroupCounter)
 								groupCounter = -1
 								break
 						elif heirarchy.index(group[0]) <= heirarchy.index(compareGroup[0]): # If compareGroup is a higher order functional group
 							fullContainment = all(index in compareIndices for index in groupIndices)
 							if fullContainment is True:
-								print("REMOVING LOWER HIERARCHY", formattedFGdata[groupCounter])
-								formattedFGdata.pop(groupCounter)
+								print("REMOVING LOWER HIERARCHY", formattedData[groupCounter])
+								formattedData.pop(groupCounter)
 								groupCounter = -1
 								break
+	return formattedData
 
 
-	# print("AFTER SECOND LOOP, formattedFGdata is ")
-	# for temp2 in formattedFGdata:
-	# 	keys = []
-	# 	for key in tempDictA.keys():
-	# 		keys.append(key)
-	# 	if temp2[0] not in keys:
-	# 		tempDictA.update({temp2[0] : 1})
-	# 	else:
-	# 		tempDictA[temp2[0]] += 1
-	# 	del(keys)
-	# print(tempDictA)
+# Scrubs FG dataList for full containment of groups
+def containmentScrub(dataList):
 
-	nonRepeatedFGdata = copy.deepcopy(formattedFGdata) # Grab an individual copy of the slightly adjusted functional groups
+	# Initializations
+	formattedData = copy.deepcopy(dataList)
+	groupCounter = -1 # Counter
 
-	# Continue until formattedFGdata is looped through without any revisions
+	# Continue until formattedData is looped through without any revisions
 	# Removal of any groups causes a reset of the loop to the beginning for another comparison loop
 	groupCounter = -1
-	while groupCounter <= len(formattedFGdata):
+	while groupCounter <= len(formattedData):
 
 		groupCounter += 1 # Track index of group
 		# If the loop limit has been reached, then exit the loop
-		if groupCounter == len(formattedFGdata):
+		if groupCounter == len(formattedData):
 			break
 		# Grab the group that groupCounter points to, and set its list contents to explicit varibales
-		group = formattedFGdata[groupCounter]
+		group = formattedData[groupCounter]
 		groupTemplate = group[1]
 		groupIndices = group[2]
 		groupDict = group[3]
@@ -548,7 +553,7 @@ def evaluateFGdata():
 		numMainGroupAtoms = len(groupIndices) - len(RGROUPREGEX.findall(groupTemplate))
 
 		# compareGroup Loop
-		for compareGroup in formattedFGdata:
+		for compareGroup in formattedData:
 			compareGroupCounter += 1 # Track index
 
 			# Grab the compareGroup from compareGroupCounter and set list contents to explicit varibales
@@ -566,7 +571,7 @@ def evaluateFGdata():
 
 			# If group is fully contained within compareGroup, remove the group and restart loop without that group
 			if fullGroupContainment is True and len(groupIndices) < len(compareIndices):
-				formattedFGdata.pop(groupCounter)
+				formattedData.pop(groupCounter)
 				groupCounter = -1
 				break
 
@@ -575,7 +580,7 @@ def evaluateFGdata():
 
 			# If group is fully contained within a compareGroup, remove the group and restart loop without that group
 			if fullCompareGroupContainment is True and len(compareIndices) < len(groupIndices):
-				formattedFGdata.pop(compareGroupCounter)
+				formattedData.pop(compareGroupCounter)
 				groupCounter = -1
 				break
 
@@ -598,145 +603,140 @@ def evaluateFGdata():
 
 				# If compareIndices has more R groups, take it over group
 				if len(groupIndices) < len(compareIndices):
-					formattedFGdata.pop(groupCounter)
+					formattedData.pop(groupCounter)
 					groupCounter = -1
 					break
 
 				# If groupIndices has more R groups, take it over compareGroup
 				if len(groupIndices) > len(compareIndices):
-					formattedFGdata.pop(compareGroupCounter)
+					formattedData.pop(compareGroupCounter)
 					groupCounter = -1
 					break
 
 			# If all main group atoms in compareGroup are contained within group and both groups are the same length, but group has more main group atoms, then remove compareGroup
 			if mainGroupCrossover == numMainCompareAtoms and numMainGroupAtoms > numMainCompareAtoms:
-				formattedFGdata.pop(compareGroupCounter)
+				formattedData.pop(compareGroupCounter)
 				groupCounter = -1
 				break
 
 			# If all main group atoms in group are contained within compareGroup and both groups are the same length, but compareGroup has more main group atoms, then remove group
 			if mainGroupCrossover == numMainGroupAtoms and numMainCompareAtoms > numMainGroupAtoms:
-				formattedFGdata.pop(groupCounter)
+				formattedData.pop(groupCounter)
 				groupCounter = -1
 				break
 
 	# Returned as FGdataFinal in IFG head function
-	return (formattedFGdata, nonRepeatedFGdata) # Returns nonRepeatedFGdata and formattedFGdata
+	return formattedData # Returns formattedData
 
 
-def determineAcetalGroups(formattedFGdata):
+# Evalutes FGdata to determine the most accurate model of all FG's in the SMILEScode
+def evaluateFGdata():
+
+	# Call all scubbing functions on FGdata to obtain FGdataFinal
+	temp1 = repetitionScrub(FGdata)
+	temp2 = alcoholScrub(temp1)
+	allFGs = heirarchyScrub(temp2)
+	acetals = determineAcetalGroups(allFGs)
+	for acetal in acetals:
+		allFGs.append(acetal)
+	FGdataFinal = containmentScrub(allFGs)
+	return (FGdataFinal, allFGs)
+
+
+def determineAcetalGroups(dataList):
 
 	# Initializations
 	acetalGroups = [] # Holds the acetal groups if found
-	etherGroups = [] # Holds all ether groups found in FGdataFinal
+	etherGroups = [] # Holds ether groups which will be looped through
+	acetalGroupIndicies = [] # Tracks the index lists of each acetal group
 	groupCounter = -1 # Counter for loops
 
-	# Loop to extract all ether groups from FGdataFinal
-	while groupCounter <= len(formattedFGdata):
-		groupCounter += 1
-		if groupCounter == len(formattedFGdata):
-			break
-		group = formattedFGdata[groupCounter]
+	# Capture all ether groups
+	for group in dataList:
 		if group[0] == "Ether":
 			etherGroups.append(group)
-			formattedFGdata.pop(groupCounter)
-			groupCounter = -1
 
-	# If ether groups exists, evalute them to determine acetal groups
-	if len(etherGroups) != 0:
+	# Loop through ether groups to determine acetals
+	for group in etherGroups:
+		groupIndices = group[2]
+		groupDict = group[3]
 
-		groupCounter = -1 # Reset groupCounter
+		# Find Hemiacetals and Hemiketals via the alcoholic carbons, which are considered acetal carbons with respect to the ether
+		for acetalCarbon in ALCOHOLICINDICES:
+			if acetalCarbon[0] in groupIndices: # Check if the acetal carbon is part of the ether
+				numRgroups = acetalCarbon[1] # Grab the numRGroups from associated list
+				if numRgroups == 3: # 3 Rgropus means Hemiacetal group
+					HemiacetalIndices = []
+					for index in groupIndices:
+						HemiacetalIndices.append(index)
+					HemiacetalIndices.append(acetalCarbon[0])
+					distinctAcetal = not all(index in acetalGroupIndicies for index in HemiacetalIndices)
+					if distinctAcetal is True:
+						if HemiacetalIndices not in acetalGroupIndicies:
+							acetalGroups.append(['Hemiacetal', '', HemiacetalIndices ,[[]]])
+							for index in HemiacetalIndices:
+								acetalGroupIndicies.append(index)
+							acetalGroupIndicies.append(HemiacetalIndices)
+					break
+				elif numRgroups == 4: # 4 Rgroups means Hemiketal group
+					HemiketalIndices = []
+					for index in groupIndices:
+						HemiketalIndices.append(index)
+					HemiketalIndices.append(acetalCarbon[0])
+					distinctAcetal = not all(index in acetalGroupIndicies for index in HemiketalIndices)
+					if distinctAcetal is True:
+						if HemiketalIndices not in acetalGroupIndicies:
+							acetalGroups.append(['Hemiketal', '', HemiketalIndices ,[[]]])
+							for index in HemiketalIndices:
+								acetalGroupIndicies.append(index)
+							acetalGroupIndicies.append(HemiketalIndices)
+					break
+				else: # 2 Rgroups means standalone alcohol
+					break
 
-		while groupCounter <= len(etherGroups):
-			groupCounter += 1
-			if groupCounter == len(etherGroups):
+		# Acetal Loop
+		# Compare loop only for acetals because they required two ethers with crossover
+		compareGroupCounter = -1
+		for compareGroup in etherGroups:
+			compareGroupCounter += 1
+			compareIndices = compareGroup[2]
+			compareDict = compareGroup[3]
+			# If the ethers are the same, skip them
+			if compareGroupCounter == groupCounter:
+				continue
+			# If the oxygens are the same, so are the R groups. Thus, check for all indices to see if oxygens are distinct in ethers
+			identicalOxygens = all(index in compareIndices for index in groupIndices)
+			if identicalOxygens is True:
+				continue
+			# If the oxygens are distinct, and the groups are not the same, then they either have 1 or 0 similar R groups.
+			# Check for any crossover at this point because this implies an acetal carbon between the ethers, and thus an acetal group
+			acetalGroup = any(index in compareIndices for index in groupIndices)
+			if acetalGroup is True:
+				# Combine ether indices
+				acetalIndices = []
+				for index in groupIndices:
+					acetalIndices.append(index)
+				for index in compareIndices:
+					if index not in acetalIndices:
+						acetalIndices.append(index)
+				# Dictionary and template are omitted. Acetals do not have distinct templates in the SMILEScodes,
+				# And the templates are not necessary to determine cyclic or non-cyclic distinctions
+				# Add a distinctly found acetal group to indicies
+				distinctAcetal = not all(index in acetalGroupIndicies for index in acetalIndices)
+				if distinctAcetal is True:
+					acetal = ["Acetal", "", acetalIndices, []]
+					for index in acetalIndices:
+						acetalGroupIndicies.append(index)
+					acetalGroups.append(acetal)
 				break
-			group = etherGroups[groupCounter]
-			groupIndices = group[2]
-			groupDict = group[3]
-
-			# Find Hemiacetals and Hemiketals via the alcoholic carbons, which are considered acetal carbons with respect to the ether
-			for acetalCarbon in ALCOHOLICINDICES:
-				if acetalCarbon[0] in groupIndices: # Check if the acetal carbon is part of the ether
-					numRgroups = acetalCarbon[1] # Grab the numRGroups from associated list
-					if numRgroups == 3: # 3 Rgropus means Hemiacetal group
-						HemiacetalIndices = []
-						etherGroups.pop(groupCounter)
-						for index in groupIndices:
-							HemiacetalIndices.append(index)
-						HemiacetalIndices.append(acetalCarbon[0])
-						formattedFGdata.append(['Hemiacetal', '', HemiacetalIndices ,[[]]])
-						acetalGroups.append(['Hemiacetal', '', HemiacetalIndices ,[[]]])
-						groupCounter = -1
-						break
-					elif numRgroups == 4: # 4 Rgroups means Hemiketal group
-						HemiketalIndices = []
-						etherGroups.pop(groupCounter)
-						for index in groupIndices:
-							HemiketalIndices.append(index)
-						HemiketalIndices.append(acetalCarbon[0])
-						formattedFGdata.append(['Hemiketal', '', HemiketalIndices ,[[]]])
-						acetalGroups.append(['Hemiketal', '', HemiketalIndices ,[[]]])
-						groupCounter = -1
-						break
-					else: # 2 Rgroups means standalone alcohol
-						break
-
-			# Acetal Loop
-			# Compare loop only for acetals because they required two ethers with crossover
-			if groupCounter != -1:
-				compareGroupCounter = -1
-				for compareGroup in etherGroups:
-					compareGroupCounter += 1
-					compareIndices = compareGroup[2]
-					compareDict = compareGroup[3]
-					# If the ethers are the same, skip them
-					if compareGroupCounter == groupCounter:
-						continue
-					# If the oxygens are the same, so are the R groups. Thus, check for all indices to see if oxygens are distinct in ethers
-					identicalOxygens = all(index in compareIndices for index in groupIndices)
-					if identicalOxygens is True:
-						continue
-					# If the oxygens are distinct, and the groups are not the same, then they either have 1 or 0 similar R groups.
-					# Check for any crossover at this point because this implies an acetal carbon between the ethers, and thus an acetal group
-					acetalGroup = any(index in compareIndices for index in groupIndices)
-					if acetalGroup is True:
-						# Combine ether indices
-						acetalIndices = []
-						for index in groupIndices:
-							acetalIndices.append(index)
-						for index in compareIndices:
-							if index not in acetalIndices:
-								acetalIndices.append(index)
-						# Dictionary and template are omitted. Acetals do not have distinct templates in the SMILEScodes,
-						# And the templates are not necessary to determine cyclic or non-cyclic distinctions
-						acetal = ["Acetal", "", acetalIndices, []]
-						formattedFGdata.append(acetal)
-						acetalGroups.append(acetal)
-						# Pop the larger index first
-						if compareGroupCounter > groupCounter:
-							etherGroups.pop(compareGroupCounter)
-							etherGroups.pop(groupCounter)
-						elif groupCounter < compareGroupCounter:
-							etherGroups.pop(groupCounter)
-							etherGroups.pop(compareGroupCounter)
-						else:
-							print("Fatal error, ether groups formed acetal on same ether. Exiting...")
-							print(SMILEScode)
-							sys.exit()
-						groupCounter = -1
-						break
-		# Re-append removed ether groups which were not involved in acetals
-		for group in etherGroups:
-			formattedFGdata.append(group)
-	return acetalGroups # Returns 0 because function evaluates list
+	return acetalGroups # Returns list of acetal groups
 
 
-def isGroupInList(formattedFGdata, group):
+def isGroupInList(dataList, group):
 
-	# If there is a group in formattedFGdata, comparisons can be made
-	if formattedFGdata:
-		for compareGroup in formattedFGdata:
+	# If there is a group in dataList, comparisons can be made
+	if dataList:
+		for compareGroup in dataList:
 
 			# Comparative Variables
 			compareGroupTemplate = compareGroup[1]
@@ -763,7 +763,7 @@ def isGroupInList(formattedFGdata, group):
 
 				# If there is full maingroups crossover and the templates are the same length
 				if mainGroupCrossover == numMainCompareAtoms == numMainGroupAtoms and len(compareGroupTemplate) == len(groupTemplate):
-						# Then the exact group is already contained within formattedFGdata
+						# Then the exact group is already contained within dataList
 						return True
 			else: # If not equivalent lengths, continue
 				continue
@@ -1825,12 +1825,11 @@ def initializeCYCLICINDICES():
 				AROMATICINDICIES.append(atomIndex)
 	return 0
 
-def determineCyclicGroups(FGdataFinal):
+
+def determineCyclicGroups(dataList):
 	groupCounter = -1
-	print("FGdataFinal = ", FGdataFinal)
-	for group in FGdataFinal:
-		if group[0] == "Amide":
-			print("YIPPE!")
+	print("FGdataFinal = ", dataList)
+	for group in dataList:
 		groupCounter += 1
 		groupIndices = group[2]
 
@@ -1874,6 +1873,7 @@ def determineCyclicGroups(FGdataFinal):
 				group[0] = "Cyclic" + group[0]
 				break
 	return 0
+
 
 def printGlobals():
 	print("ALCOHOLICINDICES = ", ALCOHOLICINDICES)
