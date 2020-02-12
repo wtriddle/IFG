@@ -36,8 +36,6 @@ O([R])[R] Ether
 O=C([R])N Amide
 NC(=O)[R] Amide
 NC([R])=O Amide
-N[R] PrimaryAmine
-[R]N PrimaryAmine
 [R]N[R] SecondaryAmine
 [R]N([R])[R] TertiaryAmine
 [R]C(=N)[R] PrimaryKetimine

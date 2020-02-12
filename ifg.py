@@ -35,7 +35,6 @@ def ifg(SMILES):
 	SMILEScodePos = atomIndex = -1 # Counters
 	initializeRINGPOSITIONS() # Create dynamic model of SMILEScode
 	initializeCYCLICINDICES() # Determine cyclic indices of the SMILEScode
-	numAtoms = len(ATOMSREGEX.findall(SMILEScode)) # Determine total number of atoms
 
 	# Main Loop to determine all functional groups
 	for symbol in SMILEScode:
@@ -54,124 +53,21 @@ def ifg(SMILES):
 					FGdata.append(group)
 			del(directGroup) # Dump the data after evaluated
 
-			# Alcohol Processing
+			# Determine if an alochol is present, non-parenthesis case
+			determineAlcoholGroup(symbol, SMILEScodePos, atomIndex, False)
 
-			# First atom alcohol case
-			# Validate SMILEScode scope
-			if SMILEScodePos+1 != SMILEScodelength:
-				# Check for oxygen at first position of SMILEScode, and a single carbon bound to it
-				if atomIndex == 0 and symbol == 'O' and SMILEScode[SMILEScodePos+1].upper() == 'C':
-					ALCOHOLICINDICES.append([atomIndex+1]) # Automatically append next index if satisfied
-					# Check for C1( case, indicates 4 Rgroups off of C, including O
-					if SMILEScode[SMILEScodePos+2] in NUMBERS and SMILEScode[SMILEScodePos+3] == '(':
-						numRGroups = 4
-					# Check for C1R case, indicates 3 R groups off of C, including O
-					elif SMILEScode[SMILEScodePos+2] in NUMBERS and SMILEScode[SMILEScodePos+3] in ATOMS:
-						numRGroups = 3
-					# Check for C(, indicates 3 R groups off of C, including O
-					elif SMILEScode[SMILEScodePos+2] == '(':
-						numRGroups = 3
-					# All other cases are 2 R groups
-					else:
-						numRGroups = 2
-					ALCOHOLICINDICES[-1].append(numRGroups) # Append the number of Rgroups to newly appended alcohol group
-					ALCOHOLICINDICES[-1].append("First O")
-
-			# Final atom alcohol case
-			# Must be an oxygen as final positional symbol and atom in SMILEScode that is not attacthed to a ring. Must be individual
-			if atomIndex == numAtoms-1 and symbol == 'O' and SMILEScodePos == SMILEScodelength - 1:
-				# May be next to a carbon, at the closure of a ring, or next to an outer group
-				if SMILEScode[SMILEScodePos-1].upper() == 'C' or SMILEScode[SMILEScodePos-1] in NUMBERS or SMILEScode[SMILEScodePos-1] == ')':
-					# Intialze positional variables for outer and non-outer cases
-					# (RRR...R(RRR..)O) case
-					if SMILEScode[SMILEScodePos-1] == ')':
-						numRGroups = 3
-						lBlockCounter = 1
-						LNPos = SMILEScodePos - 2
-					else:
-						numRGroups = 2
-						lBlockCounter = 0
-						LNPos = SMILEScodePos - 1
-					# LN expansion logic to determine if an alcohol group exists
-					LN = SMILEScode[LNPos]
-					LNIndex = atomIndex
-					while LN.upper() != 'C' or lBlockCounter > 0:
-						if LN in ATOMS:
-							LNIndex -= 1
-						if LN not in NUMBERS and lBlockCounter == 0:
-							break
-						if LN in NUMBERS and lBlockCounter == 0:
-							numRGroups += 1
-						if LN == '(':
-							lBlockCounter -= 1
-						if LN == ')':
-							lBlockCounter += 1
-						# Increment at bottom of loop so else statement below handles ALCOHOLICINDICES
-						LNPos -= 1
-						LN = SMILEScode[LNPos]
-					else:
-						# Append LNIndex-1 to account for stopping at the C, but not evalutating it
-						ALCOHOLICINDICES.append([LNIndex-1])
-						ALCOHOLICINDICES[-1].append(numRGroups) # Append the number of Rgroups to newly appended alcohol group
-						ALCOHOLICINDICES[-1].append("FinalO")
+			# Special case to find PrimaryAmine NR case only
+			if atomIndex == 0 and symbol == 'N' and SMILEScode[SMILEScodePos+1] in ATOMS:
+				FGdata.append(['PrimaryAmine', 'NR', [0,1], {'N':0,'R':1}])
 
 		elif symbol in PARENTHESIS:
-			# (O) single oxygen outer groups are automatically alcoholic oxygens since they are isolated
-			if symbol == '(':
-				potentialAlcoholGroup = SMILEScode[SMILEScodePos:SMILEScodePos+3]
-				if potentialAlcoholGroup == '(O)':
-					ALCOHOLICINDICES.append([atomIndex]) # Atom index pointing to R group bound to (O)
-					# No loop necessary, only a couple of cases. LN variables for clarity
-					LNPos = SMILEScodePos - 1
-					LN = SMILEScode[LNPos]
-					# Check for C1(O) case, indicates 4 Rgroups off of C, including O
-					if LN in NUMBERS:
-						numRGroups = 4
-					# Check for C(O)(RRR....) case, indicates 4 Rgroups off of C, including O
-					elif LN in ATOMS and SMILEScode[SMILEScodePos+3] == '(':
-						numRGroups = 4
-					# Check for C(RRR....)(O) case, indicates 4 Rgroups off of C, including O
-					elif LN == ')':
-						numRGroups = 4
-					# An outer C(O) group indicates at least 3 always by itself if no 4 cases are satisfied
-					else:
-						numRGroups = 3
-					ALCOHOLICINDICES[-1].append(numRGroups) # Append the number of Rgroups to newly appended alcohol group
-					ALCOHOLICINDICES[-1].append("Beginning (")
+			# Determine if an alochol is present, parenthesis case
+			determineAlcoholGroup(symbol, SMILEScodePos, atomIndex, True)
+
+			# Special Case to find PrimaryAmine RN case only
 			if symbol == ')':
-				# Lone oxygen closing outer group case, must be a (RRR....O) case
-				if SMILEScode[SMILEScodePos-1] == 'O':
-					# Initalize positional varibles of outer and non-outer cases bound leftward to O
-					# (RRR...R(RRR..)O) case
-					if SMILEScode[SMILEScodePos-2] == ')':
-						lBlockCounter = 1
-						numRGroups = 3
-						LNPos = SMILEScodePos - 3
-					else:
-						numRGroups = 2
-						lBlockCounter = 0
-						LNPos = SMILEScodePos - 2
-					# LN expansion logic to determine if an alcohol group exists at this particular oxygen
-					LN = SMILEScode[LNPos]
-					LNIndex = atomIndex
-					while LN.upper() != 'C' or lBlockCounter > 0:
-						if LN in ATOMS:
-							LNIndex -= 1
-						if LN not in NUMBERS and lBlockCounter == 0:
-							break
-						if LN in NUMBERS and lBlockCounter == 0:
-							numRGroups += 1
-						if LN == '(':
-							lBlockCounter -= 1
-						if LN == ')':
-							lBlockCounter += 1
-						LNPos -= 1
-						LN = SMILEScode[LNPos]
-					else:
-						# Append LNIndex-1 to account for stopping at C an not evaluating it
-						ALCOHOLICINDICES.append([LNIndex-1])
-						ALCOHOLICINDICES[-1].append(numRGroups) # Append the number of Rgroups to newly appended alcohol group
-						ALCOHOLICINDICES[-1].append("Closing )")
+				if SMILEScode[SMILEScode-1] == 'N' and SMILEScode[SMILEScodePos-2] == 'C':
+					FGdata.append(['PrimaryAmine', 'RN', [atomIndex-1,atomIndex], {'N':atomIndex-1,'R':atomIndex}])
 			continue
 
 		elif symbol in CHARGES:
@@ -205,34 +101,12 @@ def ifg(SMILES):
 	# Find the cyclic/aromatic functionalGroups if any exists for the two versions of evalutedFGdata
 	determineCyclicGroups(FGdataFinal)
 	determineCyclicGroups(allFGgroups)
-	FGdataDict = {}
 
-	# Add total alochol groups
+	# Create data dictionaries to count the number of functional group occurances. Add totalAlcohols count to both of them
+	FGdataDict = createFGDataDict(FGdataFinal)
+	allFGs = createFGDataDict(allFGgroups)
 	FGdataDict.update({"totalAlcohols" : alcoholCount})
-	# Loop through FGdataFinal and increment the determined functioanl groups to find their number of occurances
-	for group in FGdataFinal:
-		keys = []
-		for key in FGdataDict.keys():
-			keys.append(key)
-		if group[0] not in keys:
-			FGdataDict.update({group[0] : 1})
-		else:
-			FGdataDict[group[0]] += 1
-		del(keys) # Delete the data after usage to prevent potential data leaks
-
-	# Loop through FGrepeated for easier representation in final output
-	allFGs = {}
-	# Add total number of alcohols
 	allFGs.update({"totalAlcohols" : alcoholCount})
-	for group in allFGgroups:
-		keys = []
-		for key in allFGs.keys():
-			keys.append(key)
-		if group[0] not in keys:
-			allFGs.update({group[0] : 1})
-		else:
-			allFGs[group[0]] += 1
-		del(keys) # Delete the data after usage to prevent potential data leaks
 
 	# Occurance of [NH+],[NH2+], or [NH3+] gaurnetees amino acid strucutre
 	AminoAcid = True if len(re.compile(r'\[[nN]H[23]?\+\]').findall(SMILES)) != 0 else False
@@ -444,6 +318,7 @@ def repetitionScrub(dataList):
 # Scrubs the FG dataList for any alcohol groups which in fact do not point to, or contain an, alcohol
 def alcoholScrub(dataList):
 
+
 	formattedData = copy.deepcopy(dataList) # Holds the corrected list after alcohol evalution
 	groupCounter = - 1 # Counter
 
@@ -462,7 +337,7 @@ def alcoholScrub(dataList):
 			# Loop through each indivudal alcohol to find if an alcohol in the SMILEScode correlates to an alcohol in the functional group
 			validGroup = False # False until proven True
 			for alcohol in ALCOHOLICINDICES:
-				validGroup = any(index in groupIndices for index in alochol)
+				validGroup = any(index in groupIndices for index in alcohol)
 				if validGroup is True: # If valid, break the loop and continue evalution
 					break
 			# If the group which required an alocholic index did not have an alocholic index, then the group is False
@@ -472,7 +347,7 @@ def alcoholScrub(dataList):
 				formattedData.pop(groupCounter)
 				groupCounter = -1
 				continue
-		return formattedData
+	return formattedData
 
 
 # Scrubs FG dataList for heirarchichal functional groups that may be removed
@@ -1062,7 +937,7 @@ def whichGroup(startPosition, endPosition, group, atomindices):
 		# Equivalent lengths with a True match means an identical match
 		elif difference == 0 and match is True and fullMatch is False:
 			fullMatch = True
-			fullDict = createFGDict(atomindices, FGtemplate)
+			fullDict = createFGAtomDict(atomindices, FGtemplate)
 			fullInfo = [FGname, FGtemplate, atomindices, fullDict]
 
 		# Unequivalent lengths with a True match means a portion match
@@ -1626,7 +1501,7 @@ def expandGroup(startPosition, endPosition, group, atomindices, portionMatches, 
 			if finalCheck is True:
 				print("finalCheck = ", True)
 				print(requiredGroup, " = ", template[0:RNtempPos+1])
-				finalDict = createFGDict(finalAtomindices, template)
+				finalDict = createFGAtomDict(finalAtomindices, template)
 				print("finalCheck = ", finalCheck)
 				print("recursive = ", recursive)
 				print("len(portionMatches) = ", len(portionMatches))
@@ -1679,7 +1554,7 @@ def numbersHandler(numPosition):
 			return(RINGGROUP[0][1], RINGGROUP[0][2], RINGGROUP[0][3], RINGGROUP[1][4], RINGGROUP[0][0])
 
 
-def createFGDict(FGindices, FGtemplate):
+def createFGAtomDict(FGindices, FGtemplate):
 	FGdict = []
 	indexCounter = -1
 	#print(FGindices)
@@ -1881,3 +1756,141 @@ def printGlobals():
 	print("AROMATICINDICIES = ", AROMATICINDICIES)
 	print("RINGPOSITIONS = ", RINGPOSITIONS)
 	return 0
+
+
+# Alcohol Processing function
+def determineAlcoholGroup(symbol, SMILEScodePos, atomIndex, parenthesis=False):
+
+	# Non parenthesis associated case
+	if parenthesis is False:
+		# First atom alcohol case
+		# Validate SMILEScode scope
+		if SMILEScodePos+1 != SMILEScodelength:
+			# Check for oxygen at first position of SMILEScode, and a single carbon bound to it
+			if atomIndex == 0 and symbol == 'O' and SMILEScode[SMILEScodePos+1].upper() == 'C':
+				ALCOHOLICINDICES.append([atomIndex+1]) # Automatically append next index if satisfied
+				# Check for C1( case, indicates 4 Rgroups off of C, including O
+				if SMILEScode[SMILEScodePos+2] in NUMBERS and SMILEScode[SMILEScodePos+3] == '(':
+					numRGroups = 4
+				# Check for C1R case, indicates 3 R groups off of C, including O
+				elif SMILEScode[SMILEScodePos+2] in NUMBERS and SMILEScode[SMILEScodePos+3] in ATOMS:
+					numRGroups = 3
+				# Check for C(, indicates 3 R groups off of C, including O
+				elif SMILEScode[SMILEScodePos+2] == '(':
+					numRGroups = 3
+				# All other cases are 2 R groups
+				else:
+					numRGroups = 2
+				ALCOHOLICINDICES[-1].append(numRGroups) # Append the number of Rgroups to newly appended alcohol group
+				ALCOHOLICINDICES[-1].append("First O")
+
+		# Final atom alcohol case
+		# Must be an oxygen as final positional symbol and atom in SMILEScode that is not attacthed to a ring. Must be individual
+		if symbol == 'O' and SMILEScodePos == SMILEScodelength - 1:
+			# May be next to a carbon, at the closure of a ring, or next to an outer group
+			if SMILEScode[SMILEScodePos-1].upper() == 'C' or SMILEScode[SMILEScodePos-1] in NUMBERS or SMILEScode[SMILEScodePos-1] == ')':
+				# Intialze positional variables for outer and non-outer cases
+				# (RRR...R(RRR..)O) case
+				if SMILEScode[SMILEScodePos-1] == ')':
+					numRGroups = 3
+					lBlockCounter = 1
+					LNPos = SMILEScodePos - 2
+				else:
+					numRGroups = 2
+					lBlockCounter = 0
+					LNPos = SMILEScodePos - 1
+				# LN expansion logic to determine if an alcohol group exists
+				LN = SMILEScode[LNPos]
+				LNIndex = atomIndex
+				while LN.upper() != 'C' or lBlockCounter > 0:
+					if LN in ATOMS:
+						LNIndex -= 1
+					if LN not in NUMBERS and lBlockCounter == 0:
+						break
+					if LN in NUMBERS and lBlockCounter == 0:
+						numRGroups += 1
+					if LN == '(':
+						lBlockCounter -= 1
+					if LN == ')':
+						lBlockCounter += 1
+					# Increment at bottom of loop so else statement below handles ALCOHOLICINDICES
+					LNPos -= 1
+					LN = SMILEScode[LNPos]
+				else:
+					# Append LNIndex-1 to account for stopping at the C, but not evalutating it
+					ALCOHOLICINDICES.append([LNIndex-1])
+					ALCOHOLICINDICES[-1].append(numRGroups) # Append the number of Rgroups to newly appended alcohol group
+					ALCOHOLICINDICES[-1].append("FinalO")
+	# Parenthesis associated case
+	elif parenthesis is True:
+		# (O) single oxygen outer groups are automatically alcoholic oxygens since they are isolated
+		if symbol == '(':
+			potentialAlcoholGroup = SMILEScode[SMILEScodePos:SMILEScodePos+3]
+			if potentialAlcoholGroup == '(O)':
+				ALCOHOLICINDICES.append([atomIndex]) # Atom index pointing to R group bound to (O)
+				# No loop necessary, only a couple of cases. LN variables for clarity
+				LNPos = SMILEScodePos - 1
+				LN = SMILEScode[LNPos]
+				# Check for C1(O) case, indicates 4 Rgroups off of C, including O
+				if LN in NUMBERS:
+					numRGroups = 4
+				# Check for C(O)(RRR....) case, indicates 4 Rgroups off of C, including O
+				elif LN in ATOMS and SMILEScode[SMILEScodePos+3] == '(':
+					numRGroups = 4
+				# Check for C(RRR....)(O) case, indicates 4 Rgroups off of C, including O
+				elif LN == ')':
+					numRGroups = 4
+				# An outer C(O) group indicates at least 3 always by itself if no 4 cases are satisfied
+				else:
+					numRGroups = 3
+				ALCOHOLICINDICES[-1].append(numRGroups) # Append the number of Rgroups to newly appended alcohol group
+				ALCOHOLICINDICES[-1].append("Beginning (")
+		if symbol == ')':
+			# Lone oxygen closing outer group case, must be a (RRR....O) case
+			if SMILEScode[SMILEScodePos-1] == 'O':
+				# Initalize positional varibles of outer and non-outer cases bound leftward to O
+				# (RRR...R(RRR..)O) case
+				if SMILEScode[SMILEScodePos-2] == ')':
+					lBlockCounter = 1
+					numRGroups = 3
+					LNPos = SMILEScodePos - 3
+				else:
+					numRGroups = 2
+					lBlockCounter = 0
+					LNPos = SMILEScodePos - 2
+				# LN expansion logic to determine if an alcohol group exists at this particular oxygen
+				LN = SMILEScode[LNPos]
+				LNIndex = atomIndex
+				while LN.upper() != 'C' or lBlockCounter > 0:
+					if LN in ATOMS:
+						LNIndex -= 1
+					if LN not in NUMBERS and lBlockCounter == 0:
+						break
+					if LN in NUMBERS and lBlockCounter == 0:
+						numRGroups += 1
+					if LN == '(':
+						lBlockCounter -= 1
+					if LN == ')':
+						lBlockCounter += 1
+					LNPos -= 1
+					LN = SMILEScode[LNPos]
+				else:
+					# Append LNIndex-1 to account for stopping at C an not evaluating it
+					ALCOHOLICINDICES.append([LNIndex-1])
+					ALCOHOLICINDICES[-1].append(numRGroups) # Append the number of Rgroups to newly appended alcohol group
+					ALCOHOLICINDICES[-1].append("Closing )")
+	return 0
+
+
+def createFGDataDict(dataList):
+	dict = {}
+	for group in dataList:
+		keys = []
+		for key in dict.keys():
+			keys.append(key)
+		if group[0] not in keys:
+			dict.update({group[0] : 1})
+		else:
+			dict[group[0]] += 1
+		del(keys) # Delete the data after usage to prevent potential data leaks
+	return dict
