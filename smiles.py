@@ -1,108 +1,114 @@
 import ifg
 import re
 from openpyxl import Workbook
+# import collect
+# import evalute
 
 # Openpyxl objects
-# fgWorkbook = Workbook()
-# fgSheet = fgWorkbook.active
-#
-# # Set intial column names
-# fgSheet.cell(row=1, column=1).value = "Refcode"
-# fgSheet.cell(row=1, column=2).value = "SMILES"
-#
-#
-# # List which holds functional group names
-# functionalGroups = []
-#
-# # Grab all names from FGlist.txt
-# for line in open('FGlist.txt', 'r'):
-#     lineInfo = re.compile(r'\S+').findall(line)
-#     groupName = lineInfo[1]
-#     if groupName not in functionalGroups:
-#         functionalGroups.append(groupName)
-#
-# functionalGroups.append("Alcohol")
-# functionalGroups.append("Acetal")
-# functionalGroups.append("Hemiketal")
-# functionalGroups.append("Hemiacetal")
-#
-# # Sort them alphabetically
-# functionalGroups.sort()
-# holder = functionalGroups.copy()
-#
-# # Add cyclic/aromatic distinctions to list
-# indexCounter = insertions = 0
-# for name in holder:
-#     indexCounter += 1
-#     functionalGroups.insert(indexCounter+insertions, "Cyclic" + name)
-#     if len(re.compile(r'Amine').findall(name)) != 0 or name == "Alcohol":
-#         functionalGroups.insert(indexCounter+insertions, "Aromatic" + name)
-#         insertions += 1
-#     insertions += 1
-#
-# # Insert names into the top row
-# for column in range(3, len(functionalGroups)+3):
-#     fgSheet.cell(row=1,column=column).value = functionalGroups[column-3]
-#
-# fgSheet.cell(row=1, column=len(functionalGroups)+3).value = "aromaticRingCount"
-# fgSheet.cell(row=1, column=len(functionalGroups)+4).value = "nonAromaticRingCount"
-# fgSheet.cell(row=1, column=len(functionalGroups)+5).value = "RingCount"
-# fgSheet.cell(row=1, column=len(functionalGroups)+6).value = "AminoAcid"
-#
-# rowCounter = 1
-# maxColumn = fgSheet.max_column
-# print(functionalGroups)
-#
-# for line in open('smiles.txt', 'r'):
-#     rowCounter += 1
-#     for column in range(2, maxColumn+1):
-#         fgSheet.cell(row=rowCounter, column=column).value = 0
-#     lineInfo = re.compile(r'\S+').findall(line)
-#     smiles = lineInfo[1]
-#     RefCode = lineInfo[2]
-#     fgSheet.cell(row=rowCounter, column=1).value = RefCode
-#     fgSheet.cell(row=rowCounter, column=2).value = smiles
-#     print("EVALUATING ", lineInfo[2], " ", smiles)
-#     functionalGroupData = ifg.ifg(smiles)
-#     print(functionalGroupData)
-#     for group in functionalGroupData[1].items():
-#          for column in range(2,maxColumn+1):
-#             if fgSheet.cell(row=1, column=column).value == group[0]:
-#                 fgSheet.cell(row=rowCounter, column=column).value = int(group[1])
-#                 if group[0] == "AminoAcid" and int(group[1]) == 1:
-#                     fgSheet.cell(row=rowCounter, column=column).value = "Yes"
-#                 elif group[0] == "AminoAcid" and int(group[1]) == 0:
-#                     fgSheet.cell(row=rowCounter, column=column).value = "No"
-#                 break
-#     del(functionalGroupData)
-# fgWorkbook.save("functionalGroupData.xlsx")
+fgWorkbook = Workbook()
+fgContaimentSheet = fgWorkbook.active
+fgAllSheet = fgWorkbook.create_sheet()
 
-data = ifg.ifg("CC1(C)OC2OC(C(O)C2O1)C(=O)C1CC2CC1C=C2")
-for thing in data:
-    print("\n")
-    print(thing)
-print("CC1(C)OC2OC(C(O)C2O1)C(=O)C1CC2CC1C=C2")
+# Set intial column names
+fgContaimentSheet.cell(row=1, column=1).value = "Refcode"
+fgContaimentSheet.cell(row=1, column=2).value = "SMILES"
+fgAllSheet.cell(row=1, column=1).value = "Refcode"
+fgAllSheet.cell(row=1, column=2).value = "SMILES"
 
-# zero = 0
-# print(zero)
-# zero = ['entry']
-# print(zero)
-# myString = "SecondaryAmine"
-# myRegex = re.compile(r'(?<=Secondary)\S+')
-# match = myRegex.search(myString)
-# print(myString)
-# print(myRegex)
-# print(match)
-# print(match.group(0))
+# List which holds functional group names
+functionalGroups = []
 
-# file = open("FGheirarchy.txt", "r+")
-#
-#
-# for line in open('FGheirarchy.txt', 'r'):
-#     lineInfo = re.compile(r'\S+').findall(line)
-#     heirarchy = lineInfo[0].split(":")
-#     print(heirarchy)
-#     if "PrimaryAmine" in heirarchy:
-#         print("Yessitmate")
-#     else:
-#         print("snowsir!nosnowsinthesnowsir!")
+# Grab all names from FGlist.txt
+for line in open('FGlist.txt', 'r'):
+    lineInfo = re.compile(r'\S+').findall(line)
+    groupName = lineInfo[1]
+    if groupName not in functionalGroups:
+        functionalGroups.append(groupName)
+
+# Append groups which are not found by FGlist.txt, but by direct evalution instead
+functionalGroups.append("Alcohol")
+functionalGroups.append("Acetal")
+functionalGroups.append("Hemiketal")
+functionalGroups.append("Hemiacetal")
+functionalGroups.append("PrimaryAmine")
+
+# Sort them alphabetically
+functionalGroups.sort()
+functionalGroups.insert(2,"totalAlcohols") # Special varibale that requires tracking
+holder = functionalGroups.copy()
+
+# Add cyclic/aromatic distinctions to list
+indexCounter = insertions = 0
+for name in holder:
+    indexCounter += 1
+    functionalGroups.insert(indexCounter+insertions, "Cyclic" + name)
+    if len(re.compile(r'Amine').findall(name)) != 0 or name == "Alcohol":
+        functionalGroups.insert(indexCounter+insertions, "Aromatic" + name)
+        insertions += 1 # offset counter
+    insertions += 1
+
+# Insert functional group names into the top row of excel sheet
+for column in range(3, len(functionalGroups)+3):
+    fgContaimentSheet.cell(row=1,column=column).value = functionalGroups[column-3]
+    fgAllSheet.cell(row=1, column=column).value = functionalGroups[column-3]
+
+# Insert more special varibales into top of excel sheet
+fgContaimentSheet.cell(row=1, column=len(functionalGroups)+3).value = "aromaticRingCount"
+fgContaimentSheet.cell(row=1, column=len(functionalGroups)+4).value = "nonAromaticRingCount"
+fgContaimentSheet.cell(row=1, column=len(functionalGroups)+5).value = "RingCount"
+fgContaimentSheet.cell(row=1, column=len(functionalGroups)+6).value = "AminoAcid"
+
+# Initializations
+rowCounter = 1
+maxContaimentColumn = fgContaimentSheet.max_column
+maxFGallColumn = fgAllSheet.max_column
+
+# Loop thorugh each structure SMILEScode
+for line in open('smiles.txt', 'r'):
+    rowCounter += 1
+
+    # Insert 0's in all possible cells
+    for column in range(2, maxContaimentColumn+1):
+        fgContaimentSheet.cell(row=rowCounter, column=column).value = 0
+    for column in range(2, maxFGallColumn+1):
+        fgAllSheet.cell(row=rowCounter, column=column).value = 0
+
+    # Retrieve SMILEScode/Refcode information, place into excel sheet in current row
+    lineInfo = re.compile(r'\S+').findall(line)
+    smiles = lineInfo[1]
+    RefCode = lineInfo[2]
+    fgContaimentSheet.cell(row=rowCounter, column=1).value = RefCode
+    fgContaimentSheet.cell(row=rowCounter, column=2).value = smiles
+    fgAllSheet.cell(row=rowCounter, column=1).value = RefCode
+    fgAllSheet.cell(row=rowCounter, column=2).value = smiles
+
+    # Evaluate the SMILEScode for its functional groups
+    print("EVALUATING ", lineInfo[2], " ", smiles)
+    functionalGroupData = ifg.ifg(smiles)
+    print(functionalGroupData)
+
+    # Place the resultant functional groups from dictionary object into the proper column/row name
+    for group in functionalGroupData[1].items(): # Loop through the detemrined functional groups from SMILEScode
+         for column in range(2,maxContaimentColumn+1): # Loop through every column...
+            if fgContaimentSheet.cell(row=1, column=column).value == group[0]: # ...To find which column to place the data into
+                fgContaimentSheet.cell(row=rowCounter, column=column).value = int(group[1]) # Insert the value into that row
+                # Special cases for AminoAcids
+                if group[0] == "AminoAcid" and int(group[1]) == 1:
+                    fgContaimentSheet.cell(row=rowCounter, column=column).value = "Yes"
+                elif group[0] == "AminoAcid" and int(group[1]) == 0:
+                    fgContaimentSheet.cell(row=rowCounter, column=column).value = "No"
+                break
+    # Repeat loop revised set of data, minus special cases
+    for group in functionalGroupData[3].items():
+         for column in range(2,maxFGallColumn+1):
+            if fgAllSheet.cell(row=1, column=column).value == group[0]:
+                fgAllSheet.cell(row=rowCounter, column=column).value = int(group[1])
+                break
+    del(functionalGroupData)
+fgWorkbook.save("functionalGroupData.xlsx") # Save the data sheet
+
+# data = ifg.ifg("Nc1ccc(cc1)C(=O)OCCCOC(=O)c1ccc(N)cc1")
+# for thing in data:
+#     print("\n")
+#     print(thing)
+# print("Nc1ccc(cc1)C(=O)OCCCOC(=O)c1ccc(N)cc1")
