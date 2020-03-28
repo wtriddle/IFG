@@ -18,7 +18,7 @@ class ifg:
 
         # Computational lists, private access
         self.__GITPOSITION = []
-        self.__ATOMS = ['C','O','N','c','n','o']
+        self.__ATOMS = ['C','O','N','X','Z','S','I','F','c','n','o','x','z','s','i','f']
         self.__CHARGES = ['+','-']
         self.__PARENTHESIS = ['(', ')']
         self.__BRACKETS = ['[', ']']
@@ -26,22 +26,17 @@ class ifg:
         self.__NUMBERS = ['1','2','3','4','5','6','7','8','9']
         self.__NUMBERSREGEX = re.compile(r'\d')
         self.__RGROUPREGEX = re.compil(r'R')
+        self.__SMILEScodelength = len(SMILEScode)
 
     def ifg(SMILES):
 
     	# Initializations
-    	global SMILEScode
-    	SMILEScode = formatSMILEScode(SMILES) # Definition of SMILEScode
-    	global SMILEScodelength
-    	SMILEScodelength = len(SMILEScode) # Definition of SMILEScodelength
     	SMILEScodePos = atomIndex = -1 # Counters
-    	initializeRINGPOSITIONS() # Create dynamic model of SMILEScode
-    	initializeCYCLICINDICES() # Determine cyclic indices of the SMILEScode
 
     	# COLLECTION PHASE
 
     	# Loop to determine all possible functional groups from given SMILEScode
-    	for symbol in SMILEScode:
+    	for symbol in SMILES:
     		SMILEScodePos += 1 # Increment position
 
     		# GITposition is symbol specific, reset its contents each new symbol
@@ -933,6 +928,7 @@ class ifg:
     		# Variables
     		lineInfo = re.compile(r'\S+').findall(line) # Grab line info seperated by whitespace
     		FGtemplate = lineInfo[0].replace('[R]', 'R') # Replace with single R instead of bracketed R
+            FGtemplate = DLAtoSARconversion(FGtemplate) # Convert DLA to SAR if template contains DLA
     		FGname = lineInfo[1] # Name comes after template on a single line
     		difference = len(FGtemplate) - len(group) # Length difference to determine fullMatch or portion match
 
@@ -995,7 +991,7 @@ class ifg:
     		template = portionGroup[0] # FG template which is attempting to be expanded into
     		FGname = portionGroup[1] # The name of the templated functioanl group
     		numTemplateAtoms = len(ATOMSREGEX.findall(template)) # Find number of atoms in template
-    		posInTemplate = GITposition[portionCounter] # Determine the start position of group in template
+    		posInTemplate = determineShift(group, template)# Determine the start position of group in template
     		requiredGroup = "" # String which holds the dynamically expanding group as the SMILEScode is evaluted with respect to the template and group variables
     		leftRequired = template[0:posInTemplate] # String of characters requried to complete the fragmented group that exist to the left of group inside the template
     		rightRequired = template[posInTemplate+len(group):len(template)] # String of characters required to complete the fragmented group that exists to the right of group inside the template
@@ -1581,6 +1577,7 @@ class ifg:
 
     	group = group.upper()
     	difference = len(template) - len(group)
+        groupCounter = -1
     	# ##print("Checking ", group, " aginast ", template)
     	# ##print("There is a difference of ", difference, " while full = " , full)
     	# Group larger than template, return False
@@ -1593,7 +1590,6 @@ class ifg:
 
     	# Group same length as template
     	if difference == 0:
-    		groupCounter = -1
     		for symbol in template:
     			groupCounter += 1
     			groupSymbol = group[groupCounter]
@@ -1605,40 +1601,42 @@ class ifg:
 
     	# Group smaller than template
     	if difference > 0 and full is False:
-    		for shift in range(0, difference+1):
-    			templateCounter = - 1 + shift
-    			symbolCounter = - 1
+            templateCounter = -1
+            templateStart = -1
+            while groupCounter != len(group) - 1:
+                templateCounter = templateStart
     			for symbol in group:
-    				symbolCounter += 1
+    				groupCounter += 1
     				templateCounter += 1
     				templateSymbol = template[templateCounter]
     				if templateSymbol != symbol and templateSymbol != 'R':
+                        templateStart += 1
     					break
     				if symbol not in ATOMS and templateSymbol == 'R':
+                        templateStart += 1 
     					break
     				if symbolCounter == len(group) - 1:
-    					GITposition.append(shift)
     					return True
     		return False
 
+    def determineShift(group, template):
+        group = group.upper()
+    	difference = len(template) - len(group)
+        for shift in range(0, difference+1):
+            templateCounter = - 1 + shift
+            symbolCounter = - 1
+            for symbol in group:
+                symbolCounter += 1
+                templateCounter += 1
+                templateSymbol = template[templateCounter]
+                if templateSymbol != symbol and templateSymbol != 'R':
+                    break
+                if symbol not in ATOMS and templateSymbol == 'R':
+                    break
+                if symbolCounter == len(group) - 1:
+                    return shift
 
     def formatSMILEScode(SMILEScode):
-        # Change double lettered atoms to single character representation
-        singleLetterdAtoms = ['H','B','C','N','O','F','P','S','K','I','V','Y','U','W']
-        doubleLetterdAtoms = ['He','Li' 'Be','Ne','Na' ,'Mg' ,'Al' ,'Si' ,'Cl' ,'Ar' ,'Br' ,'Xe' ,'Hg' ,'At' ,'Ts' ]
-        # Unique single atom representations
-        uniqueSARS = []
-        # If SMILEScode contains a letter which is not one of the above, then it must be a double lettered atom
-        # Necessary to change it to a single character to keep algorithm the same as it is run on a single
-        # character basis
-        # Assume no aromatic distinction with double letter atoms
-        SMILEScodePos = -1
-
-        while SMILEScodePos != SMILEScodelength:
-            SMILEScodePos += 1
-            # If symbol is doubled lettered, change it to a single letter representation
-            if SMILEScode[SMILEScodePos:SMILEScodePos+2] in doubleLetterdAtoms:
-
     	SMILEScodePos = -1
     	reFormatted = ""
     	while SMILEScodePos != SMILEScodelength:
@@ -1654,9 +1652,9 @@ class ifg:
     			reFormatted = formatSMILEScode(reFormatted)
     			SMILEScodePos = -1
     	if reFormatted == "":
-    		return SMILEScode
+    		return DLAtoSARconversion(SMILEScode)
     	else:
-    		return reFormatted
+    		return DLAtoSARconversion(reFormatted)
 
 
     def initializeCYCLICINDICES():
@@ -2001,3 +1999,21 @@ class ifg:
     			dict[group[0]] += 1
     		del(keys) # Delete the data after usage to prevent potential data leaks
     	return dict
+
+    # DLA to SAR conversion
+    def DLAtoSARconversion(template):
+        conversionLegend = {'Br':'X','Cl':'Z'}
+        templatePos = -1
+        reformattedTemplate = ""
+        while templatePos != len(template):
+            templatePos += 1
+            # If symbol is doubled lettered, change it to a single letter representation
+            if template[templatePos:templatePos+2] == "Br":
+                reformattedTemplate += "X"
+                templatePos += 1
+            elif template[templatePos:templatePos+2] == "Cl":
+                reformattedTemplate += "Z"
+                templatePos += 1
+            else:
+                reformattedTemplate += template[templatePos]
+        return reformattedTemplate
