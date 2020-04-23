@@ -1,133 +1,77 @@
-from gatherifgdata import gatherData
+from molecule import molecule
+from ifg import ifg
 import re
 import time
-# from openpyxl import Workbook
-# import collect
-# import evalute
 
-# Openpyxl objects
-# fgWorkbook = Workbook()
-# fgContaimentSheet = fgWorkbook.active
-# fgAllSheet = fgWorkbook.create_sheet()
-
-# # Set intial column names
-# fgContaimentSheet.cell(row=1, column=1).value = "Refcode"
-# fgContaimentSheet.cell(row=1, column=2).value = "SMILES"
-# fgAllSheet.cell(row=1, column=1).value = "Refcode"
-# fgAllSheet.cell(row=1, column=2).value = "SMILES"
-
-# # List which holds functional group names
-# functionalGroups = []
-
-# # Grab all names from FGlist.txt
-# for line in open('FGlist.txt', 'r'):
-#     lineInfo = re.compile(r'\S+').findall(line)
-#     groupName = lineInfo[1]
-#     if groupName not in functionalGroups:
-#         functionalGroups.append(groupName)
-
-# # Append groups which are not found by FGlist.txt, but by direct evalution instead
-# functionalGroups.append("Alcohol")
-# functionalGroups.append("Acetal")
-# functionalGroups.append("Hemiketal")
-# functionalGroups.append("Hemiacetal")
-# functionalGroups.append("PrimaryAmine")
-
-# # Sort them alphabetically
-# functionalGroups.sort()
-# functionalGroups.insert(2,"totalAlcohols") # Special varibale that requires tracking
-# holder = functionalGroups.copy()
-
-# # Add cyclic/aromatic distinctions to list
-# indexCounter = insertions = 0
-# for name in holder:
-#     indexCounter += 1
-#     functionalGroups.insert(indexCounter+insertions, "Cyclic" + name)
-#     if len(re.compile(r'Amine').findall(name)) != 0 or name == "Alcohol":
-#         functionalGroups.insert(indexCounter+insertions, "Aromatic" + name)
-#         insertions += 1 # offset counter
-#     insertions += 1
-
-# # Insert functional group names into the top row of excel sheet
-# for column in range(3, len(functionalGroups)+3):
-#     fgContaimentSheet.cell(row=1,column=column).value = functionalGroups[column-3]
-#     fgAllSheet.cell(row=1, column=column).value = functionalGroups[column-3]
-
-# # Insert more special varibales into top of excel sheet
-# fgContaimentSheet.cell(row=1, column=len(functionalGroups)+3).value = "aromaticRingCount"
-# fgContaimentSheet.cell(row=1, column=len(functionalGroups)+4).value = "nonAromaticRingCount"
-# fgContaimentSheet.cell(row=1, column=len(functionalGroups)+5).value = "RingCount"
-# fgContaimentSheet.cell(row=1, column=len(functionalGroups)+6).value = "AminoAcid"
-
-# # Initializations
-# rowCounter = 1
-# maxContaimentColumn = fgContaimentSheet.max_column
-# maxFGallColumn = fgAllSheet.max_column
-
-# # Loop thorugh each structure SMILEScode
+# elapsedtime = time.process_time()
 # for line in open('smiles.txt', 'r'):
-#     rowCounter += 1
+# 	lineInfo = re.compile(r'\S+').findall(line)
+# 	smiles = lineInfo[1]
+# 	refcode = lineInfo[2]
+# 	mol = molecule(smiles)
+# 	print(mol)
+# 	print(refcode)
+# 	print(smiles)
+# elapsedtime = time.process_time()
+# print(elapsedtime)
+smiles = ifg("COC(=O)C=CC1C2CCC3C2C(C)(C)CCCC13C","BIVLEY")
+# print(smiles.functionalGroups)
+for group in smiles.functionalGroups:
+	print(group.NAME, group.SMILES, group.atomData)
+# firstFG = smiles.functionalGroups[0]
+# print(firstFG.SMILES)
+# print(firstFG.atomData)
+# template = molecule("RC(=O)OR")
 
-#     # Insert 0's in all possible cells
-#     for column in range(2, maxContaimentColumn+1):
-#         fgContaimentSheet.cell(row=rowCounter, column=column).value = 0
-#     for column in range(2, maxFGallColumn+1):
-#         fgAllSheet.cell(row=rowCounter, column=column).value = 0
+# for i in range(0,len(template.atomData)):
+# 	print(i, template.atomData[i], template.bondData[i])
 
-#     # Retrieve SMILEScode/Refcode information, place into excel sheet in current row
-#     lineInfo = re.compile(r'\S+').findall(line)
-#     smiles = lineInfo[1]
-#     RefCode = lineInfo[2]
-#     fgContaimentSheet.cell(row=rowCounter, column=1).value = RefCode
-#     fgContaimentSheet.cell(row=rowCounter, column=2).value = smiles
-#     fgAllSheet.cell(row=rowCounter, column=1).value = RefCode
-#     fgAllSheet.cell(row=rowCounter, column=2).value = smiles
+# print('\n')
 
-#     # Evaluate the SMILEScode for its functional groups
-#     print("EVALUATING ", lineInfo[2], " ", smiles)
-#     functionalGroupData = ifg.ifg(smiles)
-#     print(functionalGroupData)
+# for tempAtom in template.atomData:
+# 	index = tempAtom[0]
+# 	if tempAtom[1] == 'R':
+# 		template.bondData[index].clear()
 
-#     # Place the resultant functional groups from dictionary object into the proper column/row name
-#     for group in functionalGroupData[1].items(): # Loop through the detemrined functional groups from SMILEScode
-#          for column in range(2,maxContaimentColumn+1): # Loop through every column...
-#             if fgContaimentSheet.cell(row=1, column=column).value == group[0]: # ...To find which column to place the data into
-#                 fgContaimentSheet.cell(row=rowCounter, column=column).value = int(group[1]) # Insert the value into that row
-#                 # Special cases for AminoAcids
-#                 if group[0] == "AminoAcid" and int(group[1]) == 1:
-#                     fgContaimentSheet.cell(row=rowCounter, column=column).value = "Yes"
-#                 elif group[0] == "AminoAcid" and int(group[1]) == 0:
-#                     fgContaimentSheet.cell(row=rowCounter, column=column).value = "No"
-#                 break
-#     # Repeat loop revised set of data, minus special cases
-#     for group in functionalGroupData[3].items():
-#          for column in range(2,maxFGallColumn+1):
-#             if fgAllSheet.cell(row=1, column=column).value == group[0]:
-#                 fgAllSheet.cell(row=rowCounter, column=column).value = int(group[1])
-#                 break
-#     del(functionalGroupData)
-# fgWorkbook.save("functionalGroupData.xlsx") # Save the data sheet
+# for i in range(0,len(template.atomData)):
+# 	print(i, template.atomData[i], template.bondData[i])
 
-# data = ifg.ifg("Nc1ccc(cc1)C(=O)OCCCOC(=O)c1ccc(N)cc1")
-# for thing in data:
-#     print("\n")
-#     print(thing)
-# print("Nc1ccc(cc1)C(=O)OCCCOC(=O)c1ccc(N)cc1")
+# smiles.removeBond(1,template)
+# template.atomData[1][0] = 2
 
-startTime = time.time()
-for line in open('altMasterSmi.txt','r'):
-	lineInfo = re.compile(r'\S+').findall(line)
-	refcode = lineInfo[1]
-	smiles = lineInfo[0]
-	myData = gatherData(smiles)
-	print(smiles)
-	print(refcode)
-	print("ContainmentDict = ", myData.functionalGroupData[0])
-	print("allFGDict = ", myData.functionalGroupData[1])
-	print("\n")
-	del(myData)
-elapsedTime = time.time() - startTime
-print(elapsedTime)
-# myData = anotherClass("O=N(=O)N=c1[nH]nn[nH]1")
-# print("ContainmentDict = ", myData.functionalGroupData[0])
-# print("allFGDict = ", myData.functionalGroupData[1])
+# print('\n')
+
+# for i in range(0,len(template.atomData)):
+# 	print(i, template.atomData[i], template.bondData[i])
+# print('\n')
+# for i in range(0,len(smiles.atomData)):
+# 	print(i, smiles.atomData[i], smiles.bondData[i])
+# expandGroup = smiles.expandGroup(smiles.atomData[2],1,template)
+# print(expandGroup)
+# print(template.atomData)
+# print("I Atom 	      Bond")
+# print('\n')
+# for i in range(0,len(template.atomData)):
+# 	print(i, template.atomData[i], template.bondData[i])
+
+# for atom in template.atomData:
+# 	index = atom[0]
+# 	if atom[1] == 'R':
+# 		template.bondData[index].clear()
+
+# print('\n')
+# for i in range(0,len(template.atomData)):
+# 	print(i, template.atomData[i], template.bondData[i])
+
+# atomIndex = 1
+# for index,bonds in enumerate(template.bondData):
+# 	for j,bond in enumerate(bonds):
+# 		if bond[0] == atomIndex:
+# 			del(template.bondData[index][j])
+# print('\n')
+# for i in range(0, len(template.atomData)):
+# 	print(i, molSmi.atomData[i], molSmi.bondData[i])
+
+# print('\n')
+# for i in range(0,len(template.atomData)):
+# 	print(i, template.atomData[i], template.bondData[i])

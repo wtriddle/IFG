@@ -2,11 +2,14 @@ import re
 
 class molecule():
 	
-	def __init__(self,smiles):
+	def __init__(self,smiles, name):
 		self.SMILES = smiles
+		self.NAME =  name
 		self.atomRegex = re.compile(r'[a-zA-Z]')
+		self.chargeRegex = re.compile(r'\+\-')
+		self.chargedMol = True if len(self.chargeRegex.findall(smiles)) != 0 else False
 		self.ATOMS = ['C', 'O', 'N', 'X', 'Z', 'S', 'I',
-			'F', 'c', 'n', 'o', 'x', 'z', 's', 'i', 'f']
+			'F', 'c', 'n', 'o', 'x', 'z', 's', 'i', 'f', 'R']
 		self.BONDS = ['=','#']
 		self.BRACKETS = ['[',']']
 		self.CHARGES = ['+','-']

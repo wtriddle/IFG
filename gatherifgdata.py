@@ -4,6 +4,7 @@ from dataManipulators import dataManipulators
 class gatherData(dataManipulators):
 
 	def __init__(self, smilescode):
+		self.smiles = smilescode
 		self.functionalGroupData = self.functionalGroups(smilescode)
 
 	def functionalGroups(self, SMILES):

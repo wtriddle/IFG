@@ -1,5 +1,3 @@
-import re
-
 class dataManipulators:
 
 	# Create dictionary which counts the number of list elements into dictionary
