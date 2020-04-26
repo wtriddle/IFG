@@ -6,7 +6,8 @@ class ifg(molecule):
 	def __init__(self,smiles, REFCODE):
 		super().__init__(smiles, REFCODE)
 		self.functionalGroups = self.findFunctionalGroups()
-	
+		self.preciseFunctionalGroups = self.findPreciseGroups(self.functionalGroups)
+
 	def findFunctionalGroups(self):
 	
 		functionalGroups = []
@@ -65,45 +66,44 @@ class ifg(molecule):
 				template.atomData[expansionPoint][0] = atom[0]
 				self.removeBond(expansionPoint,template)
 
-				# if template.SMILES == 'RN(=O)=O':
-				# 	print("\nINITIAL CONDITIONS\natom = ", atom)
-				# 	print(template.NAME)	
-				# 	for i in range(0,len(template.atomData)):
-				# 		print(i, template.atomData[i], template.bondData[i])
-				expandGroup = self.expandGroup(atom,expansionPoint,template)
+				if template.SMILES == 'RC(=O)O':
+					print("\nINITIAL CONDITIONS\natom = ", atom)
+					print(template.NAME)	
+					for i in range(0,len(template.atomData)):
+						print(i, template.atomData[i], template.bondData[i])
+				expandGroup = self.expandGroup(atom,expansionPoint,template, None, atom[0])
 				if expandGroup:
-					# if template.SMILES == 'RN(=O)=O':
-					# 	print("\nMatched ", template.SMILES)
-					# 	print(template.atomData)
-					# 	print('\n')
+					if template.SMILES == 'RC(=O)O':
+						print("\nMatched ", template.SMILES)
+						print(template.atomData)
+						print('\n')
 					matches.append(template)
 				# else:
-				# 	if template.SMILES == 'RN(=O)=O':
-				# 		print("expansion Failse")
+					# if template.SMILES == 'RC(=O)O':
+					# 	print("expansion Failse")
 		
 		return matches
 
 	def expandGroup(self, atom, expansionPoint, template, skipIndex = None, smilesIndexInit = None):
 		
-		if not smilesIndexInit:
-			smilesIndices = [] # Smiles indicies which have already been used in template
-		else:
-			smilesIndices = [smilesIndexInit]
+		smilesIndices = [] # Smiles indicies which have already been used in template
+		smilesIndices.append(smilesIndexInit)
 		templateBonds = template.bondData[expansionPoint]
 		mainTemplateBonds = self.getMainGroups(templateBonds)
 		smilesBonds = self.bondData[atom[0]]
 		templateAtoms = template.atomData
-		# if template.SMILES == 'RN(=O)=O':
-		# 	print("atom = ", atom)
-		# 	print("smilesBonds = ", smilesBonds)
-		# 	print("templateAtoms = ", templateAtoms[expansionPoint])
-		# 	print("templateBonds = ", templateBonds)
-		# 	print("mainTemplateBonds = ", mainTemplateBonds)
-		# 	print("skipIndex = ", skipIndex)
+		if template.SMILES == 'RC(=O)O':
+			print("atom = ", atom)
+			print("smilesBonds = ", smilesBonds)
+			print("templateAtoms = ", templateAtoms[expansionPoint])
+			print("templateBonds = ", templateBonds)
+			print("mainTemplateBonds = ", mainTemplateBonds)
+			print("skipIndex = ", skipIndex)
+			print("smilesIndices = ", smilesIndices)
 		# Not enough bonds at desposal of smiles code to satisfy template means False match
 		if len(templateBonds) > len(smilesBonds):
-			# if template.SMILES == 'RN(=O)=O':
-			# 	print("Not enough smilesBonds at despoal. Returning False...")
+			if template.SMILES == 'RC(=O)O':
+				print("Not enough smilesBonds at despoal. Returning False...")
 			return False
 
 		# Main group Template Analysis
@@ -113,30 +113,30 @@ class ifg(molecule):
 			if tempIndex == skipIndex:
 				continue
 			tempSymbol = tempBond[1]
-			# if template.SMILES == 'RN(=O)=O':
-			# 	print("Finding ", tempBond, " equivlanet in smilesCode...")
+			if template.SMILES == 'RC(=O)O':
+				print("Finding ", tempBond, " equivlanet in smilesCode...")
 			for smilesBond in smilesBonds:
 				
 				smilesIndex = smilesBond[0]
 				smilesSymbol = smilesBond[1]
 
 				if tempSymbol == smilesSymbol and smilesIndex not in smilesIndices:
-					# if template.SMILES == 'RN(=O)=O':
-					# 	print(tempSymbol, " = ", smilesSymbol)
-					# 	print("Creating new path for tempBond", tempBond ," to smilesBond", smilesBond,"...\n")
+					if template.SMILES == 'RC(=O)O':
+						print(tempSymbol, " = ", smilesSymbol)
+						print("Creating new path for tempBond", tempBond ," to smilesBond", smilesBond,"...\n")
 
 					path = self.expandGroup(smilesBond,tempIndex,template, expansionPoint, atom[0])
 
 					if path:
-						# if template.SMILES == 'RN(=O)=O':
-						# 	print("Path succeeded. Adding ", smilesIndex, " to smilesIndices. Removing ", tempBond, " from templateBonds\n")
+						if template.SMILES == 'RC(=O)O':
+							print("Path succeeded. Adding ", smilesIndex, " to smilesIndices. Removing ", tempBond, " from templateBonds\n")
 						smilesIndices.append(smilesIndex)
 						self.removeBond(tempIndex,template)
 						templateAtoms[tempIndex][0] = smilesIndex
 						break
 					else:
-						# if template.SMILES == 'RN(=O)=O':
-						# 	print("Path failed, choosing new path")
+						if template.SMILES == 'RC(=O)O':
+							print("Path failed, choosing new path")
 						continue
 			else:
 				return False
@@ -144,20 +144,20 @@ class ifg(molecule):
 		# Rgroup Template Analysis
 		else:
 			
-			# if template.SMILES == 'RN(=O)=O':
-			# 	print("Analyzing Rgroups for tempAtom ", templateAtoms[expansionPoint])	
-			# 	print("smilesIndices = ", smilesIndices)
+			if template.SMILES == 'RC(=O)O':
+				print("Analyzing Rgroups for tempAtom ", templateAtoms[expansionPoint])	
+				print("smilesIndices = ", smilesIndices)
 
 			RgroupCounter = -1
 			Rgroups = self.getRgroups(templateBonds)
 
-			# if template.SMILES == 'RN(=O)=O':
-			# 	print("Rgroups = ", Rgroups)
+			if template.SMILES == 'RC(=O)O':
+				print("Rgroups = ", Rgroups)
 
 			if not Rgroups:
 				
-				# if template.SMILES == 'RN(=O)=O':
-				# 	print("No Rgroups, returning True")
+				if template.SMILES == 'RC(=O)O':
+					print("No Rgroups, returning True")
 
 				return True
 
@@ -170,8 +170,8 @@ class ifg(molecule):
 					
 					if smilesIndex in smilesIndices or smilesSymbol[0] in self.BONDS:
 						continue
-					# if template.SMILES == "RN(=O)=O":
-					# 	print("smilesBond ", smilesBond, " satisfies the Rgroup ", Rgroups[RgroupCounter])
+					if template.SMILES == "RC(=O)O":
+						print("smilesBond ", smilesBond, " satisfies the Rgroup ", Rgroups[RgroupCounter])
 					RgroupCounter +=1
 					if RgroupCounter < len(Rgroups) - 1:
 						templateAtoms[Rgroups[RgroupCounter][0]][0] = smilesIndex
@@ -294,6 +294,7 @@ class ifg(molecule):
 						# print("Taking ", group.NAME, " over ", compareGroup.NAME)
 						del(functionalGroups[compareIndex])
 						index = -1
+						break
 					elif numCompareRAtoms > numMainRAtoms:
 						# print("Taking ", compareGroup.NAME, " over ", group.NAME)
 						del(functionalGroups[index])
@@ -301,4 +302,69 @@ class ifg(molecule):
 						break
 		return 0
 
-	
+	def findPreciseGroups(self, functionalGroups):
+
+		preciseFgs = functionalGroups[:]
+		index = -1
+		# print("Finding precise groups of ", preciseFgs)
+		while index != len(preciseFgs) - 1:
+
+			index +=1
+			group = preciseFgs[index]
+			groupAtoms = group.atomData
+			groupIndices = []
+			for atom in groupAtoms:
+				groupIndices.append(atom[0])
+			# print("\nFinding containment for ", group.NAME, " ", groupAtoms)
+			for compareIndex, compareGroup in enumerate(preciseFgs):
+
+				if compareIndex == index:
+					continue
+
+				compareAtoms = compareGroup.atomData
+				compareIndices = []
+				for atom in compareAtoms:
+					compareIndices.append(atom[0])
+
+				if len(compareIndices) != len(groupIndices):
+					
+					if all(i in groupIndices for i in compareIndices):
+						# print("Found all ", group.NAME, " ", groupAtoms, " at index ", index," inside ", compareGroup.NAME, " ", compareAtoms, " at index ", compareIndex)
+						del(preciseFgs[compareIndex])
+						del(groupIndices)
+						del(compareIndices)
+						index = -1
+						break
+
+					elif all(i in compareIndices for i in groupIndices):
+						# print("Found all ", compareGroup.NAME, " ", compareAtoms, " at index ", compareIndex, " inside ", group.NAME, " ", groupAtoms, " at index ", index)
+						del(preciseFgs[index])
+						del(groupIndices)
+						del(compareIndices)
+						index = -1
+						break
+
+				elif all(i in groupIndices for i in compareIndices) and all(i in compareIndices for i in groupIndices):
+					
+						numMainRAtoms = len(self.getRgroups(groupAtoms))
+						numCompareRAtoms = len(self.getRgroups(compareAtoms))
+						print(group.NAME, " has ", numMainRAtoms, " R atoms")
+						print(compareGroup.NAME," has ", numCompareRAtoms, " R atoms")
+						
+						if numMainRAtoms > numCompareRAtoms:
+							del(preciseFgs[index])
+							del(groupIndices)
+							del(compareIndices)
+							index = -1
+							break
+
+						elif numCompareRAtoms > numMainRAtoms:
+							del(preciseFgs[compareIndex])
+							del(groupIndices)
+							del(compareIndices)
+							index = -1
+							break
+
+				del(compareIndices)
+
+		return preciseFgs
