@@ -3,11 +3,12 @@ import re
 class molecule():
 	
 	def __init__(self,smiles, name):
-		self.SMILES = smiles
+
+		self.SMILES = self.formatSmiles(smiles)
 		self.NAME =  name
+
 		self.atomRegex = re.compile(r'[a-zA-Z]')
-		self.chargeRegex = re.compile(r'\+\-')
-		self.chargedMol = True if len(self.chargeRegex.findall(smiles)) != 0 else False
+		self.chargeRegex = re.compile(r'\+|\-')
 		self.ATOMS = ['C', 'O', 'N', 'X', 'Z', 'S', 'I',
 			'F', 'c', 'n', 'o', 'x', 'z', 's', 'i', 'f', 'R']
 		self.BONDS = ['=','#']
@@ -15,11 +16,21 @@ class molecule():
 		self.CHARGES = ['+','-']
 		self.NUMBERS = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
 		self.LINEARSYMBOLS = self.ATOMS + self.BONDS + self.BRACKETS + self.CHARGES
+
 		self.RINGS = self.initializeRINGS()
-		self.atomData = self.initializeAtomData()
-		self.bondData = self.initializeBondData()
+		self.AROMATICINDICES = self.initializeAROMATICINDICES()
+		self.CYCLICINDICES = self.initializeCYCLICINDICES()
 		self.ringCount = len(self.RINGS)
+		self.aromaticCount = 0
+		self.nonAromaticCount = 0
+		self.determineRingCounts()
+		self.SMILES = self.SMILES.upper()
+		self.ALCOHOLINFO = []
+		self.ALCOHOLICINDICES = []
+		self.atomData = self.initializeAtomData()
 		self.atomCount = len(self.atomData)
+		self.bondData = self.initializeBondData()
+		self.chargedMol = True if len(self.chargeRegex.findall(smiles)) != 0 else False
 
 	def initializeAtomData(self):
 		
@@ -37,6 +48,9 @@ class molecule():
 				else:
 					atom = [atomIndex, symbol]
 				atomData.append(atom)
+
+				if symbol == 'O':
+					self.determineAlcoholGroup(pos, atomIndex)
 
 		return atomData
 	
@@ -88,6 +102,8 @@ class molecule():
 
 		while LN not in self.LINEARSYMBOLS or scope > 0:
 			
+			if LN == ')' and scope == -1:
+				scope = 0
 			if LN == ')':
 				scope += 1
 			elif LN == '(':
@@ -298,3 +314,184 @@ class molecule():
 
 			elif closeInfo[0] == pos:
 				return [openInfo[1],openInfo[2]]
+
+	def determineAlcoholGroup(self, pos, atomIndex):
+	
+		# Final atom alcohol group
+		if pos == len(self.SMILES) - 1:
+			if self.SMILES[pos-1].upper() == 'C' or self.SMILES[pos-1] in self.NUMBERS or self.SMILES[pos-1] == ')':
+				self.ALCOHOLICINDICES.append(atomIndex)
+
+		# First atom alcohol group
+		elif atomIndex == 0 and self.SMILES[pos+1].upper() == 'C':
+			self.ALCOHOLICINDICES.append(atomIndex)
+
+		# Lone alcohol group
+		elif self.SMILES[pos-1:pos+2] == '(O)':
+			self.ALCOHOLICINDICES.append(atomIndex)
+
+		# Ending parenthesis alcohol group
+		elif self.SMILES[pos+1] == ')' and self.SMILES[pos-1] not in self.BONDS and self.SMILES[pos-1] not in self.BRACKETS:
+			self.ALCOHOLICINDICES.append(atomIndex)
+
+		return 0
+	
+	def determineRingCounts(self):
+	
+		# Simplification of aromatic/nonaromatic count
+		allAtoms = ''.join(self.atomRegex.findall(self.SMILES))
+
+		if allAtoms.islower():
+			self.aromaticCount = self.ringCount
+			return 0
+
+		elif allAtoms.isupper():
+			self.nonAromaticCount = self.ringCount
+			return 0
+		
+		# Upper is nonaromatic, lower is aromatic
+		for ring in self.RINGS:
+			
+			# Both are aromatic
+			if ring[0][2].islower() and ring[1][2].islower():
+
+				openingNumberPos = ring[0][0]
+
+				if self.SMILES[openingNumberPos+1] in self.ATOMS:
+					
+					if self.SMILES[openingNumberPos+1].islower():
+						self.aromaticCount+=1
+
+					elif self.SMILES[openingNumberPos+1].isupper():
+						self.nonAromaticCount+=1
+
+				else:
+					self.aromaticCount+=1
+
+			# Both are non aromatic
+			elif ring[0][2].isupper() and ring[1][2].isupper():
+				
+				openingNumberPos = ring[0][0]
+
+				if self.SMILES[openingNumberPos+1] in self.ATOMS:
+					
+					if self.SMILES[openingNumberPos+1].islower():
+						self.aromaticCount+=1
+
+					elif self.SMILES[openingNumberPos+1].isupper():
+						self.nonAromaticCount+=1
+
+				else:
+					self.nonAromaticCount+=1
+					
+			# They are differnt, must be nonaromatic
+			else:
+				self.nonAromaticCount+=1
+
+	def initializeAROMATICINDICES(self):
+		
+		AROMATICINDICES = []
+		atomIndex = -1
+
+		for symbol in self.SMILES:
+			if symbol in self.ATOMS:
+				atomIndex+=1
+				# Lower case atoms are always aromatic
+				if symbol.islower() and atomIndex not in AROMATICINDICES:
+					AROMATICINDICES.append(atomIndex)
+
+		return AROMATICINDICES
+	
+	def initializeCYCLICINDICES(self):
+	
+		evaluatedNumbers = []
+		CYCLICINDICES = []
+
+		atomIndex = -1
+		for pos, symbol in enumerate(self.SMILES):
+
+			if symbol in self.ATOMS:
+				atomIndex += 1
+
+			# If a new ring has been found in the SMILES code via a number 
+			if symbol in self.NUMBERS and pos not in evaluatedNumbers:
+
+				scopeIndices = [[]] # Index by the scope of paretnehsis groups. I.e. 0th scope is scope where number was found, 1st is an inner parethensis, etc.
+				rBlockCounter = 0
+				evaluatedNumbers.append(pos)
+				scopeIndices[0].append(atomIndex)
+				RNPos = pos + 1
+				RNindex = atomIndex
+				RN = self.SMILES[RNPos]
+
+				# Symbol is equal to number which opened the ring. Loop untl the same number is encountered by RN
+				while RN != symbol:
+
+					if RN in self.ATOMS:
+						RNindex+=1
+						if len(scopeIndices) == rBlockCounter: # If a new nested parenthesis or deeper parenthesis is found, i.e. in between a parenthesis group (...()..,)
+							scopeIndices.append([RNindex]) # Create a new list tracking the inner indices of that nested parenthesis group
+						else: # If the parenthesis scope is not deeper, then access the current scope and append the atom index to it
+							scopeIndices[rBlockCounter].append(RNindex)
+
+					if RN == '(':
+						rBlockCounter += 1
+					if RN == ')':
+						del(scopeIndices[rBlockCounter])
+						rBlockCounter -= 1
+					RNPos+=1
+					RN = self.SMILES[RNPos]
+
+				else:
+					evaluatedNumbers.append(RNPos) 
+					for scope in scopeIndices:
+						for index in scope: # Add all indices within that scope to CYCLICindices
+							if index not in CYCLICINDICES:
+								CYCLICINDICES.append(index)
+
+		return CYCLICINDICES
+	
+	def formatSmiles(self, smiles):
+		
+		reFormatted = ""
+		for pos, symbol in enumerate(smiles):
+			
+			if symbol == '[':
+				startBracketPos = pos
+
+			if symbol == 'H':
+				cutPos = pos
+				while smiles[cutPos] != ']':
+					cutPos += 1
+				reFormatted = smiles[0:startBracketPos] + smiles[startBracketPos+1] + smiles[cutPos+1:len(smiles)]
+				reFormatted = self.formatSmiles(reFormatted)
+				break
+
+		if reFormatted == "": 
+			return self.DLAtoSARconversion(smiles)
+		else: 
+			return self.DLAtoSARconversion(reFormatted)
+	
+	def DLAtoSARconversion(self, template):
+		# conversionLegend
+		# BR --> X
+		# CL --> Z
+
+		templatePos = -1
+		reformattedTemplate = ""
+
+		while templatePos != len(template) - 1:
+			
+			templatePos += 1
+			if template[templatePos:templatePos+2] == "Br":
+				reformattedTemplate += "X"
+				templatePos += 1
+
+			elif template[templatePos:templatePos+2] == "Cl":
+				reformattedTemplate += "Z"
+				templatePos += 1
+
+			else:
+				reformattedTemplate += template[templatePos]
+
+		return reformattedTemplate

@@ -2,13 +2,16 @@ C=C Alkene
 C#C Alkyne
 [R]C(=O)[R] Ketone
 [R]OC(=O)O[R] Carbonate
-[O-]C([R])=O Carboxylate
+[R]C(=O)[O-] Carboxylate
 [R]C(=O)O[R] Ester
 [R]C(=O)O Carboxylicacid
+[R]C(O)O[R] Hemiacetal
+[R]C([R])(O)O[R] Hemiketal
+[R]C(O[R])O[R] Acetal
 [R]OO Hydroperoxide
 [R]OO[R] Peroxide
 [R]O[R] Ether
-NC(=O)[R] Amide
+[R]C(=O)N Amide
 [R]C(=O)N[R] Amide
 [R]C(=O)N([R])[R] Amide
 [R]N[R] SecondaryAmine
@@ -17,7 +20,7 @@ NC(=O)[R] Amide
 [R]C([R])=N[R] SecondaryKetimine
 [R]C=N PrimaryAldimine
 [R]C=N[R] SecondaryAldimine
-O=C([R])N([R])C(=O)[R] Imide
+[R]C(=O)N([R])C(=O)[R] Imide
 [R]N=[N+]=[N-] Azide
 [R]N=N[R] Azo
 [R]OC#N Cynate
