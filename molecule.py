@@ -35,6 +35,7 @@ class molecule():
 		self.atomCount = len(self.atomData)
 		self.bondData = self.initializeBondData()
 		self.chargedMol = True if len(self.chargeRegex.findall(smiles)) != 0 else False
+		self.AMINOACID = True if len(re.compile(r'\[[nN]H[23]?\+\]').findall(smiles)) != 0 else False
 
 	def initializeAtomData(self):
 		

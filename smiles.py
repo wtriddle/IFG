@@ -1,77 +1,202 @@
 from molecule import molecule
 from ifg import ifg
 import re
-import time
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
 
-# elapsedtime = time.process_time()
-# for line in open('smiles.txt', 'r'):
-# 	lineInfo = re.compile(r'\S+').findall(line)
-# 	smiles = lineInfo[1]
-# 	refcode = lineInfo[2]
-# 	mol = molecule(smiles)
-# 	print(mol)
-# 	print(refcode)
-# 	print(smiles)
-# elapsedtime = time.process_time()
-# print(elapsedtime)
-smiles = ifg("COC(=O)C=CC1C2CCC3C2C(C)(C)CCCC13C","BIVLEY")
-# print(smiles.functionalGroups)
-for group in smiles.functionalGroups:
-	print(group.NAME, group.SMILES, group.atomData)
-# firstFG = smiles.functionalGroups[0]
-# print(firstFG.SMILES)
-# print(firstFG.atomData)
-# template = molecule("RC(=O)OR")
+def createFgDataDict(functionalGroups):
+	fgDataDict = {}
+	for group in functionalGroups:
+		if group.NAME in fgDataDict.keys():
+			fgDataDict[group.NAME]+=1
+		else:
+			fgDataDict.update({group.NAME: 1})
+	return fgDataDict
 
-# for i in range(0,len(template.atomData)):
-# 	print(i, template.atomData[i], template.bondData[i])
+# Setup sheets
+fgWorkbook = Workbook()
+fgPreciseSheet = fgWorkbook.create_sheet('Precise Functional Groups')
+fgAllSheet = fgWorkbook.create_sheet('All Functional Groups')
+fgPreciseSheet.title = 'Precise Functional Groups'
+fgAllSheet.title = 'All Functional Groups'
 
-# print('\n')
+fgAllSheet.cell(row=1,column=1).value = "Refcodes"
+fgAllSheet.cell(row=1,column=2).value = "Smiles"
 
-# for tempAtom in template.atomData:
-# 	index = tempAtom[0]
-# 	if tempAtom[1] == 'R':
-# 		template.bondData[index].clear()
+fgPreciseSheet.cell(row=1,column=1).value = "Refcodes"
+fgPreciseSheet.cell(row=1,column=2).value = "Smiles"
 
-# for i in range(0,len(template.atomData)):
-# 	print(i, template.atomData[i], template.bondData[i])
 
-# smiles.removeBond(1,template)
-# template.atomData[1][0] = 2
+# Retrieve functional group names
+functionalGroups = []
+for line in open('FGlist.txt','r'):
+	lineInfo = re.compile(r'\S+').findall(line)
+	if lineInfo[1] not in functionalGroups:
+		functionalGroups.append(lineInfo[1])
+	
+functionalGroups.append("Alcohol")
+functionalGroups.append("PrimaryAmine")
 
-# print('\n')
+# Sort and add cyclic/aromaic nomenclatures
+functionalGroups.sort()
+cyclicGroups = []
+aromaticGroups = []
+for group in functionalGroups:
+	cyclicGroups.append("Cyclic" + group)
+	aromaticGroups.append("Aromatic" + group)
 
-# for i in range(0,len(template.atomData)):
-# 	print(i, template.atomData[i], template.bondData[i])
-# print('\n')
-# for i in range(0,len(smiles.atomData)):
-# 	print(i, smiles.atomData[i], smiles.bondData[i])
-# expandGroup = smiles.expandGroup(smiles.atomData[2],1,template)
-# print(expandGroup)
-# print(template.atomData)
-# print("I Atom 	      Bond")
-# print('\n')
-# for i in range(0,len(template.atomData)):
-# 	print(i, template.atomData[i], template.bondData[i])
+# Input into names first row 
+col = 0 
+index = -1
+while index != len(functionalGroups) - 1:
+	print("adding ", functionalGroups[index])
+	index +=1
+	col += 3
+	fgAllSheet.cell(row=1,column=col).value = functionalGroups[index]
+	fgAllSheet.cell(row=1,column=col+1).value = cyclicGroups[index]
+	fgAllSheet.cell(row=1,column=col+2).value = aromaticGroups[index]
+	fgPreciseSheet.cell(row=1,column=col).value = functionalGroups[index]
+	fgPreciseSheet.cell(row=1,column=col+1).value = cyclicGroups[index]
+	fgPreciseSheet.cell(row=1,column=col+2).value = aromaticGroups[index]
 
-# for atom in template.atomData:
-# 	index = atom[0]
-# 	if atom[1] == 'R':
-# 		template.bondData[index].clear()
+# Input ring info into row 1
+col+=2
+ringInfo = ['aromaticRings','nonAromaticRings','ringCount']
+index = -1
+while index != len(ringInfo) - 1:
+	index += 1
+	col +=1
+	fgAllSheet.cell(row=1,column=col).value = ringInfo[index]
+	fgPreciseSheet.cell(row=1,column=col).value = ringInfo[index]
 
-# print('\n')
-# for i in range(0,len(template.atomData)):
-# 	print(i, template.atomData[i], template.bondData[i])
+fgAllSheet.cell(row=1,column=col+1).value = "totalAlcohols"
+fgPreciseSheet.cell(row=1,column=col+1).value = "totalAlcohols"
+fgAllSheet.cell(row=1,column=col+2).value = "AminoAcid"
+fgPreciseSheet.cell(row=1,column=col+2).value = "AminoAcid"
 
-# atomIndex = 1
-# for index,bonds in enumerate(template.bondData):
-# 	for j,bond in enumerate(bonds):
-# 		if bond[0] == atomIndex:
-# 			del(template.bondData[index][j])
-# print('\n')
-# for i in range(0, len(template.atomData)):
-# 	print(i, molSmi.atomData[i], molSmi.bondData[i])
+# Loop over smiles codes and find their FG/Ring data
+row = 1
+maxCol = fgAllSheet.max_column
+for line in open('smiles.txt', 'r'):
+	row += 1
+	lineInfo = re.compile(r'\S+').findall(line)
+	smiles = lineInfo[1]
+	refcode = lineInfo[2]
+	fgAllSheet.cell(row=row,column=1).value = refcode
+	fgAllSheet.cell(row=row,column=2).value = smiles
+	fgPreciseSheet.cell(row=row,column=1).value = refcode
+	fgPreciseSheet.cell(row=row,column=2).value = smiles
 
-# print('\n')
-# for i in range(0,len(template.atomData)):
-# 	print(i, template.atomData[i], template.bondData[i])
+	# Set current row to all 0's
+	for col in range(3,maxCol):
+		fgAllSheet.cell(row=row,column=col).value = 0
+		fgPreciseSheet.cell(row=row,column=col).value = 0
+
+	print(refcode)
+	print(smiles)
+
+	# Get the functional groups and ring data from ifg algorithm
+	fgs = ifg(smiles, refcode)
+	fgAllDict = createFgDataDict(fgs.functionalGroups)
+	fgPreciseDict = createFgDataDict(fgs.preciseFunctionalGroups)
+	totalAlcohols = len(fgs.ALCOHOLICINDICES)
+
+	# Loop over data dictionaries and apply values to corellating columns
+	for fg in fgAllDict.items():
+		for col in range(3,maxCol):
+			if fgAllSheet.cell(row=1,column=col).value == fg[0]:
+				fgAllSheet.cell(row=row, column=col).value = fg[1]
+				break
+
+	for fg in fgPreciseDict.items():
+		for col in range(3,maxCol):
+			if fgPreciseSheet.cell(row=1,column=col).value == fg[0]:
+				fgPreciseSheet.cell(row=row, column=col).value = fg[1]
+				break
+
+	for ring in fgs.RINGDICT.items():
+		for col in range(3,maxCol):
+			if fgPreciseSheet.cell(row=1,column=col).value == ring[0]:
+				fgPreciseSheet.cell(row=row, column=col).value = ring[1]
+				break
+	
+	for ring in fgs.RINGDICT.items():
+		for col in range(3,maxCol):
+			if fgAllSheet.cell(row=1,column=col).value == ring[0]:
+				fgAllSheet.cell(row=row, column=col).value = ring[1]
+				break
+
+	fgAllSheet.cell(row=row,column=maxCol-1).value = totalAlcohols
+	fgPreciseSheet.cell(row=row,column=maxCol-1).value = totalAlcohols
+
+	if fgs.AMINOACID:
+		fgAllSheet.cell(row=row,column=maxCol).value = "Yes"
+		fgPreciseSheet.cell(row=row,column=maxCol).value = "Yes"
+	else:
+		fgAllSheet.cell(row=row,column=maxCol).value = "No"
+		fgPreciseSheet.cell(row=row,column=maxCol).value = "No"
+
+	print(fgAllDict)
+	print(fgPreciseDict)
+	print(fgs.RINGDICT)
+
+# Get column indices with all 0's
+index = 2
+removableCols = []
+for value in fgAllSheet.iter_cols(min_row=1, min_col=3, max_row=fgAllSheet.max_row, max_col=fgAllSheet.max_column, values_only=True):
+	
+	index+=1
+	
+	for val in value[1:len(value)]:
+		if val != 0:
+			break
+	else:
+		removableCols.append(index)
+
+# Remove columns with all 0's
+colShifter = 0
+for col in removableCols:
+	fgToRemove = fgAllSheet.cell(row=1,column=col-colShifter).value
+	fgAllSheet.delete_cols(col-colShifter)
+	colShifter+=1
+
+del(removableCols)
+
+# Get column indices with all 0's
+index = 2
+removableCols = []
+for value in fgPreciseSheet.iter_cols(min_row=1, min_col=3, max_row=fgPreciseSheet.max_row, max_col=fgPreciseSheet.max_column, values_only=True):
+	
+	index+=1
+	
+	for val in value[1:len(value)]:
+		if val != 0:
+			break
+	else:
+		removableCols.append(index)
+
+# Remove columns with all 0's
+colShifter = 0
+for col in removableCols:
+	fgToRemove = fgPreciseSheet.cell(row=1,column=col-colShifter).value
+	fgPreciseSheet.delete_cols(col-colShifter)
+	colShifter+=1
+
+# Freeze Refcodes, SMILES codes, and Functional groups
+freeze1 = fgAllSheet['C2']
+fgAllSheet.freeze_panes = freeze1
+freeze2 = fgPreciseSheet['C2']
+fgPreciseSheet.freeze_panes = freeze2
+
+# Set up column widths for readability 
+for col in range(3,fgAllSheet.max_column+1):
+	colWidth = len(fgAllSheet.cell(row=1,column=col).value)
+	letterCol = get_column_letter(col)
+	fgAllSheet.column_dimensions[letterCol].width = colWidth + 5
+
+for col in range(3,fgPreciseSheet.max_column+1):
+	colWidth = len(fgPreciseSheet.cell(row=1,column=col).value)
+	letterCol = get_column_letter(col)
+	fgPreciseSheet.column_dimensions[letterCol].width = colWidth + 5
+
+fgWorkbook.save("FgTesting.xlsx")

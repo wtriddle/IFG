@@ -1,5 +1,6 @@
 C=C Alkene
 C#C Alkyne
+[R]C=O Aldehyde
 [R]C(=O)[R] Ketone
 [R]OC(=O)O[R] Carbonate
 [R]C(=O)[O-] Carboxylate
@@ -11,6 +12,9 @@ C#C Alkyne
 [R]OO Hydroperoxide
 [R]OO[R] Peroxide
 [R]O[R] Ether
+NC=O Amide
+[R]NC=O Amide
+[R]N([R])C=O Amide
 [R]C(=O)N Amide
 [R]C(=O)N[R] Amide
 [R]C(=O)N([R])[R] Amide
