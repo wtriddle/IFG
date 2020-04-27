@@ -24,8 +24,12 @@ class molecule():
 		self.aromaticCount = 0
 		self.nonAromaticCount = 0
 		self.determineRingCounts()
+		self.RINGDICT = {
+		"aromaticRings" : self.aromaticCount, 
+		"nonAromaticRings" : self.nonAromaticCount,
+		"ringCount" : self.ringCount }
+
 		self.SMILES = self.SMILES.upper()
-		self.ALCOHOLINFO = []
 		self.ALCOHOLICINDICES = []
 		self.atomData = self.initializeAtomData()
 		self.atomCount = len(self.atomData)
