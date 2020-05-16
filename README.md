@@ -1,12 +1,7 @@
 # IFG (Identify Functional Groups)
-A python script which extracts functional group data from SMILES (Simplified molecular-input line-entry system) codes
+Python scripts which extract functional group data from SMILES (Simplified molecular-input line-entry system) codes
 
-The data parsing functions written in IFG.py slice and group the characters in
-the SMILEScode strings in various ways to obtain a string of a potential 
-functional group, represented as "templates" in the file FGlist.txt. 
-The template is just a string of characters, which appears in the
-SMILEScode strings in different ways. The goal of this program is to
-search the SMILEScode, with respect to how the ring structure and
-bond types appear, for these functional group templates.
+molecule.py creates object molecules based on the SMILES code representation, which contain bonding information about each atom, ring information, and other specifications such as the precense of an amino acid or alcohol
 
+ifg.py uses the molecule object from molecule.py to determine functional groups based on a CHON smiles code 
 
