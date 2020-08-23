@@ -20,8 +20,7 @@ for line in open('smiles.txt', 'r'):
         print("Test failed 2")
         sys.exit()
     if not mol.ringCount == molTest.ringCount:
-        print(mol.ringCount)
-        print(molTest.ringCount)
+        print()
         print("Test failed 3")
         sys.exit()
     if not mol.aromaticCount == molTest.aromaticCount:

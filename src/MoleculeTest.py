@@ -8,11 +8,14 @@ class MoleculeTest():
 
     def __init__(self, smiles, name):
 
+        # Input data
         self.SMILES = self.formatSmiles(smiles)
         self.NAME = name
 
-        self.atomRegex = re.compile(r'[a-zA-Z]')
-        self.chargeRegex = re.compile(r'\+|\-')
+        # Symbol matching lists and regex's
+        self.ATOM_REGEX = re.compile(r'[a-zA-Z]')
+        self.CHARGE_REGEX = re.compile(r'\+|\-')
+        self.BOND_REGEX = re.compile(r'\=|\#')
         self.ATOMS = ['C', 'O', 'N', 'X', 'Z', 'S', 'I',
                       'F', 'c', 'n', 'o', 'x', 'z', 's', 'i', 'f', 'R']
         self.BONDS = ['=', '#']
@@ -21,31 +24,40 @@ class MoleculeTest():
         self.NUMBERS = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
         self.LINEARSYMBOLS = self.ATOMS + self.BONDS + self.BRACKETS + self.CHARGES
 
+        # Ring Containers
         self.RING_SELF_NUM_POSITIONS = []
         self.RING_SELF = {}
         self.RING_PARTNER_NUM_POSITIONS = []
         self.RING_PARTNERS = {}
 
-        self._RING()
+        self._RING()  # Initalize Ring Containers
 
-        self.AROMATICINDICES = self.initializeAROMATICINDICES()
-        self.CYCLICINDICES = self.initializeCYCLICINDICES()
+        # Index Containers
+        self.AROMATICINDICES = []
+        self.CYCLICINDICES = []
+
+        self._INCIDES()  # Initalize Index Containers
+
+        # Collect ring data from ring containers
         self.ringCount = len(self.RING_SELF) / 2
         self.aromaticCount = 0
         self.nonAromaticCount = 0
-        self.determineRingCounts()
+        self._RING_COUNTS()
+
+        # Dictionary mapping counts to keys
         self.RINGDICT = {
             "aromaticRings": self.aromaticCount,
             "nonAromaticRings": self.nonAromaticCount,
             "ringCount": self.ringCount}
 
+        # Once aromaticity is extracted, analysis of SMILES codes can be done in upper case letters only for simplicity
         self.SMILES = self.SMILES.upper()
         self.ALCOHOLICINDICES = []
         self.atomData = self.initializeAtomData()
         self.atomCount = len(self.atomData)
         self.bondData = self.initializeBondData()
         self.chargedMol = True if len(
-            self.chargeRegex.findall(smiles)) != 0 else False
+            self.CHARGE_REGEX.findall(smiles)) != 0 else False
         self.AMINOACID = True if len(re.compile(
             r'\[[nN]H[23]?\+\]').findall(smiles)) != 0 else False
 
@@ -263,6 +275,11 @@ class MoleculeTest():
         return rightBonds
 
     def getChargedGroup(self, pos, reverse=False):
+        """ 
+
+        Captures a charged group in reverse or forwards 
+
+        """
         if reverse:
             chargedGroup = ''
             while self.SMILES[pos] != '[':
@@ -337,10 +354,10 @@ class MoleculeTest():
 
         return 0
 
-    def determineRingCounts(self):
+    def _RING_COUNTS(self):
 
         # Simplification of aromatic/nonaromatic count
-        allAtoms = ''.join(self.atomRegex.findall(self.SMILES))
+        allAtoms = ''.join(self.ATOM_REGEX.findall(self.SMILES))
 
         if allAtoms.islower():
             self.aromaticCount = self.ringCount
@@ -387,24 +404,11 @@ class MoleculeTest():
             else:
                 self.nonAromaticCount += 1
 
-    def initializeAROMATICINDICES(self):
-
-        AROMATICINDICES = []
-        atomIndex = -1
-
-        for symbol in self.SMILES:
-            if symbol in self.ATOMS:
-                atomIndex += 1
-                # Lower case atoms are always aromatic
-                if symbol.islower() and atomIndex not in AROMATICINDICES:
-                    AROMATICINDICES.append(atomIndex)
-
-        return AROMATICINDICES
-
-    def initializeCYCLICINDICES(self):
+    def _INCIDES(self):
+        """ Initalizes ring index lists for CYCLIC/AROMATIC indexed atoms """
 
         evaluatedNumbers = []
-        CYCLICINDICES = []
+        self.CYCLICINDICES = []
 
         atomIndex = -1
         for pos, symbol in enumerate(self.SMILES):
@@ -412,46 +416,59 @@ class MoleculeTest():
             if symbol in self.ATOMS:
                 atomIndex += 1
 
+            if symbol.islower() and atomIndex not in self.AROMATICINDICES:
+                self.AROMATICINDICES.append(atomIndex)
+                continue
+
             # If a new ring has been found in the SMILES code via a number
             if symbol in self.NUMBERS and pos not in evaluatedNumbers:
 
-                # Index by the scope of paretnehsis groups. I.e. 0th scope is scope where number was found, 1st is an inner parethensis, etc.
-                scopeIndices = [[]]
-                rBlockCounter = 0
                 evaluatedNumbers.append(pos)
-                scopeIndices[0].append(atomIndex)
+
+                # Index by how deeply nested a parenthesis group is.
+                # I.e. 0th depth is scope where number was found,
+                # 1st is an inner parethensis (), 2nd is (... (...) ... ), 3rd is (... (... (...) ...) ...), etc.
+                depthIndices = [[]]
+                nestDepthCount = 0
+                depthIndices[0].append(atomIndex)
                 RNPos = pos + 1
                 RNindex = atomIndex
                 RN = self.SMILES[RNPos]
 
-                # Symbol is equal to number which opened the ring. Loop untl the same number is encountered by RN
+                # Symbol is equal to SMILES number which opened the ring. Loop untl the same number is encountered by RN
                 while RN != symbol:
 
                     if RN in self.ATOMS:
                         RNindex += 1
-                        # If a new nested parenthesis or deeper parenthesis is found, i.e. in between a parenthesis group (...()..,)
-                        if len(scopeIndices) == rBlockCounter:
-                            # Create a new list tracking the inner indices of that nested parenthesis group
-                            scopeIndices.append([RNindex])
-                        else:  # If the parenthesis scope is not deeper, then access the current scope and append the atom index to it
-                            scopeIndices[rBlockCounter].append(RNindex)
+                        # If a new nested parenthesis or deeper parenthesis is found, i.e. in between a parenthesis group (...()...)
+                        if len(depthIndices) == nestDepthCount:
+                            # Then create a new list tracking the inner indices of that nested parenthesis group
+                            depthIndices.append([RNindex])
+                        else:  # If the parenthesis depth did not go any deeper, then access the current depth and append the atom index to it
+                            depthIndices[nestDepthCount].append(RNindex)
 
                     if RN == '(':
-                        rBlockCounter += 1
+                        nestDepthCount += 1
                     if RN == ')':
-                        del(scopeIndices[rBlockCounter])
-                        rBlockCounter -= 1
+                        # A closing parenthesis means the depth count has risen, and that the number cannot exist within that specifc nested depth scope
+                        # Remove the tracked indies, as they no longer can be cyclic relative to the current numbered ring being tracked
+                        del(depthIndices[nestDepthCount])
+                        nestDepthCount -= 1
                     RNPos += 1
                     RN = self.SMILES[RNPos]
 
                 else:
                     evaluatedNumbers.append(RNPos)
-                    for scope in scopeIndices:
-                        for index in scope:  # Add all indices within that scope to CYCLICindices
-                            if index not in CYCLICINDICES:
-                                CYCLICINDICES.append(index)
-
-        return CYCLICINDICES
+                    # If a number ends within a depth deeper than 0, i.e. ...1... (... (...1)...),
+                    # Then all all indices in in between must be cyclic
+                    # Some nested scopes may go deeper, but may not conclude the ring.
+                    # For example, ...1... (... (...) ... 1). The middle parenthesis is not apart of the ring structure related to the number 1.
+                    # However, the number 1 still closes within a nested parenthesis. Because the depth of conclusion is not known before this algorithm is run
+                    # All depths within indivudal depth counts must be tracked to obtain accurate cyclic index information
+                    for scope in depthIndices:
+                        for index in scope:  # Add all indices within that scope to self.CYCLICINDICES
+                            if index not in self.CYCLICINDICES:
+                                self.CYCLICINDICES.append(index)
 
     def formatSmiles(self, smiles):
         """ Remove [H+] symbols entirley from a smiles code and DLA-SAR convert the resulting string
@@ -482,25 +499,28 @@ class MoleculeTest():
                         Required to perform sybmol by symbol analysis on the smiles code
 
                 '''
-        # conversionLegend
-        # Br --> X
-        # Cl --> Z
+        # Conversion Legend for DLA's to SAR's
+        legend = {
+            "Br": "X",
+            "Cl": "Z"
+        }
 
-        templatePos = -1
-        reformattedTemplate = ""
+        pos = -1
+        newTemplate = ""
 
-        while templatePos != len(template) - 1:
+        while pos != len(template) - 1:
 
-            templatePos += 1
-            if template[templatePos:templatePos+2] == "Br":
-                reformattedTemplate += "X"
-                templatePos += 1
+            pos += 1
+            # Potential DLA from two letters in SMILES code
+            DLA = template[pos:pos+2]
 
-            elif template[templatePos:templatePos+2] == "Cl":
-                reformattedTemplate += "Z"
-                templatePos += 1
+            # Convert DLA'S via the legend
+            if DLA in legend:
+                newTemplate += legend[DLA]
+                pos += 1
 
+            # If no DLA is found, keep the template the same
             else:
-                reformattedTemplate += template[templatePos]
+                newTemplate += template[pos]
 
-        return reformattedTemplate
+        return newTemplate
