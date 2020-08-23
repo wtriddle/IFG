@@ -21,10 +21,16 @@ class MoleculeTest():
         self.NUMBERS = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
         self.LINEARSYMBOLS = self.ATOMS + self.BONDS + self.BRACKETS + self.CHARGES
 
-        self.RINGS = self.initializeRINGS()
+        self.RING_SELF_NUM_POSITIONS = []
+        self.RING_SELF = {}
+        self.RING_PARTNER_NUM_POSITIONS = []
+        self.RING_PARTNERS = {}
+
+        self._RING()
+
         self.AROMATICINDICES = self.initializeAROMATICINDICES()
         self.CYCLICINDICES = self.initializeCYCLICINDICES()
-        self.ringCount = len(self.RINGS)
+        self.ringCount = len(self.RING_SELF) / 2
         self.aromaticCount = 0
         self.nonAromaticCount = 0
         self.determineRingCounts()
@@ -256,75 +262,59 @@ class MoleculeTest():
 
         return rightBonds
 
-    def initializeRINGS(self):
+    def getChargedGroup(self, pos, reverse=False):
+        if reverse:
+            chargedGroup = ''
+            while self.SMILES[pos] != '[':
+                pos -= 1
+                chargedGroup += self.SMILES[pos]
+            return chargedGroup[::-1]
+        else:
+            chargedGroup = '['
+            while self.SMILES[pos] != '[':
+                pos += 1
+                chargedGroup += self.SMILES[pos]
+            return chargedGroup
 
-        openIndex = openPos = -1
-        evaluatedNumbers = []
-        RINGS = []
+    def _RING(self):
+        """ Initalizes the four ring data containers
+            RING_SELF: number position to atom data dict
+            RING_PARTNERS: number position to complementary number data
+            RING_SELF_NUM_POSITIONS: positions of the numbers which began the partner relation
+            RING_PARTNER_NUM_POSITIONS: positions of the numbers which ended the partner relation
 
-        while openPos != len(self.SMILES) - 1:
-            openPos += 1
-            openSymbol = self.SMILES[openPos]
+        """
+        atomIndex = -1
+        evaluatedNumbers = {}
+        atom = ''
+        for pos, symbol in enumerate(self.SMILES):
 
-            if openSymbol in self.ATOMS:
-                openIndex += 1
-                openAtom = openSymbol
+            if symbol in self.ATOMS:
+                atomIndex += 1
+                atom = symbol
 
-            elif openSymbol == '[':
-                openIndex += 1
-                chargedGroup = '['
+            if symbol in self.NUMBERS:
 
-                while self.SMILES[openPos] != ']':
-                    openPos += 1
-                    chargedGroup += self.SMILES[openPos]
-                openAtom = chargedGroup
+                if self.SMILES[pos-1] == ']':
+                    atom = self.getChargedGroup(pos, reverse=True)
 
-            if openSymbol in self.NUMBERS and openPos not in evaluatedNumbers:
-                closePos = openPos
-                closeIndex = openIndex
+                info = [atomIndex, atom]
 
-                while closePos != len(self.SMILES) - 1:
-                    closePos += 1
-                    closeSymbol = self.SMILES[closePos]
+                self.RING_SELF[pos] = info
 
-                    if closeSymbol in self.ATOMS:
-                        closeIndex += 1
-                        closeAtom = closeSymbol
+                if symbol in evaluatedNumbers:
+                    partnerPos = evaluatedNumbers[symbol]
+                    self.RING_PARTNERS[partnerPos] = info
+                    self.RING_PARTNERS[pos] = self.RING_SELF[partnerPos]
+                    del(evaluatedNumbers[symbol])
+                    self.RING_PARTNER_NUM_POSITIONS.append(pos)
+                    continue
 
-                    elif closeSymbol == '[':
-                        closeIndex += 1
-                        chargedGroup = '['
-
-                        while self.SMILES[closePos] != ']':
-                            closePos += 1
-                            chargedGroup += self.SMILES[closePos]
-                        closeAtom = chargedGroup
-
-                    if openSymbol == closeSymbol and closePos not in evaluatedNumbers:
-
-                        # RINGPOSITION info in the form [numberPosition, atomIndex, atom]
-                        openInfo = [openPos, openIndex, openAtom]
-                        closeInfo = [closePos, closeIndex, closeAtom]
-                        RINGS.append([openInfo, closeInfo])
-
-                        evaluatedNumbers.append(openPos)
-                        evaluatedNumbers.append(closePos)
-
-                        break
-
-        return RINGS
+                self.RING_SELF_NUM_POSITIONS.append(pos)
+                evaluatedNumbers[symbol] = pos
 
     def numbersHandler(self, pos):
-
-        for ring in self.RINGS:
-            openInfo = ring[0]
-            closeInfo = ring[1]
-
-            if openInfo[0] == pos:
-                return [closeInfo[1], closeInfo[2]]
-
-            elif closeInfo[0] == pos:
-                return [openInfo[1], openInfo[2]]
+        return self.RING_PARTNERS[pos]
 
     def determineAlcoholGroup(self, pos, atomIndex):
 
@@ -361,35 +351,33 @@ class MoleculeTest():
             return 0
 
         # Upper is nonaromatic, lower is aromatic
-        for ring in self.RINGS:
+        for pos in self.RING_SELF_NUM_POSITIONS:
+            ring = self.RING_SELF[pos]
+            ringPartner = self.RING_PARTNERS[pos]
 
             # Both are aromatic
-            if ring[0][2].islower() and ring[1][2].islower():
+            if ring[1].islower() and ringPartner[1].islower():
 
-                openingNumberPos = ring[0][0]
+                if self.SMILES[pos+1] in self.ATOMS:
 
-                if self.SMILES[openingNumberPos+1] in self.ATOMS:
-
-                    if self.SMILES[openingNumberPos+1].islower():
+                    if self.SMILES[pos+1].islower():
                         self.aromaticCount += 1
 
-                    elif self.SMILES[openingNumberPos+1].isupper():
+                    elif self.SMILES[pos+1].isupper():
                         self.nonAromaticCount += 1
 
                 else:
                     self.aromaticCount += 1
 
             # Both are non aromatic
-            elif ring[0][2].isupper() and ring[1][2].isupper():
+            elif ring[1].isupper() and ringPartner[1].isupper():
 
-                openingNumberPos = ring[0][0]
+                if self.SMILES[pos+1] in self.ATOMS:
 
-                if self.SMILES[openingNumberPos+1] in self.ATOMS:
-
-                    if self.SMILES[openingNumberPos+1].islower():
+                    if self.SMILES[pos+1].islower():
                         self.aromaticCount += 1
 
-                    elif self.SMILES[openingNumberPos+1].isupper():
+                    elif self.SMILES[pos+1].isupper():
                         self.nonAromaticCount += 1
 
                 else:
