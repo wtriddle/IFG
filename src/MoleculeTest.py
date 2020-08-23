@@ -117,25 +117,32 @@ class MoleculeTest():
 
     def getLeftBond(self, LNPos, LNIndex):
         """ Returns an [atomIndex, leftNeighborAtom] list from a starting LNPos
+            Return an empty array [] if the LNpos falls out of scope, meaning no LN exists
 
         """
         LNPos -= 1
         if LNPos < 0:
-            return 0
+            return []
         LN = self.SMILES[LNPos]
 
+        # An explicit bond exists for a left-bonded atom if and only if the bond is one position to the left of the atom
         explicitBond = LN if LN in self.BONDS else ""
         if explicitBond:
             LNPos -= 1
             LN = self.SMILES[LNPos]
 
-        scope = 0
+        scope = 0  # Parenthesis depth of nesting value. Initally 0, meaning to look for neighbors on its own layer or nested scope
         leftBond = []
 
+        # Loop continues until a LINEARSYMBOL is found on the same scope as its bonded neighbor
         while LN not in self.LINEARSYMBOLS or scope > 0:
 
+            # Special case to pass double parenthesis left neighbors, ie. N(C)(C).
+            # The second parenthesied C needs to find the N as its proper LN
+            # This statement allows passage through its other C neighbor, which it is NOT directly attachted to
             if LN == ')' and scope == -1:
                 scope = 0
+
             if LN == ')':
                 scope += 1
             elif LN == '(':
@@ -145,26 +152,17 @@ class MoleculeTest():
 
             LNPos -= 1
             if LNPos < 0:
-                return 0
+                return []
             LN = self.SMILES[LNPos]
 
         else:
             LNIndex -= 1
 
+            # If LN is a charged group, overwrite it
             if LN == ']':
-                chargedGroup = self.getChargedGroup(LNPos)
+                LN = self.getChargedGroup(LNPos)
 
-                if explicitBond:
-                    leftBond = [LNIndex, explicitBond + chargedGroup]
-                else:
-                    leftBond = [LNIndex, chargedGroup]
-
-            elif LN in self.ATOMS:
-
-                if explicitBond:
-                    leftBond = [LNIndex, explicitBond + LN]
-                else:
-                    leftBond = [LNIndex, LN]
+            leftBond = [LNIndex, explicitBond + LN]
 
         return leftBond
 
@@ -172,29 +170,25 @@ class MoleculeTest():
 
         RNPos += 1
         if RNPos >= len(self.SMILES):
-            return 0
+            return []
         RN = self.SMILES[RNPos]
 
         if RN == ')':
             return 0
 
         scope = 0
-        parenthGroup = ""
-        parenthGroups = []
         rightBonds = []
 
         while RN not in self.LINEARSYMBOLS or scope > 0:
 
             if RN == '(':
+                innerParenthBond = self.getRightBonds(
+                    RNPos, RNIndex) if scope == 0 else ''
+                if innerParenthBond:
+                    rightBonds.append(innerParenthBond[0])
                 scope += 1
-            if scope > 0 and not parenthGroup:
-                parenthGroups.append([RNIndex+1])
-            if scope > 0:
-                parenthGroup += RN
             if RN == ')':
                 scope -= 1
-            if scope == 0 and parenthGroup:
-                parenthGroups[-1].append(parenthGroup)
             if RN in self.ATOMS:
                 RNIndex += 1
             if scope == 0 and RN in self.NUMBERS:
@@ -202,7 +196,7 @@ class MoleculeTest():
                 rightBonds.append(numGroup)
             RNPos += 1
             if RNPos >= len(self.SMILES) or scope < 0:
-                break
+                return rightBonds
             RN = self.SMILES[RNPos]
 
         else:
@@ -212,55 +206,18 @@ class MoleculeTest():
                 rightBonds.append([RNIndex, RN])
 
             elif RN in self.BONDS:
-                expBond = RN
+                explicitBond = RN
                 RNPos += 1
+                RN = self.SMILES[RNPos]
 
                 if self.SMILES[RNPos] == '[':
-                    chargedGroup = self.getChargedGroup(RNPos)
+                    RN = self.getChargedGroup(RNPos)
 
-                    rightBonds.append([RNIndex, expBond + chargedGroup])
-
-                elif self.SMILES[RNPos] in self.ATOMS:
-                    rightBonds.append([RNIndex, expBond + self.SMILES[RNPos]])
+                rightBonds.append([RNIndex, explicitBond + RN])
 
             elif RN == '[':
                 chargedGroup = self.getChargedGroup(RNPos)
                 rightBonds.append([RNIndex, chargedGroup])
-
-            # parenthGroups in the form [first atom index in SMILESparenthesisGroup, SMILESparenthesisGroup]
-            # SMILESparenthesisGroup includes both open and close parenthesis on both sides
-            if parenthGroups:
-                for group in parenthGroups:
-                    pos = 1
-                    symbol = group[1][pos]
-
-                    if symbol in self.ATOMS:
-                        rightBonds.append([group[0], symbol])
-
-                    elif symbol in self.BONDS:
-                        expBond = symbol
-                        pos += 1
-
-                        if group[1][pos] == '[':
-                            chargedGroup = '['
-
-                            while group[1][pos] != ']':
-                                pos += 1
-                                chargedGroup += group[1][pos]
-                            rightBonds.append(
-                                [group[0], expBond + chargedGroup])
-
-                        elif group[1][pos] in self.ATOMS:
-                            rightBonds.append(
-                                [group[0], expBond + group[1][pos]])
-
-                    elif symbol == '[':
-                        chargedGroup = '['
-
-                        while group[1][pos] != ']':
-                            pos += 1
-                            chargedGroup += group[1][pos]
-                        rightBonds.append([group[0], chargedGroup])
 
         return rightBonds
 

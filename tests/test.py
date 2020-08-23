@@ -49,6 +49,7 @@ for line in open('../src/resources/smiles.txt', 'r'):
         print(mol.SMILES)
         sys.exit()
 
+
 print(time.time() - start)
 print("Test Succeeded")
 
