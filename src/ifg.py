@@ -37,7 +37,7 @@ class ifg(Molecule):
         symbol = atom[1]
         index = atom[0]
 
-        for line in open('FGlist.txt', 'r'):
+        for line in open('./resources/FGlist.txt', 'r'):
             lineInfo = re.compile(r'\S+').findall(line)
             lineInfo[0] = lineInfo[0].replace('[R]', 'R')
             template = Molecule(lineInfo[0], lineInfo[1])

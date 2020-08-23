@@ -72,7 +72,7 @@ class MoleculeTest():
                 atomIndex += 1
 
                 if self.SMILES[pos-1] == '[':
-                    chargedGroup = self.SMILES[pos-1:pos+3]
+                    chargedGroup = self.getChargedGroup(pos-1)
                     atom = [atomIndex, chargedGroup]
                 else:
                     atom = [atomIndex, symbol]
@@ -116,15 +116,16 @@ class MoleculeTest():
         return bondData
 
     def getLeftBond(self, LNPos, LNIndex):
+        """ Returns an [atomIndex, leftNeighborAtom] list from a starting LNPos
 
+        """
         LNPos -= 1
         if LNPos < 0:
             return 0
         LN = self.SMILES[LNPos]
 
-        expBond = ""
-        if LN in self.BONDS:
-            expBond = LN
+        explicitBond = LN if LN in self.BONDS else ""
+        if explicitBond:
             LNPos -= 1
             LN = self.SMILES[LNPos]
 
@@ -151,21 +152,17 @@ class MoleculeTest():
             LNIndex -= 1
 
             if LN == ']':
-                chargedGroup = ']'
+                chargedGroup = self.getChargedGroup(LNPos)
 
-                while self.SMILES[LNPos] != '[':
-                    LNPos -= 1
-                    chargedGroup = self.SMILES[LNPos] + chargedGroup
-
-                if expBond:
-                    leftBond = [LNIndex, expBond + chargedGroup]
+                if explicitBond:
+                    leftBond = [LNIndex, explicitBond + chargedGroup]
                 else:
                     leftBond = [LNIndex, chargedGroup]
 
             elif LN in self.ATOMS:
 
-                if expBond:
-                    leftBond = [LNIndex, expBond + LN]
+                if explicitBond:
+                    leftBond = [LNIndex, explicitBond + LN]
                 else:
                     leftBond = [LNIndex, LN]
 
@@ -219,22 +216,15 @@ class MoleculeTest():
                 RNPos += 1
 
                 if self.SMILES[RNPos] == '[':
-                    chargedGroup = "["
+                    chargedGroup = self.getChargedGroup(RNPos)
 
-                    while self.SMILES[RNPos] != ']':
-                        RNPos += 1
-                        chargedGroup += self.SMILES[RNPos]
                     rightBonds.append([RNIndex, expBond + chargedGroup])
 
                 elif self.SMILES[RNPos] in self.ATOMS:
                     rightBonds.append([RNIndex, expBond + self.SMILES[RNPos]])
 
             elif RN == '[':
-                chargedGroup = "["
-
-                while self.SMILES[RNPos] != ']':
-                    RNPos += 1
-                    chargedGroup += self.SMILES[RNPos]
+                chargedGroup = self.getChargedGroup(RNPos)
                 rightBonds.append([RNIndex, chargedGroup])
 
             # parenthGroups in the form [first atom index in SMILESparenthesisGroup, SMILESparenthesisGroup]
@@ -274,24 +264,30 @@ class MoleculeTest():
 
         return rightBonds
 
-    def getChargedGroup(self, pos, reverse=False):
-        """ 
-
-        Captures a charged group in reverse or forwards 
-
+    def getChargedGroup(self, pos):
+        """ Captures a charged group in reverse or forwards 
+            pos (int): string position of the openeing or closing bracket
         """
-        if reverse:
-            chargedGroup = ''
+
+        chargedGroup = ''
+
+        # Reverse case
+        if self.SMILES[pos] == ']':
             while self.SMILES[pos] != '[':
+                chargedGroup += self.SMILES[pos]
                 pos -= 1
+            return '[' + chargedGroup[::-1]
+
+        # Forwards case
+        if self.SMILES[pos] == '[':
+            while self.SMILES[pos] != ']':
                 chargedGroup += self.SMILES[pos]
-            return chargedGroup[::-1]
-        else:
-            chargedGroup = '['
-            while self.SMILES[pos] != '[':
                 pos += 1
-                chargedGroup += self.SMILES[pos]
-            return chargedGroup
+            return chargedGroup + ']'
+
+        # Capture errors in positions
+        if self.SMILES[pos] not in self.BRACKETS:
+            raise ValueError("The position passed does not point to a bracket")
 
     def _RING(self):
         """ Initalizes the four ring data containers
@@ -313,7 +309,7 @@ class MoleculeTest():
             if symbol in self.NUMBERS:
 
                 if self.SMILES[pos-1] == ']':
-                    atom = self.getChargedGroup(pos, reverse=True)
+                    atom = self.getChargedGroup(pos-1)
 
                 info = [atomIndex, atom]
 

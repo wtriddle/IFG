@@ -34,7 +34,7 @@ fgPreciseSheet.cell(row=1, column=2).value = "Smiles"
 
 # Retrieve functional group names
 names = []
-for line in open('FGlist.txt', 'r'):
+for line in open('./resources/FGlist.txt', 'r'):
     lineInfo = re.compile(r'\S+').findall(line)
     if lineInfo[1] not in names:
         names.append(lineInfo[1])
@@ -79,7 +79,7 @@ fgPreciseSheet.cell(row=1, column=col+2).value = "AminoAcid"
 # Loop over smiles codes and find their FG/Ring data
 row = 1
 maxCol = fgAllSheet.max_column
-for line in open('smiles.txt', 'r'):
+for line in open('./resources/smiles.txt', 'r'):
     row += 1
     lineInfo = re.compile(r'\S+').findall(line)
     smiles = lineInfo[1]
