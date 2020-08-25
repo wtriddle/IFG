@@ -10,6 +10,8 @@ from Molecule import Molecule
 
 mol = Molecule(
     "[N-]=[N+]=NC(N=[N+]=[N-])c1cc(C(N=[N+]=[N-])N=[N+]=[N-])c(cc1C(N=[N+]=[N-])N=[N+]=[N-])C(N=[N+]=[N-])N=[N+]=[N-]", "Test")
-for atom in mol.atomData.items():
+for atom in mol.atomData.values():
+    print(atom)
+for atom in mol.bondData.values():
     print(atom)
 print(mol.atomData)

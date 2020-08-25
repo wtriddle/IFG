@@ -82,7 +82,10 @@ class ifg(Molecule):
         return matches
 
     def expandGroup(self, atom, expansionPoint, template, skipIndex=None, smilesIndexInit=None):
-
+        """ 
+        atom.symbol
+        atom.index
+        """
         smilesIndices = []  # Smiles indicies which have already been used in template
         smilesIndices.append(smilesIndexInit)
         templateBonds = template.bondData[expansionPoint]
@@ -112,6 +115,7 @@ class ifg(Molecule):
 
                     if path:
                         smilesIndices.append(smilesIndex)
+                        #
                         templateAtoms[tempIndex][0] = smilesIndex
                         break
                     else:
@@ -139,9 +143,11 @@ class ifg(Molecule):
                         continue
                     RgroupCounter += 1
                     if RgroupCounter < len(Rgroups) - 1:
+                        #
                         templateAtoms[Rgroups[RgroupCounter]
                                       [0]][0] = smilesIndex
                     else:
+                        #
                         templateAtoms[Rgroups[RgroupCounter]
                                       [0]][0] = smilesIndex
                         break
