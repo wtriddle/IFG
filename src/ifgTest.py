@@ -2,7 +2,7 @@ from Molecule import Molecule
 import re
 
 
-class ifg(Molecule):
+class ifgTest(Molecule):
 
     def __init__(self, smiles, REFCODE):
         super().__init__(smiles, REFCODE)
@@ -42,15 +42,12 @@ class ifg(Molecule):
             lineInfo[0] = lineInfo[0].replace('[R]', 'R')
             template = Molecule(lineInfo[0], lineInfo[1])
 
-            # Skip charged FG's unless the atom is charged
             if len(self.CHARGE_REGEX.findall(symbol)) == 0 and len(self.CHARGE_REGEX.findall(template.SMILES)) != 0:
                 continue
 
-            # Skip alcohol-containing FG's unless the atom is an alcohol (remember the H is implicit)
             if template.ALCOHOLICINDICES and index not in self.ALCOHOLICINDICES:
                 continue
 
-            # If the symbol is inside the FG template
             if symbol in template.SMILES:
                 expansionPoint = 0
 
@@ -86,7 +83,7 @@ class ifg(Molecule):
         smilesIndices = []  # Smiles indicies which have already been used in template
         smilesIndices.append(smilesIndexInit)
         templateBonds = template.bondData[expansionPoint]
-        mainTemplateBonds = self.filterRgroup(templateBonds)
+        mainTemplateBonds = self.getMainGroups(templateBonds)
         smilesBonds = self.bondData[atom[0]]
         templateAtoms = template.atomData
 
@@ -154,10 +151,24 @@ class ifg(Molecule):
                 return False
 
     def getRgroups(self, atomSet):
-        return [atom for atom in atomSet if atom[1] == 'R']
 
-    def filterRgroup(self, atomSet):
-        return [atom for atom in atomSet if atom[1] != 'R']
+        Rgroups = []
+
+        for atom in atomSet:
+            if atom[1] == 'R':
+                Rgroups.append(atom)
+
+        return Rgroups
+
+    def getMainGroups(self, atomSet):
+
+        mainGroups = []
+
+        for atom in atomSet:
+            if atom[1] != 'R':
+                mainGroups.append(atom)
+
+        return mainGroups
 
     def removeBond(self, index, template):
 
@@ -234,13 +245,13 @@ class ifg(Molecule):
             index += 1
             group = functionalGroups[index]
             groupAtoms = group.atomData
-            mainGroupAtoms = self.filterRgroup(groupAtoms)
+            mainGroupAtoms = self.getMainGroups(groupAtoms)
             numMainRAtoms = len(self.getRgroups(groupAtoms))
 
             for compareIndex, compareGroup in enumerate(functionalGroups):
 
                 compareAtoms = compareGroup.atomData
-                mainCompareAtoms = self.filterRgroup(compareAtoms)
+                mainCompareAtoms = self.getMainGroups(compareAtoms)
                 numCompareRAtoms = len(self.getRgroups(compareAtoms))
 
                 if all(i in mainCompareAtoms for i in mainGroupAtoms) and all(i in mainGroupAtoms for i in mainCompareAtoms) and compareIndex != index:

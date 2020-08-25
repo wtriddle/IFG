@@ -1,20 +1,17 @@
-""" IFG script runner """
-from molecule import molecule
+from Molecule import Molecule
 from ifg import ifg
 import re
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
-from collections import Counter
 
 
 def createFgDataDict(functionalGroups):
-    ''' Return a dictionary of the total counts of FG's from a list of strings
-
-        functionalGroups (list) : A list of strings identifying functional groups
-    '''
-    fgDataDict = defaultdict(int)
+    fgDataDict = {}
     for group in functionalGroups:
-        fgDataDict[group.NAME] += 1
+        if group.NAME in fgDataDict.keys():
+            fgDataDict[group.NAME] += 1
+        else:
+            fgDataDict.update({group.NAME: 1})
     return fgDataDict
 
 
@@ -33,43 +30,46 @@ fgPreciseSheet.cell(row=1, column=2).value = "Smiles"
 
 
 # Retrieve functional group names
-names = []
+functionalGroups = []
 for line in open('./resources/FGlist.txt', 'r'):
     lineInfo = re.compile(r'\S+').findall(line)
-    if lineInfo[1] not in names:
-        names.append(lineInfo[1])
+    if lineInfo[1] not in functionalGroups:
+        functionalGroups.append(lineInfo[1])
 
-names.append("Alcohol")
-names.append("PrimaryAmine")
-names.sort()  # Sort by name
+functionalGroups.append("Alcohol")
+functionalGroups.append("PrimaryAmine")
 
-# List Comprehension for categroizing functional groups from their base names
-fgNames = [(
-    ('Cyclic' + group),
-    ('Aromatic' + group),
-    group)
-    for group in names
-]
+# Sort and add cyclic/aromaic nomenclatures
+functionalGroups.sort()
+cyclicGroups = []
+aromaticGroups = []
+for group in functionalGroups:
+    cyclicGroups.append("Cyclic" + group)
+    aromaticGroups.append("Aromatic" + group)
 
-# Col steps by 3 to account for 3 different categories of fg's for a given base name
+# Input into names first row
 col = 0
-for (Cyclic, Aromatic, Regular) in fgNames:
+index = -1
+while index != len(functionalGroups) - 1:
+    print("adding ", functionalGroups[index])
+    index += 1
     col += 3
-    fgAllSheet.cell(row=1, column=col).value = Regular
-    fgAllSheet.cell(row=1, column=col+1).value = Cyclic
-    fgAllSheet.cell(row=1, column=col+2).value = Aromatic
-    fgPreciseSheet.cell(row=1, column=col).value = Regular
-    fgPreciseSheet.cell(row=1, column=col+1).value = Cyclic
-    fgPreciseSheet.cell(row=1, column=col+2).value = Aromatic
+    fgAllSheet.cell(row=1, column=col).value = functionalGroups[index]
+    fgAllSheet.cell(row=1, column=col+1).value = cyclicGroups[index]
+    fgAllSheet.cell(row=1, column=col+2).value = aromaticGroups[index]
+    fgPreciseSheet.cell(row=1, column=col).value = functionalGroups[index]
+    fgPreciseSheet.cell(row=1, column=col+1).value = cyclicGroups[index]
+    fgPreciseSheet.cell(row=1, column=col+2).value = aromaticGroups[index]
 
-
-# Input Ring info names
-col += 2  # Step column into nearest empty column
+# Input ring info into row 1
+col += 2
 ringInfo = ['aromaticRings', 'nonAromaticRings', 'ringCount']
-
-for col, ringType in enumerate(ringInfo):
-    fgAllSheet.cell(row=1, column=col).value = ringType
-    fgPreciseSheet.cell(row=1, column=col).value = ringType
+index = -1
+while index != len(ringInfo) - 1:
+    index += 1
+    col += 1
+    fgAllSheet.cell(row=1, column=col).value = ringInfo[index]
+    fgPreciseSheet.cell(row=1, column=col).value = ringInfo[index]
 
 fgAllSheet.cell(row=1, column=col+1).value = "totalAlcohols"
 fgPreciseSheet.cell(row=1, column=col+1).value = "totalAlcohols"
@@ -98,9 +98,7 @@ for line in open('./resources/smiles.txt', 'r'):
     print(smiles)
 
     # Get the functional groups and ring data from ifg algorithm
-    fgs = ifg(smiles, refcode)  # This is the line where the magic happens
-
-    # Replace with Counter at a later time for refactor
+    fgs = ifg(smiles, refcode)
     fgAllDict = createFgDataDict(fgs.functionalGroups)
     fgPreciseDict = createFgDataDict(fgs.preciseFunctionalGroups)
     totalAlcohols = len(fgs.ALCOHOLICINDICES)

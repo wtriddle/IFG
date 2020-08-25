@@ -63,7 +63,7 @@ class Molecule():
 
     def initializeAtomData(self):
 
-        atomData = []
+        atomData = {}
         atomIndex = -1
 
         for pos, symbol in enumerate(self.SMILES):
@@ -73,10 +73,10 @@ class Molecule():
 
                 if self.SMILES[pos-1] == '[':
                     chargedGroup = self.getChargedGroup(pos-1)
-                    atom = [atomIndex, chargedGroup]
+                    atom = chargedGroup
                 else:
-                    atom = [atomIndex, symbol]
-                atomData.append(atom)
+                    atom = symbol
+                atomData[atomIndex] = atom
 
                 if symbol == 'O':
                     self.determineAlcoholGroup(pos, atomIndex)
@@ -206,16 +206,14 @@ class Molecule():
                 rightBonds.append([RNIndex, RN])
 
             elif RN in self.BONDS:
-                expBond = RN
+                explicitBond = RN
                 RNPos += 1
+                RN = self.SMILES[RNPos]
 
                 if self.SMILES[RNPos] == '[':
-                    chargedGroup = self.getChargedGroup(RNPos)
+                    RN = self.getChargedGroup(RNPos)
 
-                    rightBonds.append([RNIndex, expBond + chargedGroup])
-
-                elif self.SMILES[RNPos] in self.ATOMS:
-                    rightBonds.append([RNIndex, expBond + self.SMILES[RNPos]])
+                rightBonds.append([RNIndex, explicitBond + RN])
 
             elif RN == '[':
                 chargedGroup = self.getChargedGroup(RNPos)
