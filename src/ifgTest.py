@@ -1,8 +1,9 @@
-from Molecule import Molecule
+from MoleculeTest import MoleculeTest
 import re
+from helpers import createFgDataDict
 
 
-class ifgTest(Molecule):
+class ifgTest(MoleculeTest):
 
     def __init__(self, smiles, REFCODE):
         super().__init__(smiles, REFCODE)
@@ -11,14 +12,17 @@ class ifgTest(Molecule):
             self.functionalGroups)
 
     def findFunctionalGroups(self):
+        """ Return a list of MoleculeTest objects, where the indices of the atoms in the MoleculeTest reflect those inside of the smiles code
 
+        """
         functionalGroups = []
 
-        for atom in self.atomData:
+        for atom in self.atomData.values():
             groups = self.whichGroup(atom)
 
-            if atom[1] == 'N':
-                primaryAmine = self.detetminePrimaryAmine(atom)
+            if atom.symbol == 'N':
+                # Pass in nitrogen index to see if nitrogen is a Primary Amine
+                primaryAmine = self.detetminePrimaryAmine(atom.index)
                 if primaryAmine:
                     functionalGroups.append(primaryAmine)
 
@@ -34,57 +38,60 @@ class ifgTest(Molecule):
 
     def whichGroup(self, atom):
         matches = []
-        symbol = atom[1]
-        index = atom[0]
-
         for line in open('./../src/resources/FGlist.txt', 'r'):
             lineInfo = re.compile(r'\S+').findall(line)
             lineInfo[0] = lineInfo[0].replace('[R]', 'R')
-            template = Molecule(lineInfo[0], lineInfo[1])
+            template = MoleculeTest(lineInfo[0], lineInfo[1])
 
-            if len(self.CHARGE_REGEX.findall(symbol)) == 0 and len(self.CHARGE_REGEX.findall(template.SMILES)) != 0:
+            # Skip charged FG's unless the atom is charged
+            if len(self.CHARGE_REGEX.findall(atom.symbol)) == 0 and len(self.CHARGE_REGEX.findall(template.SMILES)) != 0:
                 continue
 
-            if template.ALCOHOLICINDICES and index not in self.ALCOHOLICINDICES:
+            # Skip alcohol-containing FG's unless the atom is an alcohol (remember the H is implicit)
+            if template.ALCOHOLICINDICES and atom.index not in self.ALCOHOLICINDICES:
                 continue
 
-            if symbol in template.SMILES:
+            # If the symbol is inside the FG template
+            if atom.symbol in template.SMILES:
                 expansionPoint = 0
 
                 # R groups from temple.bondData can be removed because their expansion leads back to a main group atom from which is was expnaded from
-                for tempAtom in template.atomData:
-                    if tempAtom[1] == 'R':
-                        template.bondData[tempAtom[0]].clear()
+                for tempAtom in template.atomData.values():
+                    if tempAtom.symbol == 'R':
+                        template.bondData[tempAtom.index].clear()
 
                 # Find expansion indicies or points inside template
-                for tempAtom in template.atomData:
+                for tempAtom in template.atomData.values():
 
                     if not template.ALCOHOLICINDICES:
-                        if symbol == tempAtom[1]:
-                            expansionPoint = tempAtom[0]
+                        if atom.symbol == tempAtom.symbol:
+                            expansionPoint = tempAtom.index
                             break
                     else:
                         expansionPoint = template.ALCOHOLICINDICES[0]
                         break
 
                 # Set up for expansion call at expansionPoint
-                template.atomData[expansionPoint][0] = atom[0]
+                template.atomData[expansionPoint].index = atom.index
                 self.removeBond(expansionPoint, template)
 
                 expandGroup = self.expandGroup(
-                    atom, expansionPoint, template, None, atom[0])
+                    atom, expansionPoint, template, None, atom.index)
                 if expandGroup:
                     matches.append(template)
 
         return matches
 
     def expandGroup(self, atom, expansionPoint, template, skipIndex=None, smilesIndexInit=None):
-
+        """
+        atom.symbol
+        atom.index
+        """
         smilesIndices = []  # Smiles indicies which have already been used in template
         smilesIndices.append(smilesIndexInit)
         templateBonds = template.bondData[expansionPoint]
-        mainTemplateBonds = self.getMainGroups(templateBonds)
-        smilesBonds = self.bondData[atom[0]]
+        mainTemplateBonds = self.filterRgroup(templateBonds)
+        smilesBonds = self.bondData[atom.index]
         templateAtoms = template.atomData
 
         # Not enough bonds at desposal of smiles code to satisfy template means False match
@@ -93,23 +100,23 @@ class ifgTest(Molecule):
 
         # Main group Template Analysis
         for tempBond in mainTemplateBonds:
-            tempIndex = tempBond[0]
+            tempIndex = tempBond.index
             if tempIndex == skipIndex:
                 continue
-            tempSymbol = tempBond[1]
+            tempSymbol = tempBond.symbol
             for smilesBond in smilesBonds:
 
-                smilesIndex = smilesBond[0]
-                smilesSymbol = smilesBond[1]
+                smilesIndex = smilesBond.index
+                smilesSymbol = smilesBond.symbol
 
                 if tempSymbol == smilesSymbol and smilesIndex not in smilesIndices:
 
                     path = self.expandGroup(
-                        smilesBond, tempIndex, template, expansionPoint, atom[0])
+                        smilesBond, tempIndex, template, expansionPoint, atom.index)
 
                     if path:
                         smilesIndices.append(smilesIndex)
-                        templateAtoms[tempIndex][0] = smilesIndex
+                        templateAtoms[tempIndex].index = smilesIndex
                         break
                     else:
                         continue
@@ -129,18 +136,20 @@ class ifgTest(Molecule):
 
                 for smilesBond in smilesBonds:
 
-                    smilesIndex = smilesBond[0]
-                    smilesSymbol = smilesBond[1]
+                    smilesIndex = smilesBond.index
+                    smilesSymbol = smilesBond.symbol
 
                     if smilesIndex in smilesIndices or smilesSymbol[0] in self.BONDS:
                         continue
                     RgroupCounter += 1
                     if RgroupCounter < len(Rgroups) - 1:
-                        templateAtoms[Rgroups[RgroupCounter]
-                                      [0]][0] = smilesIndex
+                        #
+                        templateAtoms[Rgroups[RgroupCounter].index
+                                      ].index = smilesIndex
                     else:
-                        templateAtoms[Rgroups[RgroupCounter]
-                                      [0]][0] = smilesIndex
+                        #
+                        templateAtoms[Rgroups[RgroupCounter].index
+                                      ].index = smilesIndex
                         break
                 else:
                     return False
@@ -151,30 +160,22 @@ class ifgTest(Molecule):
                 return False
 
     def getRgroups(self, atomSet):
+        if isinstance(atomSet, list):
+            return [atom for atom in atomSet if atom.symbol == 'R']
+        if isinstance(atomSet, dict):
+            return {atom.index: atom for atom in atomSet.values() if atom.symbol == 'R'}
 
-        Rgroups = []
-
-        for atom in atomSet:
-            if atom[1] == 'R':
-                Rgroups.append(atom)
-
-        return Rgroups
-
-    def getMainGroups(self, atomSet):
-
-        mainGroups = []
-
-        for atom in atomSet:
-            if atom[1] != 'R':
-                mainGroups.append(atom)
-
-        return mainGroups
+    def filterRgroup(self, atomSet):
+        if isinstance(atomSet, list):
+            return [atom for atom in atomSet if atom.symbol != 'R']
+        if isinstance(atomSet, dict):
+            return {atom.index: atom for atom in atomSet.values() if atom.symbol != 'R'}
 
     def removeBond(self, index, template):
 
-        for i, bonds in enumerate(template.bondData):
+        for i, bonds in enumerate(template.bondData.values()):
             for j, bond in enumerate(bonds):
-                if bond[0] == index:
+                if bond.index == index:
                     del(template.bondData[i][j])
         return 0
 
@@ -186,11 +187,11 @@ class ifgTest(Molecule):
 
             index += 1
             group = functionalGroups[index]
-            groupAtoms = group.atomData
+            groupAtoms = group.atomData.values()
 
             for compareIndex, compareGroup in enumerate(functionalGroups):
 
-                compareAtoms = compareGroup.atomData
+                compareAtoms = compareGroup.atomData.values()
 
                 if all(i in compareAtoms for i in groupAtoms) and all(i in groupAtoms for i in compareAtoms) and compareIndex != index:
                     del(functionalGroups[compareIndex])
@@ -203,14 +204,24 @@ class ifgTest(Molecule):
 
         for group in functionalGroups:
             groupAtoms = group.atomData
-            index = aromaticCount = cyclicCount = 0
-            while index < len(groupAtoms) - 1:
-                indicies = [groupAtoms[index][0], groupAtoms[index+1][0]]
-                if all(i in self.AROMATICINDICES for i in indicies):
-                    aromaticCount += 1
-                elif all(i in self.CYCLICINDICES for i in indicies):
-                    cyclicCount += 1
-                index += 1
+            # Only start from main group atoms for cyclic classification
+            aromaticCount = cyclicCount = 0
+            for templateIndex, smilesAtom in groupAtoms.items():
+
+                if smilesAtom.symbol not in self.LINEARSYMBOLS:
+                    continue
+
+                # If maingroup atom does not have any cyclic property, then skip it
+                if smilesAtom.index not in self.AROMATICINDICES and smilesAtom.index not in self.CYCLICINDICES:
+                    continue
+
+                for templateBond in group.bondData[templateIndex]:
+                    smilesBond = groupAtoms[templateBond.index]
+                    indicies = [smilesAtom.index, smilesBond.index]
+                    if all(i in self.AROMATICINDICES for i in indicies):
+                        aromaticCount += 1
+                    elif all(i in self.CYCLICINDICES for i in indicies):
+                        cyclicCount += 1
             else:
                 if aromaticCount or cyclicCount:
                     if aromaticCount >= cyclicCount:
@@ -224,13 +235,13 @@ class ifgTest(Molecule):
         for index in self.ALCOHOLICINDICES:
 
             alohcolBond = self.bondData[index]
-            alochol = Molecule("RO", "Alcohol")
-            alochol.atomData[0][0] = alohcolBond[0][0]
-            alochol.atomData[1][0] = index
+            alochol = MoleculeTest("RO", "Alcohol")
+            alochol.atomData[0].index = alohcolBond[0].index
+            alochol.atomData[1].index = index
 
-            if alohcolBond[0][0] in self.AROMATICINDICES:
+            if alohcolBond[0].index in self.AROMATICINDICES:
                 alochol.NAME = "AromaticAlcohol"
-            elif alohcolBond[0][0] in self.CYCLICINDICES:
+            elif alohcolBond[0].index in self.CYCLICINDICES:
                 alochol.NAME = "CyclicAlcohol"
 
             functionalGroups.append(alochol)
@@ -245,13 +256,14 @@ class ifgTest(Molecule):
             index += 1
             group = functionalGroups[index]
             groupAtoms = group.atomData
-            mainGroupAtoms = self.getMainGroups(groupAtoms)
+            mainGroupAtoms = self.filterRgroup(groupAtoms)
+            # print(groupAtoms)
             numMainRAtoms = len(self.getRgroups(groupAtoms))
 
             for compareIndex, compareGroup in enumerate(functionalGroups):
 
                 compareAtoms = compareGroup.atomData
-                mainCompareAtoms = self.getMainGroups(compareAtoms)
+                mainCompareAtoms = self.filterRgroup(compareAtoms)
                 numCompareRAtoms = len(self.getRgroups(compareAtoms))
 
                 if all(i in mainCompareAtoms for i in mainGroupAtoms) and all(i in mainGroupAtoms for i in mainCompareAtoms) and compareIndex != index:
@@ -275,8 +287,8 @@ class ifgTest(Molecule):
             group = preciseFgs[index]
             groupAtoms = group.atomData
             groupIndices = []
-            for atom in groupAtoms:
-                groupIndices.append(atom[0])
+            for atom in groupAtoms.values():
+                groupIndices.append(atom.index)
             for compareIndex, compareGroup in enumerate(preciseFgs):
 
                 if compareIndex == index:
@@ -284,8 +296,8 @@ class ifgTest(Molecule):
 
                 compareAtoms = compareGroup.atomData
                 compareIndices = []
-                for atom in compareAtoms:
-                    compareIndices.append(atom[0])
+                for atom in compareAtoms.values():
+                    compareIndices.append(atom.index)
 
                 if len(compareIndices) != len(groupIndices):
 
@@ -326,20 +338,33 @@ class ifgTest(Molecule):
 
         return preciseFgs
 
-    def detetminePrimaryAmine(self, atom):
+    def detetminePrimaryAmine(self, nitrogenIndex):
+        """ Return primary amine MoleculeTest object with proper ring classification, if it exists on a ring
+            Return false if nitrogen is not a primary amine
 
-        smilesBonds = self.bondData[atom[0]]
+        """
 
-        if len(smilesBonds) == 1 and smilesBonds[0][1][0] not in self.BONDS:
+        # Check bonds on nitrogen to see if it is a Primary Amine
+        smilesBonds = self.bondData[nitrogenIndex]
 
-            primaryAmine = Molecule("RN", "PrimaryAmine")
-            primaryAmine.atomData[0][0] = smilesBonds[0][0]
-            primaryAmine.atomData[1][0] = atom[0]
-            if smilesBonds[0][0] in self.AROMATICINDICES:
+        # Primary amines have one, single bonded partner (i.e. no explicit bonds =/#), which may be in a ring
+        if len(smilesBonds) == 1 and not self.BOND_REGEX.findall(smilesBonds[0].symbol):
+
+            bondedIndex = smilesBonds[0].index
+
+            primaryAmine = MoleculeTest("RN", "PrimaryAmine")
+
+            # Set the R group index to that of the smiles bonded nitrogen index
+            primaryAmine.atomData[0].index = bondedIndex
+            # Set the nitrogen index to that of the smiles code nitrogen index
+            primaryAmine.atomData[1].index = nitrogenIndex
+
+            if bondedIndex in self.AROMATICINDICES:
                 primaryAmine.NAME = "AromaticPrimaryAmine"
-            elif smilesBonds[0][0] in self.CYCLICINDICES:
+
+            elif bondedIndex in self.CYCLICINDICES:
                 primaryAmine.NAME = "CyclicPrimaryAmine"
+
             return primaryAmine
 
-        else:
-            return False
+        return False

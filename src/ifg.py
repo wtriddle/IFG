@@ -1,5 +1,6 @@
 from Molecule import Molecule
 import re
+from helpers import createFgDataDict
 
 
 class ifg(Molecule):
@@ -25,6 +26,17 @@ class ifg(Molecule):
             for group in groups:
                 functionalGroups.append(group)
 
+        # print("Base IFG: " + str(len(functionalGroups)) + " total groups")
+        # for group in functionalGroups:
+        #     if group.NAME == 'SecondaryAmine' or group.NAME == 'TertiaryAmine':
+        #         group.displayAtoms()
+        # preScrub = createFgDataDict(functionalGroups)
+        # print("Base preScrub: ", preScrub)
+
+        # for group in functionalGroups:
+        #     if group.NAME == 'SecondaryAmine' or group.NAME == 'TertiaryAmine':
+        #         print(group.NAME, group.getSymbolDict())
+
         self.repetitionScrub(functionalGroups)
         self.heirarchyScrub(functionalGroups)
         self.determineCyclicGroups(functionalGroups)
@@ -42,15 +54,12 @@ class ifg(Molecule):
             lineInfo[0] = lineInfo[0].replace('[R]', 'R')
             template = Molecule(lineInfo[0], lineInfo[1])
 
-            # Skip charged FG's unless the atom is charged
             if len(self.CHARGE_REGEX.findall(symbol)) == 0 and len(self.CHARGE_REGEX.findall(template.SMILES)) != 0:
                 continue
 
-            # Skip alcohol-containing FG's unless the atom is an alcohol (remember the H is implicit)
             if template.ALCOHOLICINDICES and index not in self.ALCOHOLICINDICES:
                 continue
 
-            # If the symbol is inside the FG template
             if symbol in template.SMILES:
                 expansionPoint = 0
 
@@ -82,14 +91,11 @@ class ifg(Molecule):
         return matches
 
     def expandGroup(self, atom, expansionPoint, template, skipIndex=None, smilesIndexInit=None):
-        """ 
-        atom.symbol
-        atom.index
-        """
+
         smilesIndices = []  # Smiles indicies which have already been used in template
         smilesIndices.append(smilesIndexInit)
         templateBonds = template.bondData[expansionPoint]
-        mainTemplateBonds = self.filterRgroup(templateBonds)
+        mainTemplateBonds = self.getMainGroups(templateBonds)
         smilesBonds = self.bondData[atom[0]]
         templateAtoms = template.atomData
 
@@ -115,7 +121,6 @@ class ifg(Molecule):
 
                     if path:
                         smilesIndices.append(smilesIndex)
-                        #
                         templateAtoms[tempIndex][0] = smilesIndex
                         break
                     else:
@@ -143,11 +148,9 @@ class ifg(Molecule):
                         continue
                     RgroupCounter += 1
                     if RgroupCounter < len(Rgroups) - 1:
-                        #
                         templateAtoms[Rgroups[RgroupCounter]
                                       [0]][0] = smilesIndex
                     else:
-                        #
                         templateAtoms[Rgroups[RgroupCounter]
                                       [0]][0] = smilesIndex
                         break
@@ -160,10 +163,24 @@ class ifg(Molecule):
                 return False
 
     def getRgroups(self, atomSet):
-        return [atom for atom in atomSet if atom[1] == 'R']
 
-    def filterRgroup(self, atomSet):
-        return [atom for atom in atomSet if atom[1] != 'R']
+        Rgroups = []
+
+        for atom in atomSet:
+            if atom[1] == 'R':
+                Rgroups.append(atom)
+
+        return Rgroups
+
+    def getMainGroups(self, atomSet):
+
+        mainGroups = []
+
+        for atom in atomSet:
+            if atom[1] != 'R':
+                mainGroups.append(atom)
+
+        return mainGroups
 
     def removeBond(self, index, template):
 
@@ -240,13 +257,13 @@ class ifg(Molecule):
             index += 1
             group = functionalGroups[index]
             groupAtoms = group.atomData
-            mainGroupAtoms = self.filterRgroup(groupAtoms)
+            mainGroupAtoms = self.getMainGroups(groupAtoms)
             numMainRAtoms = len(self.getRgroups(groupAtoms))
 
             for compareIndex, compareGroup in enumerate(functionalGroups):
 
                 compareAtoms = compareGroup.atomData
-                mainCompareAtoms = self.filterRgroup(compareAtoms)
+                mainCompareAtoms = self.getMainGroups(compareAtoms)
                 numCompareRAtoms = len(self.getRgroups(compareAtoms))
 
                 if all(i in mainCompareAtoms for i in mainGroupAtoms) and all(i in mainGroupAtoms for i in mainCompareAtoms) and compareIndex != index:

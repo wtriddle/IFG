@@ -1,6 +1,8 @@
 ''' This file will be altered and checked against Molecule after logic changes '''
 
 import re
+from Atom import Atom
+from collections import OrderedDict
 
 
 class MoleculeTest():
@@ -61,9 +63,18 @@ class MoleculeTest():
         self.AMINOACID = True if len(re.compile(
             r'\[[nN]H[23]?\+\]').findall(smiles)) != 0 else False
 
+    def __str__(self):
+        return self.NAME + " : " + self.SMILES
+
+    def getSymbolDict(self):
+        """ Create a dictionary of index to atom symbol of the molecule's atoms based on its current state"""
+        symbolDict = {
+            atom.index: atom.symbol for atom in self.atomData.values()}
+        return symbolDict
+
     def initializeAtomData(self):
 
-        atomData = []
+        atomData = {}
         atomIndex = -1
 
         for pos, symbol in enumerate(self.SMILES):
@@ -73,10 +84,11 @@ class MoleculeTest():
 
                 if self.SMILES[pos-1] == '[':
                     chargedGroup = self.getChargedGroup(pos-1)
-                    atom = [atomIndex, chargedGroup]
+                    atomSymbol = chargedGroup
                 else:
-                    atom = [atomIndex, symbol]
-                atomData.append(atom)
+                    atomSymbol = symbol
+                atom = Atom(atomIndex, atomSymbol)
+                atomData[atomIndex] = atom
 
                 if symbol == 'O':
                     self.determineAlcoholGroup(pos, atomIndex)
@@ -85,7 +97,7 @@ class MoleculeTest():
 
     def initializeBondData(self):
 
-        bondData = []
+        bondData = {}
         atomIndex = -1
 
         for pos, symbol in enumerate(self.SMILES):
@@ -110,7 +122,7 @@ class MoleculeTest():
                     for rightBond in rightBonds:
                         bonds.append(rightBond)
 
-                bondData.append(bonds)
+                bondData[atomIndex] = bonds
                 del(bonds)
 
         return bondData
@@ -162,7 +174,7 @@ class MoleculeTest():
             if LN == ']':
                 LN = self.getChargedGroup(LNPos)
 
-            leftBond = [LNIndex, explicitBond + LN]
+            leftBond = Atom(LNIndex, explicitBond + LN)
 
         return leftBond
 
@@ -203,7 +215,7 @@ class MoleculeTest():
             RNIndex += 1
 
             if RN in self.ATOMS:
-                rightBonds.append([RNIndex, RN])
+                rightBonds.append(Atom(RNIndex, RN))
 
             elif RN in self.BONDS:
                 explicitBond = RN
@@ -213,11 +225,11 @@ class MoleculeTest():
                 if self.SMILES[RNPos] == '[':
                     RN = self.getChargedGroup(RNPos)
 
-                rightBonds.append([RNIndex, explicitBond + RN])
+                rightBonds.append(Atom(RNIndex, explicitBond + RN))
 
             elif RN == '[':
                 chargedGroup = self.getChargedGroup(RNPos)
-                rightBonds.append([RNIndex, chargedGroup])
+                rightBonds.append(Atom(RNIndex, chargedGroup))
 
         return rightBonds
 
@@ -256,25 +268,25 @@ class MoleculeTest():
         """
         atomIndex = -1
         evaluatedNumbers = {}
-        atom = ''
+        atomSymbol = ''
         for pos, symbol in enumerate(self.SMILES):
 
             if symbol in self.ATOMS:
                 atomIndex += 1
-                atom = symbol
+                atomSymbol = symbol
 
             if symbol in self.NUMBERS:
 
                 if self.SMILES[pos-1] == ']':
-                    atom = self.getChargedGroup(pos-1)
+                    atomSymbol = self.getChargedGroup(pos-1)
 
-                info = [atomIndex, atom]
+                atom = Atom(atomIndex, atomSymbol)
 
-                self.RING_SELF[pos] = info
+                self.RING_SELF[pos] = atom
 
                 if symbol in evaluatedNumbers:
                     partnerPos = evaluatedNumbers[symbol]
-                    self.RING_PARTNERS[partnerPos] = info
+                    self.RING_PARTNERS[partnerPos] = atom
                     self.RING_PARTNERS[pos] = self.RING_SELF[partnerPos]
                     del(evaluatedNumbers[symbol])
                     self.RING_PARTNER_NUM_POSITIONS.append(pos)
@@ -326,7 +338,7 @@ class MoleculeTest():
             ringPartner = self.RING_PARTNERS[pos]
 
             # Both are aromatic
-            if ring[1].islower() and ringPartner[1].islower():
+            if ring.symbol.islower() and ringPartner.symbol.islower():
 
                 if self.SMILES[pos+1] in self.ATOMS:
 
@@ -340,7 +352,7 @@ class MoleculeTest():
                     self.aromaticCount += 1
 
             # Both are non aromatic
-            elif ring[1].isupper() and ringPartner[1].isupper():
+            elif ring.symbol.isupper() and ringPartner.symbol.isupper():
 
                 if self.SMILES[pos+1] in self.ATOMS:
 
