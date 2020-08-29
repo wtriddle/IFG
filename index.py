@@ -12,7 +12,7 @@ def main(argv):
     preciseSheet = False
     allSheet = False
     verbose = False
-    file = ""
+    file = 'output/FunctionalGroups.xlsx'
     try:
         args, opts = getopt.getopt(
             argv, 'aphfv', ["all", "precise", "help", "verbose", "file="])
@@ -33,41 +33,48 @@ def main(argv):
         elif opt in ['-v', '--verbose']:
             verbose = True
         elif opt in ['-f', '--file']:
-            file = './output/' + arg + '.xlsx'
+            file = 'output/' + arg + '.xlsx'
     if not args:
         """ Defaults for the script """
         preciseSheet = True
         allSheet = True
-        file = 'output/FunctionalGroupsTest.xlsx'
+        file = 'output/FunctionalGroups.xlsx'
 
     # Retrieve functional groups data, returns a dictionary
     data = identifyFunctionalGroups(allSheet, preciseSheet, verbose)
 
     # Create pandas excel writer with xlsxwriter as engine
     writer = pd.ExcelWriter(file, engine="xlsxwriter")
-
-    # Covert dataframe to XlsxWriter Excel object
-    data['allDf'].to_excel(
-        writer,
-        sheet_name="All Functional Groups",
-        na_rep=0,
-        freeze_panes=(1, 1)
-    )
-    data['preciseDf'].to_excel(
-        writer,
-        sheet_name="Precise Functional Groups",
-        na_rep=0,
-        freeze_panes=(1, 1)
-    )
-
-    # XlsxWriter book/sheet objects
     workbook = writer.book
-    allSheet = writer.sheets['All Functional Groups']
-    preciseSheet = writer.sheets['Precise Functional Groups']
 
-    # Set sheet column widths
-    allSheet.set_column(1, len(data['allDf'].columns), 21, None)
-    preciseSheet.set_column(1, len(data['preciseDf'].columns), 21, None)
+    # Input respective data into excel sheets if they were created
+    try:
+        data['allDf'].to_excel(
+            writer,
+            sheet_name="All Functional Groups",
+            na_rep=0,
+            freeze_panes=(1, 1)
+        )
+        # XlsxWriter sheet object
+        allSheet = writer.sheets['All Functional Groups']
+        # Set sheet column width
+        allSheet.set_column(1, len(data['allDf'].columns), 21, None)
+    except:
+        pass
+
+    try:
+        data['preciseDf'].to_excel(
+            writer,
+            sheet_name="Precise Functional Groups",
+            na_rep=0,
+            freeze_panes=(1, 1)
+        )
+        # XlsxWriter sheet object
+        preciseSheet = writer.sheets['Precise Functional Groups']
+        # Set sheet column width
+        preciseSheet.set_column(1, len(data['preciseDf'].columns), 21, None)
+    except:
+        pass
 
     writer.save()
 

@@ -1,5 +1,5 @@
 import pandas as pd
-from ifgTest import ifgTest
+from ifg import ifg
 import re
 from collections import Counter
 from helpers import createFgDataDict
@@ -57,6 +57,9 @@ def identifyFunctionalGroups(allSheet, preciseSheet, verboseMode):
     for prop in properties:
         columns.append(prop)
 
+    if verboseMode:
+        print("Created column names")
+
     # Dataframe containers for SMILES (index) to Functioanl group (columns) counts relation
     allDf = pd.DataFrame(columns=columns)
     preciseDf = pd.DataFrame(columns=columns)
@@ -68,9 +71,9 @@ def identifyFunctionalGroups(allSheet, preciseSheet, verboseMode):
         line = re.compile(r'\S+').findall(text)
         (smilesAlt, smiles, refcode) = line
 
-        # Process the smiles code with the ifgTest algorithm and retireve output data in the form of a dictionary
+        # Process the smiles code with the ifg algorithm and retireve output data in the form of a dictionary
         # Inherets molecule properties from Molecule class
-        functionalGroups = ifgTest(smiles, refcode)
+        functionalGroups = ifg(smiles, refcode)
 
         if verboseMode:
             print(refcode, " : ", smiles)
@@ -96,7 +99,6 @@ def identifyFunctionalGroups(allSheet, preciseSheet, verboseMode):
         if verboseMode:
             print(allFgs)
             print(preciseFgs)
-            print(columns)
 
         # Loop over all possible FGs and,
         # in the order of columns as they appear in dataframe,
