@@ -1,15 +1,20 @@
 from Molecule import Molecule
 import re
 from helpers import createFgDataDict
+import os
 
 
 class ifg(Molecule):
 
     def __init__(self, smiles, REFCODE):
+        """ 
+            To improve user performce, you can make precise groups callabe instead of init
+            Always find all b/c precice is built off of all, but no parse if user doesnt want preice
+         """
         super().__init__(smiles, REFCODE)
-        self.functionalGroups = self.findFunctionalGroups()
-        self.preciseFunctionalGroups = self.findPreciseGroups(
-            self.functionalGroups)
+        self.allFgs = self.findFunctionalGroups()
+        self.preciseFgs = self.findPreciseGroups(
+            self.allFgs)
 
     def findFunctionalGroups(self):
 
@@ -49,7 +54,7 @@ class ifg(Molecule):
         symbol = atom[1]
         index = atom[0]
 
-        for line in open('./../src/resources/FGlist.txt', 'r'):
+        for line in open(os.getcwd() + '/src/resources/FGlist.txt', 'r'):
             lineInfo = re.compile(r'\S+').findall(line)
             lineInfo[0] = lineInfo[0].replace('[R]', 'R')
             template = Molecule(lineInfo[0], lineInfo[1])

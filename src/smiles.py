@@ -1,5 +1,4 @@
-from Molecule import Molecule
-from ifg import ifg
+from ifgTest import ifgTest
 import re
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
@@ -97,8 +96,8 @@ for line in open('./resources/smiles.txt', 'r'):
     print(refcode)
     print(smiles)
 
-    # Get the functional groups and ring data from ifg algorithm
-    fgs = ifg(smiles, refcode)
+    # Get the functional groups and ring data from ifgTest algorithm
+    fgs = ifgTest(smiles, refcode)
     fgAllDict = createFgDataDict(fgs.functionalGroups)
     fgPreciseDict = createFgDataDict(fgs.preciseFunctionalGroups)
     totalAlcohols = len(fgs.ALCOHOLICINDICES)
@@ -201,4 +200,4 @@ for col in range(3, fgPreciseSheet.max_column+1):
     letterCol = get_column_letter(col)
     fgPreciseSheet.column_dimensions[letterCol].width = colWidth + 5
 
-fgWorkbook.save("FgTesting.xlsx")
+fgWorkbook.save("FunctionalGroups.xlsx")

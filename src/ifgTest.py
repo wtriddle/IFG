@@ -1,15 +1,16 @@
 from MoleculeTest import MoleculeTest
 import re
 from helpers import createFgDataDict
+import os
 
 
 class ifgTest(MoleculeTest):
 
     def __init__(self, smiles, REFCODE):
         super().__init__(smiles, REFCODE)
-        self.functionalGroups = self.findFunctionalGroups()
-        self.preciseFunctionalGroups = self.findPreciseGroups(
-            self.functionalGroups)
+        self.allFgs = self.findFunctionalGroups()
+        self.preciseFgs = self.findPreciseGroups(
+            self.allFgs)
 
     def findFunctionalGroups(self):
         """ Return a list of MoleculeTest objects, where the indices of the atoms in the MoleculeTest reflect those inside of the smiles code
@@ -38,7 +39,7 @@ class ifgTest(MoleculeTest):
 
     def whichGroup(self, atom):
         matches = []
-        for line in open('./../src/resources/FGlist.txt', 'r'):
+        for line in open(os.getcwd() + '/src/resources/FGlist.txt', 'r'):
             lineInfo = re.compile(r'\S+').findall(line)
             lineInfo[0] = lineInfo[0].replace('[R]', 'R')
             template = MoleculeTest(lineInfo[0], lineInfo[1])

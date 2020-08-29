@@ -3,9 +3,9 @@ from ifgTest import ifgTest
 import re
 import sys
 from helpers import createFgDataDict
+import os
 
-
-for line in open('./../src/resources/smiles.txt', 'r'):
+for line in open(os.getcwd() + '/src/resources/smiles.txt', 'r'):
     lineInfo = re.compile(r'\S+').findall(line)
     smiles = lineInfo[1]
     refcode = lineInfo[2]
