@@ -1,7 +1,8 @@
-import pandas as pd
+""" Module containing the functional script that loops over a CHON set of smiles codes and determines thier functional groups """
+
 from ifg import ifg
+import pandas as pd
 import re
-from collections import Counter
 from helpers import createFgDataDict
 import sys
 import numpy as np
@@ -10,9 +11,18 @@ import os
 
 
 def identifyFunctionalGroups(allSheet, preciseSheet, verboseMode):
+    """ Returns a dictionary of two dataframes containing the data about functional groups for the entire smiles code set 
+
+
+        allSheet (bool) : Determines if script is to return functional group data in the all format
+        preciseSheet (bool) : Determines if script is to return functional group data in the precise format    
+        verboseMode (bool) : Determines to print functioanl group contents out to string or keep the same
+
+        Notes:
+            Dataframes are allDf and preciseDf, corellating to what type of functional group data it contains.
+
     """
-        Algorithm to create the dataframe object that contains refcode to functional group relation
-    """
+
     # fgNames is a list of strings with each functional group name that participated in this analysis
     # Retrieve functional group names (strings) from FGlist text file
     fgNames = pd.read_csv(os.getcwd() + '/src/resources/FGlist.txt',
@@ -36,7 +46,6 @@ def identifyFunctionalGroups(allSheet, preciseSheet, verboseMode):
 
     # Combine calssified and base functional group names into a single list
     # (each item is of type string)
-
     columns = [
         name for names
         in zip(fgNames, cyclicGroups, aromaticGroups)
@@ -48,8 +57,8 @@ def identifyFunctionalGroups(allSheet, preciseSheet, verboseMode):
     columns.insert(0, "Refcode")
 
     # Extra info ontop of base functional group analysis
-    properties = ['aromaticRings',
-                  'nonAromaticRings',
+    properties = ['aromaticRingCount',
+                  'nonAromaticRingCount',
                   'ringCount',
                   'totalAlcohols',
                   'AminoAcid']
@@ -80,7 +89,7 @@ def identifyFunctionalGroups(allSheet, preciseSheet, verboseMode):
 
         # Retrieve molecule data from functionalgroups algorithm and molecule data
         propData = {
-            **functionalGroups.RINGDICT,
+            **functionalGroups.ringData,
             "totalAlcohols": len(functionalGroups.ALCOHOLICINDICES),
             "AminoAcid": "Yes" if functionalGroups.AMINOACID else "No"
         }
@@ -116,7 +125,7 @@ def identifyFunctionalGroups(allSheet, preciseSheet, verboseMode):
             for name in columns[2:]
         ]
 
-        # Inser smiles and refcode to satify structure of columns
+        # Insert smiles and refcode to satify structure of columns
         for _id in [smiles, refcode]:
             allData.insert(0, _id)
             preciseData.insert(0, _id)

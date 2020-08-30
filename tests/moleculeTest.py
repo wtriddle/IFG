@@ -44,7 +44,7 @@ print(mol.CYCLICINDICES)
 #         print("Test failed 5")
 #         print(mol.SMILES)
 #         sys.exit()
-#     if not mol.RINGDICT == molTest.RINGDICT:
+#     if not mol.ringData == molTest.ringData:
 #         print("Test failed 6")
 #         print(mol.SMILES)
 #         sys.exit()
