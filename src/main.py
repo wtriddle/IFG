@@ -8,6 +8,7 @@ import sys
 import numpy as np
 from collections import defaultdict
 import os
+from progress.bar import IncrementalBar
 
 
 def identifyFunctionalGroups(allSheet, preciseSheet, verboseMode):
@@ -73,6 +74,11 @@ def identifyFunctionalGroups(allSheet, preciseSheet, verboseMode):
     allDf = pd.DataFrame(columns=columns)
     preciseDf = pd.DataFrame(columns=columns)
 
+    # Progress bar for script execution, goes to number of smiles codes
+    bar = IncrementalBar('Anlalyzing smiles codes', max=len(
+        open(os.getcwd() + '/src/resources/smiles.txt').readlines()
+    ))
+
     # Loop over all smiles codes in this current dataset
     for i, text in enumerate(open(os.getcwd() + '/src/resources/smiles.txt')):
 
@@ -136,6 +142,10 @@ def identifyFunctionalGroups(allSheet, preciseSheet, verboseMode):
 
         if preciseSheet:
             preciseDf.loc[refcode] = preciseData
+
+        bar.next()
+
+    bar.finish()
 
     # Set index by Refcode column
     allDf.set_index("Refcode")

@@ -6,6 +6,7 @@ from main import identifyFunctionalGroups
 import pandas as pd
 import pathlib
 import os
+import json
 
 
 def main(argv):
@@ -76,7 +77,23 @@ def main(argv):
     except:
         pass
 
-    writer.save()
+    # Save JSON format for chached dataframes
+    allJsonData = data['allDf'].to_json(orient="index")
+    preciseJsonData = data['preciseDf'].to_json(orient="index")
+
+    data = json.loads(allJsonData)
+    with open("allData.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+
+    data = json.loads(preciseJsonData)
+    with open("preciseData.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+
+    # Save the sheet
+    try:
+        writer.save()
+    except:
+        raise EnvironmentError("File could not be saved")
 
 
 if __name__ == '__main__':
