@@ -36,7 +36,6 @@ def main(argv):
         elif opt in ['-f', '--file']:
             file = 'output/' + arg + '.xlsx'
     if not args:
-        """ Defaults for the script """
         preciseSheet = True
         allSheet = True
         file = 'output/FunctionalGroups.xlsx'
@@ -60,6 +59,12 @@ def main(argv):
         allSheet = writer.sheets['All Functional Groups']
         # Set sheet column width
         allSheet.set_column(1, len(data['allDf'].columns), 21, None)
+
+        # JSON format of data
+        allJsonData = data['allDf'].to_json(orient="index")
+        d = json.loads(allJsonData)
+        with open("allData.json", "w", encoding="utf-8") as f:
+            json.dump(d, f, indent=4)
     except:
         pass
 
@@ -74,20 +79,14 @@ def main(argv):
         preciseSheet = writer.sheets['Precise Functional Groups']
         # Set sheet column width
         preciseSheet.set_column(1, len(data['preciseDf'].columns), 21, None)
+
+        # JSON format of data
+        preciseJsonData = data['preciseDf'].to_json(orient="index")
+        d = json.loads(preciseJsonData)
+        with open("preciseData.json", "w", encoding="utf-8") as f:
+            json.dump(d, f, indent=4)
     except:
         pass
-
-    # Save JSON format for chached dataframes
-    allJsonData = data['allDf'].to_json(orient="index")
-    preciseJsonData = data['preciseDf'].to_json(orient="index")
-
-    data = json.loads(allJsonData)
-    with open("allData.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
-
-    data = json.loads(preciseJsonData)
-    with open("preciseData.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
 
     # Save the sheet
     try:
