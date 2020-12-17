@@ -58,7 +58,7 @@ class Molecule():
         self.CHARGE_REGEX = re.compile(r'\+|\-')
         self.BOND_REGEX = re.compile(r'\=|\#')
         self.ATOMS = ['C', 'O', 'N', 'X', 'Z', 'S', 'I',
-                      'F', 'c', 'n', 'o', 'x', 'z', 's', 'i', 'f', 'R']
+                      'F', 'c', 'n', 'o', 'x', 'z', 's', 'i', 'f', 'R', 'P', 'p']
         self.BONDS = ['=', '#']
         self.BRACKETS = ['[', ']']
         self.CHARGES = ['+', '-']

@@ -1,5 +1,10 @@
 """ Top level script run with py RunIFG.py [args, [...]] """
 
+""" Create a dependencies list so people can install environemnt right off the bat
+    If the script has run once fully and failed at the end, add functionality to load the .json files directly to excel instead
+    Of re-calculating the results
+"""
+
 import sys
 import getopt
 from main import identifyFunctionalGroups
@@ -45,7 +50,6 @@ def main(argv):
 
     # Create pandas excel writer with xlsxwriter as engine
     writer = pd.ExcelWriter(file, engine="xlsxwriter")
-    workbook = writer.book
 
     # Input respective data into excel sheets if they were created
     try:
