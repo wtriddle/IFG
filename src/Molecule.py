@@ -1,9 +1,8 @@
 """ Represents a SMILES code as its molecular equivalent with atomic properties.
 
 A molecule class contains various containers, holding numerical data, string data, and Atom objects
-It derives each all atoms and their bonds entirley from a string SMILEScode, which contains the
-ingredients for how a molecule is connected and bonded in space. This Molecule class breaks down those
-ingredients to extraplote basic bonding and molecular data which comprise the molecule described by the SMILES.
+It derives the bonding schema and cyclic connectivity of the moleucle in space using the SMILES
+The class is built on a string decoding algorithm 
 
 This molecule class only supports CHON sets.
 
@@ -20,9 +19,22 @@ Key Attributes:
     bondData: Dictionary with atomIndex key to list of Atom Object value pairing
     ringData: Dictionary with ring key to count of specific ring type value
 
+    bondData can be visualized as follows:
+    Molecule
+    [
+        ATOMS→BOND PATHS
+        atom1 → [atom2, atom3, atom4…]
+        atom2 → [atom1, atom3, atom4…]
+        …
+        atomN → [atom1, atom2, … atom(N-1)]
+    ]
+
 Notes:
     SMILES codes are exported from this module in all upper case
     The module contains Atom objects which are simply symbol index objects 
+    SAR = Single Atom Representations
+    DLA = Double Lettered Atoms
+
 """
 
 from Atom import Atom
@@ -35,20 +47,29 @@ class Molecule():
 
     Basic usage:
 
+    Molecule objects:
     >> mol = Molecule('O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O', 'ABEGOH')
     >> print(mol)
     ABEGOH : O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O
+
+    Functional group templats:
     >> functionalGroup = Molecule('RC(=O)O', 'Carboxylicacid')
+
+    This class is utilized for the ifg algorithm
     """
 
     def __init__(self, smiles, name):
-        """ Initialize molecule obejct with atom and bonding data for all symbols
-            Derives Cyclic and noncyclic properties for all atoms
-            Derives ring counts
-            Contains symbol matching lists for string chars
-            Derives alcohol counts, including cyclic/aromatic attacments
+        """ Initialize molecule obejct with bonding and atom data
 
+            Decoding process is as follows:
+
+            1. Decode ring structure of SMILES using numbers and SMILES ring junction pairing
+            2. Compute ring counts, aromatic and cyclic properties of atoms
+            3. Decode full bonding schema of SMILES using ring pairing and string parsing
+
+            After the decoding process has ran, the Molecule object digitally represents the moleucle
         """
+
         # Input data
         self.SMILES = self.formatSmiles(smiles)
         self.NAME = name
@@ -57,10 +78,15 @@ class Molecule():
         self.ATOM_REGEX = re.compile(r'[a-zA-Z]')
         self.CHARGE_REGEX = re.compile(r'\+|\-')
         self.BOND_REGEX = re.compile(r'\=|\#')
-        self.ATOMS = ['C', 'O', 'N', 'X', 'Z', 
-                      'S', 'I','F', 'c', 'n', 
-                      'o', 'x', 'z', 's', 'i', 
-                      'f', 'R', 'P', 'p']
+        self.DLA_TO_SAR = {                                  # DLA to SAR legend
+            "Br": "X",                                       
+            "Cl": "Z"
+        }
+        self.ATOMS =['C', 'O', 'N', 'S', 'I','F', 'P',       # SAR atoms non-aromatic
+                    'c', 'n', 'o','s', 'i', 'f', 'p',        # SAR atoms aromatic
+                    'R',                                     # R group atom (used for FG templates)
+                    'X', 'Z',                                # DLA->SAR converted atoms
+                    ]
         self.BONDS = ['=', '#']
         self.BRACKETS = ['[', ']']
         self.CHARGES = ['+', '-']
@@ -72,20 +98,18 @@ class Molecule():
         self.RING_SELF = {}
         self.RING_CLOSE_POSITIONS = []
         self.RING_COMPLEMENTS = {}
-
-        self._RING()    # Initalize Ring Containers
+        self._RING()                # Initalize Ring Containers
 
         # Ring Index Containers
         self.AROMATICINDICES = []
         self.CYCLICINDICES = []
-
-        self._INCIDES()  # Initalize Ring Index Containers
+        self._INCIDES()             # Initalize Ring Index Containers
 
         # Collect ring data from ring containers
         self.ringCount = len(self.RING_SELF) / 2
         self.aromaticCount = 0
         self.nonAromaticCount = 0
-        self._RING_COUNTS()
+        self._RING_COUNTS()         # Compute Ring counts
 
         # Dictionary mapping counts to keys
         self.ringData = {
@@ -100,16 +124,25 @@ class Molecule():
         self.atomData = self.initializeAtomData()
         self.atomCount = len(self.atomData)         
         self.bondData = self.initializeBondData()
-        self.chargedMol = True if len(
-            self.CHARGE_REGEX.findall(smiles)) != 0 else False
-        self.AMINOACID = True if len(re.compile(
-            r'\[[nN]H[23]?\+\]').findall(smiles)) != 0 else False
+        self.chargedMol = (
+                True if len(self.CHARGE_REGEX.findall(smiles)) != 0 
+                else False
+            )
+        self.AMINOACID = (
+                True if len(re.compile(r'\[[nN]H[23]?\+\]').findall(smiles)) != 0 
+                else False
+            )
 
     def __str__(self):
+        """ String representation of a Molecule SMILES object 
+        """
+        
         return self.NAME + " : " + self.SMILES
 
     def getSymbolDict(self):
-        """ Create a dictionary of index to atom symbol of the molecule's atoms based on its current state"""
+        """ Create a dictionary of index to atom symbol of the molecule's atoms based on its current state
+        """
+
         symbolDict = {
             atom.index: atom.symbol
             for atom in self.atomData.values()
@@ -144,12 +177,14 @@ class Molecule():
         return atomData
 
     def initializeBondData(self):
-        """ Returns the bonding data schema for the SMILES
+        """ Returns the bonding schema for a given SMILES
 
-            From a given atom position, the left and right bond datas are collected with their respective neighbor decoding algorithms
-            Each bond represents a single Atom object. However, bondData keys to a list of Atom objects, representing 
-            all atoms bonded to the atom of interest.
-
+            Psuedo-code
+            For each atom in the SMILES
+                Determine the left bonds
+                Determine the right bonds
+                Combine both bond pathways into a single pathway that stems from current atom
+                Assign the atomIndex of bondData to its bonding pathways
         """
 
         bondData = {}
@@ -161,15 +196,28 @@ class Molecule():
                 atomIndex += 1
                 bonds = []                              # Bonds which stem from a single atom
 
-                # Deal with charges based on special starting positions
-                if self.SMILES[pos-1] == '[':
-                    leftBond = self.getLeftBond(LNPos=pos-1, LNIndex=atomIndex)
+                if self.SMILES[pos-1] == '[':           # Charged atom case
+
+                    leftBond = self.getLeftBond(        
+                            LNPos=pos-1,                # Start left pathway at open bracket
+                            LNIndex=atomIndex
+                    )
+
+                    rightBonds = self.getRightBonds(   
+                            RNPos=pos+2,                # Start right pathway at closed bracket
+                            RNIndex=atomIndex
+                    )
+
+                else:                                   # Uncharged atom case
+                    leftBond = self.getLeftBond(        
+                            LNPos=pos, 
+                            LNIndex=atomIndex
+                    )
+
                     rightBonds = self.getRightBonds(
-                        RNPos=pos+2, RNIndex=atomIndex)
-                else:
-                    leftBond = self.getLeftBond(LNPos=pos, LNIndex=atomIndex)
-                    rightBonds = self.getRightBonds(
-                        RNPos=pos, RNIndex=atomIndex)
+                            RNPos=pos, 
+                            RNIndex=atomIndex
+                    )
 
                 if leftBond:
                     bonds.append(leftBond)
@@ -184,8 +232,8 @@ class Molecule():
         return bondData
 
     def getLeftBond(self, LNPos, LNIndex):
-        """ Returns an single Atom object. 
-            Return an empty array [] if no LN exists
+        """ Return the single Atom object that is left bonded with respect to a specific string position
+            Return an empty array [] if no LN exists from a specific string position
 
             LNPos (int) : string position of the atom whose left bond is to be found
             LNIndex (int) : index position of that atom within the smiles code
@@ -194,56 +242,51 @@ class Molecule():
                 LN stands for Left Neighbor
         """
 
-        # Begin one position to left
-        LNPos -= 1
-        if LNPos < 0:
+        LNPos -= 1                  # Begin one position to left of given atom position
+        if LNPos < 0:               # Outside scope of SMILES means no left bonds
             return []
-        LN = self.SMILES[LNPos]
+        LN = self.SMILES[LNPos]     # Initalize LN as the first symbol to left of positon given
 
-        # An explicit bond exists for a left-bonded atom if and only if the bond is located one position to the left of the atom
-        explicitBond = LN if LN in self.BONDS else ""
-        if explicitBond:
-            LNPos -= 1
+        explicitBond = (            # Explicit double/triple left bond case
+            LN 
+            if LN in self.BONDS     # Save results of bond if LN is initially a bond
+            else ""
+        )
+        if explicitBond:            # If an explicit bond is found
+            LNPos -= 1              # Move to next symbol, bond is saved in explicitBond
             LN = self.SMILES[LNPos]
 
-        scope = 0  # Parenthesis depth of nesting value. Initally 0, meaning to look for neighbors on its own layer or nested scope
-        leftBond = []
+        scope = 0                   # Parenthesis depth counter is 0 index based
+        leftBond = []               # Left bond list
 
-        # Loop continues until a LINEARSYMBOL is found on the same scope as its bonded neighbor
-        while LN not in self.LINEARSYMBOLS or scope > 0:
+        
+        while LN not in self.LINEARSYMBOLS or scope > 0:    # Loop until a LINEARSYMBOL is found on the 0th scope (i.e. same scope as inital atom)
 
-            # Special case to pass double parenthesis left neighbors, ie. N(C)(C).
-            # The second parenthesied C needs to find the N as its proper LN
-            # This statement allows passage through its other C neighbor, which it is NOT directly attachted to
-            if LN == ')' and scope == -1:
-                scope = 0
-
-            if LN == ')':
+            if LN == ')' and scope == -1:                   # Double parenthesis case i.e X(Y)(Z) starting within second parenthesised Z
+                scope = 0                                   # Reset scope to allow second atom Z to locate X as its proper left-bonded neighbor
+            if LN == ')':                                   # Increment over deeper parenthesis groups
                 scope += 1
-            elif LN == '(':
+            elif LN == '(':                                 # Decrement into higher parenthesis gropus
                 scope -= 1
-            elif LN in self.ATOMS:
+            elif LN in self.ATOMS:                          # Decrement atomic index for each atom found
                 LNIndex -= 1
-
-            LNPos -= 1
-            if LNPos < 0:
+            LNPos -= 1                                      # Decrement to next left symbol
+            if LNPos < 0:                                   # Outside scope of SMILES means no left bonds
                 return []
-            LN = self.SMILES[LNPos]
+            LN = self.SMILES[LNPos]                         # Update LN
 
-        else:
-            LNIndex -= 1
+        else:                                               # LN in this scope is the correct left-bonded atom of given arguments
+            LNIndex -= 1                                    # Decrement to find corrected LN index
+            if LN == ']':                                   # Charged LN case
+                LN = self.getChargedGroup(LNPos)            # Find LN directly from final position 
 
-            # If LN is a charged group, overwrite it
-            if LN == ']':
-                LN = self.getChargedGroup(LNPos)
+            leftBond = Atom(LNIndex, explicitBond + LN)     # Create new bonded atom at LNindex with the explicitBond and the determined LN
 
-            leftBond = Atom(LNIndex, explicitBond + LN)
-
-        return leftBond
+        return leftBond                                     
 
     def getRightBonds(self, RNPos, RNIndex):
-        """ Returns an atom list of all right bonds for a given atom.
-            Returns an empty list if no right bond exists
+        """ Returns an atom list of all right bonds which stems from a specific string position
+            Returns an empty list if no right bond exists from the given position
 
 
             RNPos (int) : The position of the atom in the SMILES code whose right bonds are to be found
@@ -256,68 +299,62 @@ class Molecule():
                 The two dynamic symbols are () and numbers. Both are handled accordingly here. 
         """
 
-        # Begin at one position to right
-        RNPos += 1
-        if RNPos >= len(self.SMILES):
+        RNPos += 1                       # Begin at one position to right
+        if RNPos >= len(self.SMILES):    # Outside SMILES scope means no right bond
             return []
-        RN = self.SMILES[RNPos]
+        RN = self.SMILES[RNPos]          # Initalize RN as the symbol one position to right of positional arguments
 
-        # A closing parenthesis explicitly means no right bonds
-        if RN == ')':
+        if RN == ')':                    # A closing parenthesis explicitly means no right bonds
             return []
 
-        scope = 0  # Parenthesis depth of nesting value. Initally 0, meaning to look for neighbors on its own layer or nested scope
-        rightBonds = []
+        scope = 0                        # Parenthesis depth counter is 0 index based
+        rightBonds = []                  # Right bonding list
 
-        while RN not in self.LINEARSYMBOLS or scope > 0:
+        while RN not in self.LINEARSYMBOLS or scope > 0:    # Loop until a LINEARSYMBOL is found on the 0th scope (i.e. same scope as inital atom)
 
-            if RN == '(':
+            if RN == '(':                                   # Nested parenthesis case
 
-                # Recursion to find first nested bond. Must be on same scope as atom (i.e scope 0)
-                innerParenthBond = self.getRightBonds(
+                innerParenthBond = self.getRightBonds(      # Only allow single depth right bond neighbors (i.e. first bond on 1st scope)
                     RNPos, RNIndex
-                ) if scope == 0 else ''
+                ) if scope == 0 else ''                     # Nonzero scope implies deeper RN's unconnected to the initial posiiton relative to arguments
 
-                # Function returns list, capture first and only atom element
-                if innerParenthBond:
+                if innerParenthBond:                        # Variable is a list of bonds, but only first bond is valid instead of deeper scoped bonds
                     rightBonds.append(innerParenthBond[0])
 
-                # Increment scope, now going inside a parenthesis
-                scope += 1
+                scope += 1                                  # Increment scope depth
 
-            if RN == ')':
+            if RN == ')':                                   # Decrement scope for right bond upon closing parenthesis
                 scope -= 1
-            if RN in self.ATOMS:
+            if RN in self.ATOMS:                            # Increment atom index each atom encountered
                 RNIndex += 1
-            if scope == 0 and RN in self.NUMBERS:
-                # Every number always has a bonded partner
-                numGroup = self.numbersHandler(RNPos)
-                rightBonds.append(numGroup)
+            if scope == 0 and RN in self.NUMBERS:           # Every number always has a bonded partner
+                numGroup = self.numbersHandler(RNPos)       # Handle ring junction bond via numbersHandler
+                rightBonds.append(numGroup)                 # Add bonded group to list of bonds
 
-            RNPos += 1
-            if RNPos >= len(self.SMILES) or scope < 0:
-                return rightBonds
-            RN = self.SMILES[RNPos]
+            RNPos += 1                                      # Increment position to process next symbol
+            if RNPos >= len(self.SMILES) or scope < 0:      # Outside of scope 
+                return rightBonds                           # Return current state of bonded list
+            RN = self.SMILES[RNPos]                         # Update RN
 
-        else:
-            RNIndex += 1
+        else:                                               # RN is the final right bonded neighbor within this scope
+            RNIndex += 1                                    # Increment atomic index to correct index offset
 
-            if RN in self.ATOMS:
+            if RN in self.ATOMS:                            # Generic atom right bond case
                 rightBonds.append(Atom(RNIndex, RN))
 
-            elif RN in self.BONDS:
-                explicitBond = RN
+            elif RN in self.BONDS:                          # Explicit right bond case
+                explicitBond = RN                           # RN must be explicit bond
                 RNPos += 1
-                RN = self.SMILES[RNPos]
+                RN = self.SMILES[RNPos] 
 
-                if self.SMILES[RNPos] == '[':
+                if self.SMILES[RNPos] == '[':               # Explicit bond to charge group case
                     RN = self.getChargedGroup(RNPos)
 
-                rightBonds.append(Atom(RNIndex, explicitBond + RN))
+                rightBonds.append(Atom(RNIndex, explicitBond + RN))     # Create new atom bond with explicit bond and RN
 
-            elif RN == '[':
+            elif RN == '[':                                             # Explicit charge group right bond case
                 chargedGroup = self.getChargedGroup(RNPos)
-                rightBonds.append(Atom(RNIndex, chargedGroup))
+                rightBonds.append(Atom(RNIndex, chargedGroup))          # Create new atom with full charged group no explicit bond case
 
         return rightBonds
 
@@ -326,27 +363,24 @@ class Molecule():
             pos (int): string position of an openeing or closing bracket in the smiles code
         """
 
-        # String that holds all characters that make up the bracketed charge group
-        chargedGroup = ''
+        chargedGroup = ''                           # Resultant charged group string
 
-        # Reverse case
-        if self.SMILES[pos] == ']':
+        if self.SMILES[pos] == ']':                 # Closing (Reversed) case
             while self.SMILES[pos] != '[':
                 chargedGroup += self.SMILES[pos]
                 pos -= 1
-            return '[' + chargedGroup[::-1]
+            return '[' + chargedGroup[::-1]         # Reverse resultant string
 
-        # Forwards case
-        if self.SMILES[pos] == '[':
+        if self.SMILES[pos] == '[':                 # Opening (Forwards) case
             while self.SMILES[pos] != ']':
                 chargedGroup += self.SMILES[pos]
                 pos += 1
             return chargedGroup + ']'
 
-        # Capture errors in positions
-        if self.SMILES[pos] not in self.BRACKETS:
+        if self.SMILES[pos] not in self.BRACKETS:   # Capture errors in positions
             raise ValueError(
-                "The position passed does not point to a bracket in the smiles code")
+                "The position passed does not point to a bracket in the smiles code"
+            )
 
     def _RING(self):
         """ Initalizes the four ring data containers
@@ -359,8 +393,8 @@ class Molecule():
             Notes: 
                 Ring junctions open with an arbitrary number and close with the same number
                 The atoms to the left of each number are at the opening/closing atoms at ring junction
-                
         """
+
         atomIndex = -1              # 0 based indexing of atoms
         evaluatedNumbers = {}       # Number to string position in smiles code
         atomSymbol = ''
@@ -395,8 +429,8 @@ class Molecule():
         """ Return the partner of a given position to retrieve what atom a specific number is connected to
 
             pos (int) : Position of a ring whose partner atom is to be determined
-
         """
+
         return self.RING_COMPLEMENTS[pos]
 
     def determineAlcoholGroup(self, pos, atomIndex):
@@ -566,7 +600,9 @@ class Molecule():
                                 self.CYCLICINDICES.append(index)
 
     def formatSmiles(self, smiles):
-        """ Remove [H+] symbols entirley from a smiles code and return a DLA-SAR converted smiles code """
+        """ Remove [H+] symbols entirley from a smiles code and return a DLA-SAR converted smiles code 
+        """
+
         reFormatted = ""
         for pos, symbol in enumerate(smiles):
 
@@ -594,11 +630,6 @@ class Molecule():
             Notes:
                 Placeholder for futher analysis upon non CHON atom. This is untested at large, program can only handle CHONS at the moment
         """
-        # DLA to SAR legend
-        legend = {
-            "Br": "X",
-            "Cl": "Z"
-        }
 
         pos = -1                    # 0 based indexing
         newSmiles = ""
@@ -608,8 +639,8 @@ class Molecule():
             pos += 1
             DLA = smiles[pos:pos+2]          # 2 char string is a potential DLA
 
-            if DLA in legend:                # Convert DLA'S via the legend if matched
-                newSmiles += legend[DLA]     # Add SAR in place of DLA
+            if DLA in self.DLA_TO_SAR:                # Convert DLA'S via the legend if matched
+                newSmiles += self.DLA_TO_SAR[DLA]     # Add SAR in place of DLA
                 pos += 1                     
 
             else:                            # No DLA match keeps smiles the same
