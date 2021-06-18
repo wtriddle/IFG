@@ -1,15 +1,17 @@
 from Molecule import Molecule
-from MoleculeTest import MoleculeTest
-from ifgTest import ifgTest
+# from ifg import ifg
 
-mol = MoleculeTest("CCCCN1c2ccccc2c2ccc3cc(OC)ccc3c12", "Test")
-fgs = ifgTest("CCCCN1c2ccccc2c2ccc3cc(OC)ccc3c12", "test")
-for group in fgs.functionalGroups:
-    print(group.getSymbolDict())
+mol = Molecule("CCCCN1c2ccccc2c2ccc3cc(OC)ccc3c12", "Test")
+# fgs = ifg("CCCCN1c2ccccc2c2ccc3cc(OC)ccc3c12", "test")
+# for group in fgs.functionalGroups:
+    # print(group.getSymbolDict())
 print("CCCCN1c2ccccc2c2ccc3cc(OC)ccc3c12")
 print(mol.AROMATICINDICES)
 print(mol.CYCLICINDICES)
-
+print(mol.RING_CLOSE_POSITIONS)
+print(mol.RING_COMPLEMENTS)
+print(mol.RING_SELF)
+print(mol.RING_OPEN_POSITIONS)
 # import re
 # import time
 # import sys

@@ -57,8 +57,10 @@ class Molecule():
         self.ATOM_REGEX = re.compile(r'[a-zA-Z]')
         self.CHARGE_REGEX = re.compile(r'\+|\-')
         self.BOND_REGEX = re.compile(r'\=|\#')
-        self.ATOMS = ['C', 'O', 'N', 'X', 'Z', 'S', 'I',
-                      'F', 'c', 'n', 'o', 'x', 'z', 's', 'i', 'f', 'R', 'P', 'p']
+        self.ATOMS = ['C', 'O', 'N', 'X', 'Z', 
+                      'S', 'I','F', 'c', 'n', 
+                      'o', 'x', 'z', 's', 'i', 
+                      'f', 'R', 'P', 'p']
         self.BONDS = ['=', '#']
         self.BRACKETS = ['[', ']']
         self.CHARGES = ['+', '-']
@@ -66,10 +68,10 @@ class Molecule():
         self.LINEARSYMBOLS = self.ATOMS + self.BONDS + self.BRACKETS + self.CHARGES
 
         # Ring Containers
-        self.RING_SELF_NUM_POSITIONS = []
+        self.RING_OPEN_POSITIONS = []
         self.RING_SELF = {}
-        self.RING_PARTNER_NUM_POSITIONS = []
-        self.RING_PARTNERS = {}
+        self.RING_CLOSE_POSITIONS = []
+        self.RING_COMPLEMENTS = {}
 
         self._RING()  # Initalize Ring Containers
 
@@ -349,57 +351,46 @@ class Molecule():
 
     def _RING(self):
         """ Initalizes the four ring data containers
-            RING_SELF: number position to atom data dict
-            RING_PARTNERS: number position to complementary number data
-            RING_SELF_NUM_POSITIONS: positions of the numbers which began the partner relation
-            RING_PARTNER_NUM_POSITIONS: positions of the numbers which ended the partner relation
+            RING_SELF (dictionary): string position of number to its direct atom pair (i.e. open number position gives opening atom data)
+            RING_COMPLEMENTS (dictionary): string position of a number to its complementary atom pair (i.e. open number position gives closing atom data)
+            RING_OPEN_POSITIONS (list): string positions of the numbers which opened a junction
+            RING_CLOSE_POSITIONS (list): string positions of the numbers which closed a junction
 
 
             Notes: 
-                evalutedNumbers is a dictionary of number symbol : position in smiles code
+                Ring junctions open with an arbitrary number and close with the same number
+                The atoms to the left of each number are at the opening/closing atoms at ring junction
+                
         """
-        atomIndex = -1
-        evaluatedNumbers = {}
+        atomIndex = -1              # 0 based indexing of atoms
+        evaluatedNumbers = {}       # Number to string position in smiles code
         atomSymbol = ''
 
-        for pos, symbol in enumerate(self.SMILES):
+        for pos, symbol in enumerate(self.SMILES):              # Loop over SMILES 
 
             if symbol in self.ATOMS:
                 atomIndex += 1
                 atomSymbol = symbol
 
-            if symbol in self.NUMBERS:
+            if symbol in self.NUMBERS:                          # Symbol is a number in this scope
 
-                if self.SMILES[pos-1] == ']':
-                    atomSymbol = self.getChargedGroup(pos-1)
+                if self.SMILES[pos-1] == ']':                   # Charged group at ring junction
+                    atomSymbol = self.getChargedGroup(pos-1)    # Retrieve charged group from closing bracket
 
-                atom = Atom(atomIndex, atomSymbol)
+                atom = Atom(atomIndex, atomSymbol)              # Ring junction atom object
+                self.RING_SELF[pos] = atom                      # Opening ring junction string position to opening atom pair
 
-                # Holds data for num position to imediate bond neighbor pairing, i.e. C1, =N2, O3, etc.
-                self.RING_SELF[pos] = atom
+                if symbol in evaluatedNumbers:                  # If a closing ring junction has been located
 
-                # If the partner number has been found, then the bonded atom has been found
-                if symbol in evaluatedNumbers:
+                    initalNumberPos = evaluatedNumbers[symbol]                  # Inital string position of number where ring junction opened
+                    self.RING_COMPLEMENTS[initalNumberPos] = atom               # Opening ring junction string position to closing atom pair
+                    self.RING_COMPLEMENTS[pos] = self.RING_SELF[initalNumberPos]# Closing ring junction string position to opening atom pair
+                    self.RING_CLOSE_POSITIONS.append(pos)                       # Position of where the ring ends in the SMILES
+                    del(evaluatedNumbers[symbol])                               # Close ring path once completed to allow other paths with the same number
+                    continue                                                    # Process the next ring
 
-                    # Get inital number position, where the ring began
-                    initalNumberPos = evaluatedNumbers[symbol]
-
-                    # Update the partner dict to hold position : connected atom info
-                    self.RING_PARTNERS[initalNumberPos] = atom
-                    self.RING_PARTNERS[pos] = self.RING_SELF[initalNumberPos]
-
-                    # Multiple of the same number can occur in a SMILES code, so open that number path for another pairing
-                    del(evaluatedNumbers[symbol])
-
-                    # Position of where the rings end in the SMILES code
-                    self.RING_PARTNER_NUM_POSITIONS.append(pos)
-                    continue
-
-                # Position of where the rings start in the SMILES code
-                self.RING_SELF_NUM_POSITIONS.append(pos)
-
-                # Number to positioning key:value pairing
-                evaluatedNumbers[symbol] = pos
+                self.RING_OPEN_POSITIONS.append(pos)            # Position of where the ring starts in the SMILES
+                evaluatedNumbers[symbol] = pos                  # Number to positioning key:value pairing
 
     def numbersHandler(self, pos):
         """ Return the partner of a given position to retrieve what atom a specific number is connected to
@@ -407,7 +398,7 @@ class Molecule():
             pos (int) : Position of a ring whose partner atom is to be determined
 
         """
-        return self.RING_PARTNERS[pos]
+        return self.RING_COMPLEMENTS[pos]
 
     def determineAlcoholGroup(self, pos, atomIndex):
         """ Updates the Alochol Index list with the index of the oxygen involved in a valid alcohol 
@@ -459,9 +450,9 @@ class Molecule():
             return 0
 
         # Upper is nonaromatic, lower is aromatic
-        for pos in self.RING_SELF_NUM_POSITIONS:
+        for pos in self.RING_OPEN_POSITIONS:
             ring = self.RING_SELF[pos]
-            ringPartner = self.RING_PARTNERS[pos]
+            ringPartner = self.RING_COMPLEMENTS[pos]
 
             # Both are aromatic
             if ring.symbol.islower() and ringPartner.symbol.islower():
