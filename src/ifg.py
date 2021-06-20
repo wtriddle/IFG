@@ -1,128 +1,152 @@
-""" Algorithm which analyzes the atom and bond data of a given SMILES code to produce the counts of organic functional groups.
+""" Algorithm which analyzes the atom and bond data of a given SMILES code to produce counts of pre-defined organic functional groups.
 
     This algorithm is built off of the Molecule object, which has two important containers: atomData and bondData. These two
-    dictionaries possess the data of how the molecule atoms are connected. In a way, bondData specifies the possible paths that an 
-    atoms can take from within the smiles code. The same is true of a smaller functional group. 
-    Therefore, if a functional group can model itself upon at least one of those paths in the smiles code, 
-    then that functional group must be present inside of the smiles code. 
+    dictionaries possess the data of how the molecule atoms are connected. bondData contains all the possible bond paths that stem from
+    every atom in the SMILES code. The same is true of decoded functional group templates from the Molecule class.
+    Therefore, if a functional group template can model itself upon at least one of those paths in the SMILES code, 
+    then that functional group must be present inside of the SMILES code. The concept of a valid path for a functional group
+    within the SMILES code string is the solution to this algorithm.
 
 Key Attributes:
 
-    Both functioanl group containers have keys for the counts of their that specific smiles code functioanl groups, 
+    The following two functional group containers have keys for the counts of their that specific SMILES code functional groups, 
     including extra classification like cyclic or aromatic. Also includes ring data and alcohol counts in both. They differ slightly:
 
 
-    allFgs (Dict) : The dictionary in which overlapping functioanl groups are allowed, such as a ketone inside of an ester. 
-    All, small and large, will be output.
+    allFgs (Dict) : The dictionary which counts all functional groups.
+    "All" is defined as allowing overlapping functional groups, such as a ketone inside of an ester. 
     
-    preciseFgs (Dict) : The dictionary in which overlapping functional groups are removed. This means ketones would not be seen inside esters, 
-    nor tertiary amines inside amides, and so on. Only the largest functional groups will appear
+    preciseFgs (Dict) : The dictionary which counts precise functional groups.
+    "Precise" is defined as allowing overlapping functional groups. This means ketones would not be seen inside esters, 
+    nor tertiary amines inside amides, and so on. Only the largest functional groups will appear within this dictionary
 """
 
 
 from Molecule import Molecule
-from helpers import createFgDataDict
 import re
 import os
 
 
 class ifg(Molecule):
-    """ The algorithm which identifies the functioanl group counts of a SMILES code. """
+    """ The class algorithm which identifies the functional group counts of a SMILES code. """
 
-    def __init__(self, smiles, REFCODE):
-        """ Initalizes SMILES code molecule representation, then processes the functional group algorithm on that molecule. """
+    def __init__(self, SMILES, REFCODE):
+        """ Initalizes SMILES code Molecule representation, then processes the functional group algorithm on that molecule. 
 
-        super().__init__(smiles, REFCODE)
-        self.allFgs = self.findFunctionalGroups()
-        self.preciseFgs = self.findPreciseGroups(
-            self.allFgs)
+            SMILES (string) : A valid simplified molecular input line entry system (SMILES) code
+            REFCODE (string) : The referenced code for this particular SMILES code
+        
+            Process of algorithm:
+            
+            1. Decode the input SMILES code into a digital Molecule
+            2. Determine the functional groups from the digital Molecule
+
+            Notes:
+                invoking "self." within this class after the super().__init__(SMILES, REFCODE) function call will allow 
+                access to all the molecular properties for the specific input SMILES codes.
+        """
+
+        super().__init__(SMILES, REFCODE)                               # Create Molecule object from input SMILES code
+        self.allFgs = self.findFunctionalGroups()                       # Entry point of full IFG algorithm
+        self.preciseFgs = self.findPreciseGroups(self.allFgs)           # Filter output to obtain precise group counts
 
     def findFunctionalGroups(self):
-        """ Return a list of Molecule objects, where the indices of the atoms in the Molecule reflect those inside of the smiles code. """
+        """ Return a list of Molecule objects which represent the functional groups of a particular SMILES code
+
+            Notes:
+                FGs as Molecules inside of the SMILES allows the atomic indicies to
+                reflect the positioning within the SMILES
+            """
 
         functionalGroups = []
 
-        for atom in self.atomData.values():
-            groups = self.whichGroup(atom)
+        for atom in self.atomData.values():                     # Loop over all atoms in the SMILES
+            groups = self.whichGroup(atom)                      # Determine the functional groups which stem from an atom
 
-            if atom.symbol == 'N':
-                # Pass in nitrogen index to see if nitrogen is a Primary Amine
+            if atom.symbol == 'N':                              # Special handling for nitrogens
                 primaryAmine = self.detetminePrimaryAmine(atom.index)
+
                 if primaryAmine:
                     functionalGroups.append(primaryAmine)
 
-            for group in groups:
-                functionalGroups.append(group)
+            for group in groups:                                # For each group (each are Molecule objects) found to stem from an atom
+                functionalGroups.append(group)                  # Add it to the full list of identified FG
 
-        # Scrubbing (or filtering) the output of the algorithm to make the data more accurate with these two functions
-        self.repetitionScrub(functionalGroups)
-        self.heirarchyScrub(functionalGroups)
+        self.repetitionFilter(functionalGroups)                 # Remove repeated groups
+        self.priorityFilter(functionalGroups)                   # Remove overlapped groups based on priority of R groups 
 
-        # From the fully filtered functional group data, determine which of those are true alcohols and which are part of rings
-        self.determineCyclicGroups(functionalGroups)
-        self.determineAlcoholGroups(functionalGroups)
+        self.determineCyclicGroups(functionalGroups)            # Identify the groups which are cyclic by index analysis
+        self.determineAlcoholGroups(functionalGroups)           # Create Molecule objects for identified alcohols
 
         return functionalGroups
 
     def whichGroup(self, atom):
-        """ Returns the list of functional groups as Molecule objects from which a specific atom are involved in.
+        """ Returns the list of functional groups as Molecule objects that stem from a given atom in the SMILES code
 
             atom (type Atom) : An atom object who is to be analyzed for being contained in a possible functional group
 
+            Process is as follows:
+                Filters functional groups which do not contain given atom symbol
+                Selects an expansion point from within a potential functional group to start expansion from 
+                    (i.e. Which C to choose in [R]C(=O)NC(=O)[R], 1st or 2nd)
+                Creates Molecule object of functional group
+                Calls expandgroup to complete path validation 
+            
             Notes:
                 Loops over every possible functional group in FGlist
                 Every atom has a possibility to be branched into a functional group. Therefore, every atom must be looked at individually.
-                whichGroup calls expandGroup to complete the path algorithm. 
-                whichGroup does the following:
-                    Filters functional groups (i.e. ones that are impossible to match) for that specific atom
-                    Selects the expansion point from within the functional group to start expansion from 
-                    -----> (i.e. Which C to choose in [R]C(=O)NC(=O)[R], 1st or 2nd)
-                    Sets up template for expansion group algorith
-
+                R group paths are elimated because they cannot be expanded from to validate the functional group. Only main group atoms can be expanded from
+                Function currently ONLY SUPPORTS SINGLE POINT ALCOHOL EXPANSION (i.e. only 1 alcohol is allowed in FG)
         """
 
         matches = []
-        for line in open(os.getcwd() + '/src/resources/FGlist.txt', 'r'):
+        for line in open(os.getcwd() + '/src/resources/FGlist.txt', 'r'):           # Loop over every functional group
             lineInfo = re.compile(r'\S+').findall(line)
             lineInfo[0] = lineInfo[0].replace('[R]', 'R')
-            template = Molecule(lineInfo[0], lineInfo[1])
+            FGtemplate = Molecule(lineInfo[0], lineInfo[1])                         # FG Molecule object
 
-            # Skip charged FG's unless the atom is charged
-            if len(self.CHARGE_REGEX.findall(atom.symbol)) == 0 and len(self.CHARGE_REGEX.findall(template.SMILES)) != 0:
-                continue
+            if(                                                                     # Non-charged SMILES cannot contain a charged FG
+                len(self.CHARGE_REGEX.findall(atom.symbol)) == 0                    # Charged FG's
+                and len(self.CHARGE_REGEX.findall(FGtemplate.SMILES)) != 0          # In a non-charged SMILES
+            ):
+                continue                                                            # Are skipped
 
-            # Skip alcohol-containing FG's unless the atom is an alcohol (remember the H is implicit)
-            if template.ALCOHOLICINDICES and atom.index not in self.ALCOHOLICINDICES:
-                continue
+            if(                                                                     # Alcoholic FG's can only stem from alcoholic oxygens
+                FGtemplate.ALCOHOLICINDICES                                         # Alcoholic FG
+                and atom.index not in self.ALCOHOLICINDICES                         # With a Non-alcoholic oxygen atom
+            ):
+                continue                                                            # Are skipped
 
-            # If the symbol is inside the FG template
-            if atom.symbol in template.SMILES:
-                expansionPoint = 0
 
-                # R groups from temple.bondData can be removed because their expansion leads back to a main group atom from which is was expnaded from
-                for tempAtom in template.atomData.values():
-                    if tempAtom.symbol == 'R':
-                        template.bondData[tempAtom.index].clear()
+            if atom.symbol in FGtemplate.SMILES:                                    # If the atom symbol argument is inside the FGtemplate
+                expansionPoint = 0                                                  # String position within FG where the atom is located
 
-                # Find expansion indicies or points inside template
-                for tempAtom in template.atomData.values():
+                for tempAtom in FGtemplate.atomData.values():                       # R group pathing is elimated in FGtemplate
+                    if tempAtom.symbol == 'R':                                      # Locate R groups in FGtemplate
+                        FGtemplate.bondData[tempAtom.index].clear()                 # Remove the bonding paths from the R groups
 
-                    if not template.ALCOHOLICINDICES:
-                        if atom.symbol == tempAtom.symbol:
-                            expansionPoint = tempAtom.index
+                for tempAtom in FGtemplate.atomData.values():                       # Find expansion indicies or points inside FGtemplate
+
+                    if not FGtemplate.ALCOHOLICINDICES:                             # Non-alcoholic FG's can expand from any main group atom
+                        if atom.symbol == tempAtom.symbol:                          # When the given atom is located within the FG
+                            expansionPoint = tempAtom.index                         # Set the string expansion point at that atom within the FG
                             break
-                    else:
-                        expansionPoint = template.ALCOHOLICINDICES[0]
+                    else:                                                           # Alcoholic FG's can only expand from its alcohol group
+                        expansionPoint = FGtemplate.ALCOHOLICINDICES[0]             # Only one alcohol is considered inside of the FG
                         break
 
-                # Set up for expansion call at expansionPoint
-                template.atomData[expansionPoint].index = atom.index
-                self.removeBond(expansionPoint, template)
+                                                                                    # Set FGtemplate for expandGroup
+                FGtemplate.atomData[expansionPoint].index = atom.index              # Match the FG atom index with its SMILES code index equivalent
+                self.removeBond(expansionPoint, FGtemplate)                         # Remove the starting atom from all bonding paths, as it will be stemmed from
 
-                expandGroup = self.expandGroup(
-                    atom, expansionPoint, template, None, atom.index)
-                if expandGroup:
-                    matches.append(template)
+                expandGroup = self.expandGroup( atom,                               # Attempt to expand the FGtemplate inside of the SMILES code
+                                                expansionPoint, 
+                                                FGtemplate, 
+                                                None, 
+                                                atom.index
+                )
+                if expandGroup:                                                     # If expansion was successful
+                    matches.append(FGtemplate)                                      # Add the Molecule group, now with corresponding indicies to the SMILES code, to the lits of matches
 
         return matches
 
@@ -287,20 +311,21 @@ class ifg(Molecule):
             for j, bond in enumerate(bonds):
                 if bond.index == index:
                     del(template.bondData[i][j])
-        return 0
+        return 
 
-    def repetitionScrub(self, functionalGroups):
-        """ Returns filtered list of functionalGroups for identical functional group matches 
+    def repetitionFilter(self, functionalGroups):
+        """ Returns a filtered list of functionalGroups for repeated groups
 
-            functionalGroups (list) : List of Molecule obejects that represent the functioanl groups in a smiles code
+            functionalGroups (list) : List of Molecule obejects that represent the functional groups in a smiles code
 
             Notes:
-                If every atom is identical in both functional groups and they are not on the same index, then they are repeated
+                An FG is identified as repeated if all the atoms within each one are identical
+                If every atom is identical in both functional groups and they are unique FGs identified individually, then they are repeated
         """
 
-        index = -1
+        index = -1                                      
 
-        while index != len(functionalGroups) - 1:
+        while index != len(functionalGroups) - 1:       
 
             index += 1
             group = functionalGroups[index]
@@ -310,17 +335,21 @@ class ifg(Molecule):
 
                 compareAtoms = compareGroup.atomData.values()
 
-                if all(i in compareAtoms for i in groupAtoms) and all(i in groupAtoms for i in compareAtoms) and compareIndex != index:
+                if(
+                    all(i in compareAtoms for i in groupAtoms) 
+                    and all(i in groupAtoms for i in compareAtoms) 
+                    and compareIndex != index
+                ):
                     del(functionalGroups[compareIndex])
                     index = - 1
                     break
 
-        return 0
+        return 
 
     def determineCyclicGroups(self, functionalGroups):
         """ Label functional groups with ring classification based on the ring structure of molecule (self) 
 
-            functionalGroups (list) : List of Molecule obejects that represent the functioanl groups in a smiles code
+            functionalGroups (list) : List of Molecule obejects that represent the functional groups in a smiles code
 
             Notes: 
                 Some rings are directly connected to their opposite type, i.e aromatic-nonAromatic
@@ -329,7 +358,6 @@ class ifg(Molecule):
 
         for group in functionalGroups:
             groupAtoms = group.atomData
-            # Only start from main group atoms for cyclic classification
             aromaticCount = cyclicCount = 0
             for templateIndex, smilesAtom in groupAtoms.items():
 
@@ -354,14 +382,15 @@ class ifg(Molecule):
                         group.NAME = 'Aromatic' + group.NAME
                     elif aromaticCount < cyclicCount:
                         group.NAME = 'Cyclic' + group.NAME
-        return 0
+        return 
 
     def determineAlcoholGroups(self, functionalGroups):
         """ Appends the functional groups created from alocholic oxygens, with ring classifications, to the functionalGroups list passed in.
 
-            functionalGroups (list) : List of Molecule obejects that represent the functioanl groups in a smiles code
+            functionalGroups (list) : List of Molecule obejects that represent the functional groups of a SMILES code
 
             Notes:
+                This function looks to see if the alcoholic oxygen is attached within an aromatic, non-aromatic ring strucutres, or no at all
                 Build upon alochol indices found in the molecule
         """
 
@@ -379,16 +408,22 @@ class ifg(Molecule):
 
             functionalGroups.append(alochol)
 
-        return 0
+        return 
 
-    def heirarchyScrub(self, functionalGroups):
-        """ Filters for R group containment. 
+    def priorityFilter(self, functionalGroups):
+        """ Filters functionalGroups list of all non-maximized R groups representations of functional group families
 
-            functionalGroups (list) : List of Molecule obejects that represent the functioanl groups in a smiles code
+            functionalGroups (list) : List of Molecule obejects that represent the functional groups in a smiles code
 
-            For exmaple, a secondary amine and a tertiary amine. The tertiary amine is the more complete strucuture
-            Heirarchy scrub will remove these types of relations, but keep ones such as ketone and ester.
+            For exmaple, a secondary amine and a tertiary amine. The tertiary amine is the more complete strucuture.
+            
+            RN(R)R vs RNR
 
+            Heirarchy scrub will remove the lower of the two from these relations, but keep non-R group contained ones such as ketone and ester.
+
+            RC(=O) vs RC(=O)O
+
+            Because the number of R groups is the same, this group will not be filtered, and instead by considered as its own individual group
         """
 
         index = -1
@@ -406,7 +441,11 @@ class ifg(Molecule):
                 mainCompareAtoms = self.filterRgroup(compareAtoms)
                 numCompareRAtoms = len(self.getRgroups(compareAtoms))
 
-                if all(i in mainCompareAtoms for i in mainGroupAtoms) and all(i in mainGroupAtoms for i in mainCompareAtoms) and compareIndex != index:
+                if(
+                    all(i in mainCompareAtoms for i in mainGroupAtoms) 
+                    and all(i in mainGroupAtoms for i in mainCompareAtoms) 
+                    and compareIndex != index
+                ):
                     if numMainRAtoms > numCompareRAtoms:
                         del(functionalGroups[compareIndex])
                         index = -1
@@ -415,12 +454,12 @@ class ifg(Molecule):
                         del(functionalGroups[index])
                         index = -1
                         break
-        return 0
+        return 
 
     def findPreciseGroups(self, functionalGroups):
         """ Filters functional groups for their precise groups.
 
-            functionalGroups (list) : List of Molecule obejects that represent the functioanl groups in a smiles cod.
+            functionalGroups (list) : List of Molecule obejects that represent the functional groups in a smiles cod.
 
             Relations such as ketone in ester, amine in amide, ether in ester are elimated. 
         """
