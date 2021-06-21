@@ -70,11 +70,7 @@ class Molecule():
             After the decoding process has ran, the Molecule object digitally represents the moleucle
         """
 
-        # Input data
-        self.SMILES = self.formatSmiles(smiles)
-        self.NAME = name
-
-        # Symbol matching lists and regex's
+        # Symbol matching lists and regex's for decoding process
         self.ATOM_REGEX = re.compile(r'[a-zA-Z]')
         self.CHARGE_REGEX = re.compile(r'\+|\-')
         self.BOND_REGEX = re.compile(r'\=|\#')
@@ -92,6 +88,10 @@ class Molecule():
         self.CHARGES = ['+', '-']
         self.NUMBERS = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
         self.LINEARSYMBOLS = self.ATOMS + self.BONDS + self.BRACKETS + self.CHARGES
+
+        # Input data
+        self.SMILES = self.formatSmiles(smiles)
+        self.NAME = name
 
         # Ring Containers
         self.RING_OPEN_POSITIONS = []
@@ -111,7 +111,7 @@ class Molecule():
         self.nonAromaticCount = 0
         self._RING_COUNTS()         # Compute Ring counts
 
-        # Dictionary mapping counts to keys
+        # Dictionary mapping count by name to amount
         self.ringData = {
             "aromaticRingCount": self.aromaticCount,
             "nonAromaticRingCount": self.nonAromaticCount,
@@ -140,7 +140,7 @@ class Molecule():
         return self.NAME + " : " + self.SMILES
 
     def getSymbolDict(self):
-        """ Create a dictionary of index to atom symbol of the molecule's atoms based on its current state
+        """ Create a dictionary of atom index to atom symbol of the molecule's atoms based on its current state
         """
 
         symbolDict = {
@@ -219,14 +219,14 @@ class Molecule():
                             RNIndex=atomIndex
                     )
 
-                if leftBond:
+                if leftBond:                            # Left bond is always one bond if it exists
                     bonds.append(leftBond)
 
-                if rightBonds:
+                if rightBonds:                          # Right bonds can be more than 1 (parenthesis and number cases)
                     for rightBond in rightBonds:
                         bonds.append(rightBond)
 
-                bondData[atomIndex] = bonds
+                bondData[atomIndex] = bonds             # Assign the atom index to its bonded neighbors with the bondData dictionary
                 del(bonds)
 
         return bondData
@@ -434,7 +434,8 @@ class Molecule():
         return self.RING_COMPLEMENTS[pos]
 
     def determineAlcoholGroup(self, pos, atomIndex):
-        """ Updates the ALCOHOLICINDICES list with the index of the oxygen involved in a valid alcohol 
+        """ Validates if an given string position and atom index in a Molecule correspond to an alochol group
+            Valid alcoholic oxygen indicies will be added to the ALOCHOLICINDICIES list 
 
             pos (int) : position of the oxygen to be checked for alocholic properties
             atomIndex (int) : index position of the oxygen
@@ -442,23 +443,31 @@ class Molecule():
             Notes:
                 Only four cases where an alcohol is determined. 
                 Currently alochol cases are hard coded here for CHON set of data.
+                The index of the oxygen is recorded as being alocholic using the ALOCHOLICINDICES list
         """
 
-        # Final atom alcohol group
-        if pos == len(self.SMILES) - 1:
-            if self.SMILES[pos-1].upper() == 'C' or self.SMILES[pos-1] in self.NUMBERS or self.SMILES[pos-1] == ')':
-                self.ALCOHOLICINDICES.append(atomIndex)
+        if pos == len(self.SMILES) - 1:                         # Final atom alcohol group case
+            if(
+                self.SMILES[pos-1].upper() == 'C'               # Can be connected to an linear carbon
+                or self.SMILES[pos-1] in self.NUMBERS           # Or connected at a ring junction
+                or self.SMILES[pos-1] == ')'                    # Or connected at a normal junction
+            ):
+                self.ALCOHOLICINDICES.append(atomIndex)         
 
-        # First atom alcohol group
-        elif atomIndex == 0 and self.SMILES[pos+1].upper() == 'C':
+        elif(                                                   # First atom alcohol group case
+            atomIndex == 0                                      # At index 0
+            and self.SMILES[pos+1].upper() == 'C'               # Can only be connected to a linear carbon
+        ):
+            self.ALCOHOLICINDICES.append(atomIndex)            
+
+        elif self.SMILES[pos-1:pos+2] == '(O)':                 # Lone alcohol group case
             self.ALCOHOLICINDICES.append(atomIndex)
 
-        # Lone alcohol group
-        elif self.SMILES[pos-1:pos+2] == '(O)':
-            self.ALCOHOLICINDICES.append(atomIndex)
-
-        # Ending parenthesis alcohol group
-        elif self.SMILES[pos+1] == ')' and self.SMILES[pos-1] not in self.BONDS and self.SMILES[pos-1] not in self.BRACKETS:
+        elif(                                                   # Ending parenthesis alcohol group
+            self.SMILES[pos+1] == ')'                           # Must be directly next to closing parenthesis
+            and self.SMILES[pos-1] not in self.BONDS            # Not connected to a double/triple bond
+            and self.SMILES[pos-1] not in self.BRACKETS         # And not connected to a charge group
+        ):
             self.ALCOHOLICINDICES.append(atomIndex)
 
         return 
@@ -472,52 +481,53 @@ class Molecule():
                 Some extra neighbor checking is required to confirm aromatic/non aromatic presence fully
         """
 
-        # Simplification of aromatic/nonaromatic count
-        allAtoms = ''.join(self.ATOM_REGEX.findall(self.SMILES))
+        allAtoms = ''.join(self.ATOM_REGEX.findall(self.SMILES))    # Simplification of aromatic/nonaromatic count
 
-        if allAtoms.islower():
+        if allAtoms.islower():                                      # All lower case atoms means all counted rings are aromatic
             self.aromaticCount = self.ringCount
             return 
 
-        elif allAtoms.isupper():
+        elif allAtoms.isupper():                                    # All upper case atoms means all counted rings are non-aromatic
             self.nonAromaticCount = self.ringCount
             return 
 
-        # Upper is nonaromatic, lower is aromatic
-        for pos in self.RING_OPEN_POSITIONS:
-            ringOpen = self.RING_SELF[pos]
-            ringClose = self.RING_COMPLEMENTS[pos]
+        for pos in self.RING_OPEN_POSITIONS:                        # Loop over the opening ring junction string positions in a Molecule
+            ringOpen = self.RING_SELF[pos]                          # Get the opening atom data
+            ringClose = self.RING_COMPLEMENTS[pos]                  # Get the closing atom data
 
-            # Both atomic junctions are aromatic case
-            if ringOpen.symbol.islower() and ringClose.symbol.islower():
+            if(                                                     # Both atomic junctions are aromatic case
+                ringOpen.symbol.islower() 
+                and ringClose.symbol.islower()
+            ):
 
-                if self.SMILES[pos+1] in self.ATOMS:
+                if self.SMILES[pos+1] in self.ATOMS:                # Check if first symbol deeper in ring is an atom
 
-                    if self.SMILES[pos+1].islower():       
+                    if self.SMILES[pos+1].islower():                # Another lower atom in ring confirms aromatic ring
                         self.aromaticCount += 1
 
-                    elif self.SMILES[pos+1].isupper():
+                    elif self.SMILES[pos+1].isupper():              # Non-aromatic atom in ring means polycyclic non-aromatic and aromatic ring interaction
                         self.nonAromaticCount += 1
 
-                else:
-                    self.aromaticCount += 1
+                else:                                               # If next symbol is not an atom, then the ring is aromatic
+                    self.aromaticCount += 1                         
 
-            # Both atomic junctions are non aromatic case
-            elif ringOpen.symbol.isupper() and ringClose.symbol.isupper():
+            elif(                                                   # Both atomic junctions are non aromatic case
+                ringOpen.symbol.isupper() 
+                and ringClose.symbol.isupper()
+            ):
 
-                if self.SMILES[pos+1] in self.ATOMS:
+                if self.SMILES[pos+1] in self.ATOMS:                # Check if first symbol deeper in ring is an atom
 
-                    if self.SMILES[pos+1].islower():        
+                    if self.SMILES[pos+1].islower():                # Another lower atom in ring confirms aromaic ring
                         self.aromaticCount += 1
 
-                    elif self.SMILES[pos+1].isupper():
+                    elif self.SMILES[pos+1].isupper():              # Otherwise another upper atom confirms non-aromatic ring
                         self.nonAromaticCount += 1
 
-                else:
-                    self.nonAromaticCount += 1
+                else:                                               # Ring is non-aromatic otherwise
+                    self.nonAromaticCount += 1                      
 
-            # They are differnt, must be nonaromatic
-            else:
+            else:                                                   # Different ring junction atom types means take non-aromatic priority
                 self.nonAromaticCount += 1
 
     def _INCIDES(self):
@@ -600,7 +610,7 @@ class Molecule():
                                 self.CYCLICINDICES.append(index)
 
     def formatSmiles(self, smiles):
-        """ Remove [H+] symbols entirley from a smiles code and return a DLA-SAR converted smiles code 
+        """ Remove [H+] symbols entirley from a smiles code and returns a DLA-SAR converted smiles code 
         """
 
         reFormatted = ""
