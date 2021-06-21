@@ -36,7 +36,7 @@ class ifg(Molecule):
             SMILES (string) : A valid simplified molecular input line entry system (SMILES) code
             REFCODE (string) : The referenced code for this particular SMILES code
         
-            Process of algorithm:
+            Process of __init__:
             
             1. Decode the input SMILES code into a digital Molecule
             2. Determine the functional groups from the digital Molecule
@@ -85,7 +85,7 @@ class ifg(Molecule):
 
             atom (type Atom) : An atom object who is to be analyzed for being contained in a possible functional group
 
-            Process is as follows:
+            Process of whichGroup:
                 Filters functional groups which do not contain given atom symbol
                 Selects an expansion point from within a potential functional group to start expansion from 
                     (i.e. Which C to choose in [R]C(=O)NC(=O)[R], 1st or 2nd)
@@ -101,8 +101,8 @@ class ifg(Molecule):
 
         matches = []
         for line in open(os.getcwd() + '/src/resources/FGlist.txt', 'r'):           # Loop over every functional group
-            lineInfo = re.compile(r'\S+').findall(line)
-            lineInfo[0] = lineInfo[0].replace('[R]', 'R')
+            lineInfo = re.compile(r'\S+').findall(line)                             # Get the (FGTemplate, FGName) pair
+            lineInfo[0] = lineInfo[0].replace('[R]', 'R')                           # Remove [R] from brackets
             FGtemplate = Molecule(lineInfo[0], lineInfo[1])                         # FG Molecule object
 
             if(                                                                     # Non-charged SMILES cannot contain a charged FG
@@ -150,134 +150,149 @@ class ifg(Molecule):
 
         return matches
 
-    def expandGroup(self, atom, expansionPoint, template, skipIndex=None, smilesIndexInit=None):
-        """ Return true or false for if a specifed atom can be expanded into the passed in template.
+    def expandGroup(self, atom, expansionPoint, template, skipIndex=None, validSmilesIndex=None):
+        """ Return true if an atom can be expanded into the given template
 
             atom (type Atom) : the SMILES code atom which is to be analyzed for having a valid bond with respect to the template
-            expansionPoint (int) : The position inside of the template for which atom is to be decoyed as, or tested aginst for bonds matching inside of the template. 
+            expansionPoint (int) : The position inside of the template for which atom tested as having the matching bond paths inside of the template with respect to the SMILES code bonding paths
             template (type Molecule) : The functional group for which the given atom will be checked against.
             skipIndex (int, default=None) : A template bond for which to skip over
-            smilesIndexInit (int, default=None) : The indices confirmed in the SMILES code to be apart of a functional group, with designated positions
+            validSmilesIndex (int, default=None) : The indices confirmed in the SMILES code to be apart of a functional group, with designated positions
 
             Notes:
                 This is a recusrive algorithm. It takes two atoms, which have identical symbol, and determines if a bonded path is equivalent in both. 
-                This algorithm answers the question: Is this atom, in the smiles code, bonded in the same that another atom, in the temaplte, is bonded?
-                If an atom in the smiles code can trace its own bonds to mirror those inside of a functional group, then that functional must exist within the smiles code
+                This algorithm answers the question: Is this atom, in the SMILES code, bonded in the same way that another atom, in the temaplte, is bonded?
+                If an atom in the SMILES code can trace its own bonds to mirror those inside of a functional group, then that functional group must exist within the SMILES code
 
                 The recursion comes from multiple atoms needed to be called upon. Example of how the algorithm will work
 
                     Assume a nitrogen has been found, and we would like to validate if that nitrogen is part of an amide structure
-                    template: [R]C(=O)N([R])[R]
+                    template: Molecule(SMILES=[R]C(=O)N([R])[R], indicies=[0,1,2,3,4,5],...atomData,...bondData)
                     atom: Atom(symbol=N, index=5)
 
-                    In whichGroup, this N is prepared to "fit" the template. expandGroup will retrieve an nitrogen atom object. The atom index, 5 in this case,
-                    will be used to retrieve its bonded content from the its smiles molecule, which in this case is accessed by self (remember super call in __init__ method)
+                    In whichGroup, this N is prepared to "fit" the template. expandGroup will recieve this nitrogen atom object. The atom index, 5 in this case,
+                    will be used to retrieve its bonded content from the its SMILES molecule, which in this case is accessed by self (remember super call in __init__ method)
 
-                    The template has its own bond schema as well. Given an expansion point, i.e. where the atom of interest in the TEMPLATE is located, 
+                    The template has its own bond schema as well. Given an expansion point, i.e. where the atom of interest in the template is located, 
                     the necessary bonds to complete a functional group can be retirved with the temaplte.bondData attribute. 
 
-                    With both pieces of bondData from each atom, it is now possible to check if valid bonding is present inside of the smiles code 
+                    With both pieces of bondData for each atom, it is now possible to check if valid a bonding path is present inside of the SMILES code 
                     for a given functional group, represented in template
 
                     All template bonds are looped over. The skipIndex inside of template is skipped.
                     This is implemented to prevent a template bond from being validated by the bond it was just stemmed from during a recursive call
 
-                    The specific bond in the template is now checked against the available smiles bonds. If a unique and unsused smiles bond (i.e smiles atom)
+                    The specific bond in the template is now checked against the available SMILES bonds. If a unique and unsused SMILES bond (i.e SMILES atom)
                     is available for usage by the template (i.e. An availble carbon was just found for the nitrogen). 
                     Then the bond path stemming from that atom must also be validated
 
-                    Continually, this algorithm first validates all of the main group atoms which are necessary for a functional group are indeed paired
-                    inside of the smiles code. Only after are the RGroups validated. In this way, both types of atoms are seperated, and main/Rgroup atoms get
-                    distinct delegation. There is no extra embedded crossover, they are handled independently for each atom in the template, with respect to the SMILES
+                    Continually, this algorithm first validates if all of the main group atoms which are necessary for a functional group are indeed paired
+                    inside of the SMILES code. Only after are the RGroups validated. In this way, both types of atoms are seperated, and main/Rgroup atoms get
+                    distinct analysis. There is no extra embedded crossover, they are handled independently for each atom in the template, with respect to the SMILES
 
                     Remember, if a path is validated and a new path has begun, the bond representing the atom from which we just came from should not be used
-                    It already has a place in the template, and is being represented in the smiles code. Therefore, one path is validted by virtue of being called upon
+                    It already has a place in the template, and is being represented in the SMILES code. Therefore, a path is validted by virtue of being called upon with expandGroup
 
-                    If all R groups and previous paths are valid, then expand true finally returns true: This means that the entire bond path from a specific atom in a tempalte
-                    can be mirrored into the smiles code
+                    If all R groups and previous paths are valid, then expandGroup finally returns true: This means that the entire bond path from a specific atom in a tempalte
+                    can be mirrored into the SMILES code and the stack of recursive calls is backtracked. Python allows the direct manipulation of the template indicies, so therefore
+                    Once expandGroup has fully finished its stack, the resultant FG with proper SMILES indicies is held within the expanded group
 
-                    If at any point expand group fails and returns false, it means that a specifc atom could not be branched into the functional group via its smiles bonding schema.
+                    If at any point expand group fails and returns false, it means that a specifc atom could not be branched into the functional group via its SMILES bonding schema.
+                    The stack calls finish and no FG is added to the list of matches
 
                     For all valid atoms found, the template atomData is overwritten with proper SMILES index representations. Therefore, by appending template in whichGroup, 
                     a functional group with indices pointing to the atoms within its SMILES code is saved and collected. 
         """
 
-        smilesIndices = []  # Smiles indicies which have already been used in template
-        smilesIndices.append(smilesIndexInit)
-        templateBonds = template.bondData[expansionPoint]
-        mainTemplateBonds = self.filterRgroup(templateBonds)
-        smilesBonds = self.bondData[atom.index]
-        templateAtoms = template.atomData
+        smilesIndices = []                                      # Smiles indicies which have already been mapped into the template 
+        smilesIndices.append(validSmilesIndex)                  # Add the validated SMILES atom index to the list of mapped SMILES to FG indicies
+        templateBonds = template.bondData[expansionPoint]       # Atoms which stem from the atom of interest within FGtemplate
+        mainTemplateBonds = self.filterRgroup(templateBonds)    # Main group atoms which stem from atom of interest within FGtemplate
+        smilesBonds = self.bondData[atom.index]                 # Atoms which stem from the atom of interst within the SMILES 
+        templateAtoms = template.atomData                       # All atoms inside of the FGtemplate
 
-        # Not enough bonds at desposal of smiles code to satisfy template means False match
-        if len(templateBonds) > len(smilesBonds):
+        if len(templateBonds) > len(smilesBonds):               # Not enough bonds from SMILES atom to satisfy FGtemplate atom means False match
             return False
 
-        # Main group Template Analysis
-        for tempBond in mainTemplateBonds:
-            tempIndex = tempBond.index
-            if tempIndex == skipIndex:
+        for tempBond in mainTemplateBonds:                      # Main group atom analysis of FGtemplate Analysis
+            tempIndex = tempBond.index                          
+            if tempIndex == skipIndex:                          # Skip the index which was just stemmed from
                 continue
-            tempSymbol = tempBond.symbol
-            for smilesBond in smilesBonds:
+            tempSymbol = tempBond.symbol               
 
-                smilesIndex = smilesBond.index
+            for smilesBond in smilesBonds:                      # For all bonding paths in the SMILES
+
+                smilesIndex = smilesBond.index                 
                 smilesSymbol = smilesBond.symbol
 
-                if tempSymbol == smilesSymbol and smilesIndex not in smilesIndices:
+                if(
+                    tempSymbol == smilesSymbol                  # Same bonding symbol in SMILES and FGTemplate is found
+                    and smilesIndex not in smilesIndices        # And the SMILES atom bond is unsed in FG bonding path
+                ):                                              # Means a valid bonding path has been located in the SMILES with respect to the FGtemplate
 
-                    path = self.expandGroup(
-                        smilesBond, tempIndex, template, expansionPoint, atom.index)
+                    path = self.expandGroup(smilesBond,         # Use SMILES bonded atom as new point to expand from
+                                            tempIndex,          # Point of expansion in template is the atom index in template which matched
+                                            template,           # Use same template object for all recurisve calls
+                                            expansionPoint,     # Expansion point of previous path is now skipped since it was an atom that was just validated on this function call
+                                            atom.index          # SMILES atom index is added to list of validated atoms
+                    )                                           # New expansion path is now set with these arguments
 
-                    if path:
-                        smilesIndices.append(smilesIndex)
-                        templateAtoms[tempIndex].index = smilesIndex
+                    if path:                                    # If a bonding path is valid
+                        smilesIndices.append(smilesIndex)       # Add the current SMILES index to list of valid atoms
+                        templateAtoms[tempIndex].index = smilesIndex    # Set the index of the FGtemplate to reflect its mapped SMILES index
                         break
-                    else:
-                        continue
-            else:
-                return False
+                    else:                                       # No path in most recent direction means try another path
+                        continue                                
+            else:                                               # No SMILES bonds to fulfill path means invalid FG in SMILES
+                return False    
 
-        # Rgroup Template Analysis
-        else:
+        else:                                                   # Rgroup FGtemplate Analysis
 
-            RgroupCounter = -1
-            Rgroups = self.getRgroups(templateBonds)
+            RgroupCounter = -1                                  # Loop counter for Rgroups
+            Rgroups = self.getRgroups(templateBonds)            # Filter template bonds for their Rgropus
 
-            if not Rgroups:
+            if not Rgroups:                                     # No Rgroups after main group analysis is a valid FG
                 return True
 
-            if len(smilesBonds) > len(mainTemplateBonds):
+            if len(smilesBonds) > len(mainTemplateBonds):       # SMILES bonds must have at least 1 more bond than the main group atom to fulfill Rgroup requirement
 
-                for smilesBond in smilesBonds:
+                for smilesBond in smilesBonds:                  # Loop over all SMILES bonds which stem from atom
 
                     smilesIndex = smilesBond.index
                     smilesSymbol = smilesBond.symbol
 
-                    if smilesIndex in smilesIndices or smilesSymbol[0] in self.BONDS:
+                    if(
+                        smilesIndex in smilesIndices            # A used SMILES atom index
+                        or smilesSymbol[0] in self.BONDS        # Or a non single-bonded atom
+                    ):                                          # Are invalid for R group requirements, skip to next bonds
                         continue
-                    RgroupCounter += 1
-                    if RgroupCounter < len(Rgroups) - 1:
-                        templateAtoms[
-                            Rgroups[RgroupCounter].index
-                        ].index = smilesIndex
-                    else:
+
+
+                    RgroupCounter += 1                          # Go to next Rgroup
+                    if RgroupCounter < len(Rgroups) - 1:        # If there are Rgroups to process
+                        templateAtoms[                          # Set index of Rgroup atom in template
+                            Rgroups[RgroupCounter].index        # Identified by the Rgroup list
+                        ].index = smilesIndex                   # As the SMILES code atom singly bonded to the atom of interest
+                    else:                                       # Process final R groups and break after setting index
                         templateAtoms[
                             Rgroups[RgroupCounter].index
                         ].index = smilesIndex
                         break
-                else:
+                else:                                           # No SMILES bonds available means invalid FG
                     return False
 
-                return True
+                return True                                     # If all main group atoms and Rgroup atom requirements are met, then a valid FG has been located
 
-            else:
+            else:                                               # Not enough atoms in SMILES to fulfill R group requirements
                 return False
 
     def getRgroups(self, atomSet):
         """ Returns a dictionary or list of all R group atoms in a given atomSet.
 
             atomSet (list || dict) : Data container which has Atom objects, either as values or in a list
+
+            Notes:
+                A dictionary is keyed by index and valued by its atom symbol
         """
 
         if isinstance(atomSet, list):
@@ -289,6 +304,9 @@ class ifg(Molecule):
         """ Returns a dictionary or list of all non R group atoms in a given atomSet.
 
             atomSet (list || dict) : Data container which has Atom objects, either as values or in a list
+
+            Notes:
+                A dictionary is keyed by index and valued by its atom symbol
         """
 
         if isinstance(atomSet, list):
@@ -297,7 +315,7 @@ class ifg(Molecule):
             return {atom.index: atom for atom in atomSet.values() if atom.symbol != 'R'}
 
     def removeBond(self, index, template):
-        """ Removes a bond path from a template.
+        """ Removes a bond path from template bondData
 
             index (int): index of atom in template whose bonds are to be removed
             template (type Molecule) : The functional group template who contains the bond to be removed
@@ -347,40 +365,42 @@ class ifg(Molecule):
         return 
 
     def determineCyclicGroups(self, functionalGroups):
-        """ Label functional groups with ring classification based on the ring structure of molecule (self) 
+        """ Label functional groups with ring classification based on the ring structure of Molecule (self) 
 
             functionalGroups (list) : List of Molecule obejects that represent the functional groups in a smiles code
 
             Notes: 
                 Some rings are directly connected to their opposite type, i.e aromatic-nonAromatic
                 To be the most accurate, a tally system was created to tally how many valid bonds fall under a certain classification.
+                Whichever ring type has more tallies, that one is taken as the correct classification
         """
 
-        for group in functionalGroups:
-            groupAtoms = group.atomData
-            aromaticCount = cyclicCount = 0
-            for templateIndex, smilesAtom in groupAtoms.items():
+        for group in functionalGroups:                              # Loop over all FG's, group is a Molecule object
+            groupAtoms = group.atomData                             # Atoms part of the FG with SMILES validated indicies
+            aromaticCount = cyclicCount = 0                         # Tallies for atoms part of a specific ring
+            for templateIndex, smilesAtom in groupAtoms.items():    # Loop over all atoms, with their indicies, in the FG
 
-                if smilesAtom.symbol not in self.LINEARSYMBOLS:
+                if smilesAtom.symbol not in self.LINEARSYMBOLS:     # Non-linear symbols are never cyclic
                     continue
 
-                # If maingroup atom does not have any cyclic property, then skip it
-                if smilesAtom.index not in self.AROMATICINDICES and smilesAtom.index not in self.CYCLICINDICES:
-                    continue
+                if(                                                 
+                    smilesAtom.index not in self.AROMATICINDICES    # Non-aromatic
+                    and smilesAtom.index not in self.CYCLICINDICES  # And non-cyclic atoms
+                ):
+                    continue                                        # Cannot be part of any rings, so skip these atoms
 
-                # If two consecutive atoms, bonded together, are part of a ring, add it to the "count"
-                for templateBond in group.bondData[templateIndex]:
-                    smilesBond = groupAtoms[templateBond.index]
-                    indicies = [smilesAtom.index, smilesBond.index]
-                    if all(i in self.AROMATICINDICES for i in indicies):
-                        aromaticCount += 1
-                    elif all(i in self.CYCLICINDICES for i in indicies):
-                        cyclicCount += 1
-            else:
-                if aromaticCount or cyclicCount:
-                    if aromaticCount >= cyclicCount:
+                for templateBond in group.bondData[templateIndex]:          # Loop over all bonds which stem from a given FG atom
+                    smilesBond = groupAtoms[templateBond.index]             # Find the SMILES bond equivalent of the FG bond
+                    indicies = [smilesAtom.index, smilesBond.index]         # Concatinate the atom and bonded atom indicies together
+                    if all(i in self.AROMATICINDICES for i in indicies):    # If both atoms are part of an aromatic ring
+                        aromaticCount += 1                                  # Add to aromatic tally
+                    elif all(i in self.CYCLICINDICES for i in indicies):    # If both atoms are part of a cyclic ring
+                        cyclicCount += 1                                    # Add to cyclic tally
+            else:                                                   # Once the FG has been evaluated for aromatic/cyclic tallies
+                if aromaticCount or cyclicCount:                    # Validate that there were aromatic/cyclic tallies
+                    if aromaticCount >= cyclicCount:                # Take aromatic nomenclature if more tallies for aromatic. Equality is deffered to aromatic
                         group.NAME = 'Aromatic' + group.NAME
-                    elif aromaticCount < cyclicCount:
+                    elif aromaticCount < cyclicCount:               # Otherwise use cyclic nomenclature if more tallies for cyclic
                         group.NAME = 'Cyclic' + group.NAME
         return 
 
@@ -415,15 +435,12 @@ class ifg(Molecule):
 
             functionalGroups (list) : List of Molecule obejects that represent the functional groups in a smiles code
 
-            For exmaple, a secondary amine and a tertiary amine. The tertiary amine is the more complete strucuture.
-            
-            RN(R)R vs RNR
-
-            Heirarchy scrub will remove the lower of the two from these relations, but keep non-R group contained ones such as ketone and ester.
-
-            RC(=O) vs RC(=O)O
-
-            Because the number of R groups is the same, this group will not be filtered, and instead by considered as its own individual group
+            Notes:
+                For exmaple, a secondary amine and a tertiary amine. The tertiary amine is the more complete strucuture.
+                RN(R)R vs RNR
+                Heirarchy filter will remove the lower of the two from these relations, but keep non-R group contained ones such as ketone and ester.
+                RC(=O) vs RC(=O)O
+                Because the number of R groups is the same, this group will not be filtered, and instead by considered as two individual groups
         """
 
         index = -1
@@ -459,9 +476,10 @@ class ifg(Molecule):
     def findPreciseGroups(self, functionalGroups):
         """ Filters functional groups for their precise groups.
 
-            functionalGroups (list) : List of Molecule obejects that represent the functional groups in a smiles cod.
+            functionalGroups (list) : List of Molecule obejects that represent the functional groups in a SMILES
 
-            Relations such as ketone in ester, amine in amide, ether in ester are elimated. 
+            Notes:
+                Relations such as ketone in ester, amine in amide, ether in ester are elimated. 
         """
         preciseFgs = functionalGroups[:]
         index = -1
@@ -499,7 +517,10 @@ class ifg(Molecule):
                         index = -1
                         break
 
-                elif all(i in groupIndices for i in compareIndices) and all(i in compareIndices for i in groupIndices):
+                elif(
+                    all(i in groupIndices for i in compareIndices) 
+                    and all(i in compareIndices for i in groupIndices)
+                ):
 
                     numMainRAtoms = len(self.getRgroups(groupAtoms))
                     numCompareRAtoms = len(self.getRgroups(compareAtoms))
@@ -530,20 +551,19 @@ class ifg(Molecule):
 
         """
 
-        # Check bonds on nitrogen to see if it is a Primary Amine
-        smilesBonds = self.bondData[nitrogenIndex]
+        smilesBonds = self.bondData[nitrogenIndex]              # Check bonds on nitrogen to see if it is a Primary Amine
 
-        # Primary amines have one, single bonded partner (i.e. no explicit bonds =/#), which may be in a ring
-        if len(smilesBonds) == 1 and not self.BOND_REGEX.findall(smilesBonds[0].symbol):
+        if(
+            len(smilesBonds) == 1                               # Primary amines have one, single bonded partner (i.e. no explicit bonds =/#), which may be in a ring
+            and not self.BOND_REGEX.findall(smilesBonds[0].symbol)
+        ):
 
             bondedIndex = smilesBonds[0].index
 
             primaryAmine = Molecule("RN", "PrimaryAmine")
 
-            # Set the R group index to that of the smiles bonded nitrogen index
-            primaryAmine.atomData[0].index = bondedIndex
-            # Set the nitrogen index to that of the smiles code nitrogen index
-            primaryAmine.atomData[1].index = nitrogenIndex
+            primaryAmine.atomData[0].index = bondedIndex        # Set the R group index to that of the smiles bonded nitrogen index
+            primaryAmine.atomData[1].index = nitrogenIndex      # Set the nitrogen index to that of the smiles code nitrogen index
 
             if bondedIndex in self.AROMATICINDICES:
                 primaryAmine.NAME = "AromaticPrimaryAmine"
