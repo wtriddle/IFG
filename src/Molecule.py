@@ -4,8 +4,6 @@ A molecule class contains various containers, holding numerical data, string dat
 It derives the bonding schema and cyclic connectivity of the moleucle in space using the SMILES
 The class is built on a string decoding algorithm 
 
-This molecule class only supports CHON sets.
-
 Basic usage:
 
     // For a smiles code
@@ -454,7 +452,7 @@ class Molecule():
 
             Notes:
                 Only four cases where an alcohol is determined. 
-                Currently alochol cases are hard coded here for CHON set of data.
+                Currently alochol cases are hard coded here
                 The index of the oxygen is recorded as being alocholic using the ALOCHOLICINDICES list
         """
 
@@ -648,9 +646,6 @@ class Molecule():
     def DLAtoSARconversion(self, smiles):
         """ Return a double letterd atom (DLA) tranformed SMILES code using single atom representations (SAR)
             Required to perform sybmol by symbol analysis on the SMILES
-
-            Notes:
-                Placeholder for futher analysis upon non CHON atom. This is untested at large, program can only handle CHONS at the moment
         """
 
         pos = -1                    # 0 based indexing

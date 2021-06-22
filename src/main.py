@@ -1,9 +1,4 @@
-""" Module containing the functional script that loops over a CHON set of smiles codes and determines thier functional groups 
-
-    To Do's:
-
-        4. Update README with a visual of the algorithm and more description, credits, etc. 
-
+""" Module containing the functional script that loops over a set of smiles codes and determines thier functional groups 
 """
 
 from ifg import ifg
