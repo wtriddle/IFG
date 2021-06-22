@@ -4,9 +4,23 @@
     python3 index.py
 
     Notes:
-        To run this script, the PYTHONPATH variable must be set
+        To run this script, the PYTHONPATH variable must be set to include the /src file as a target:
 
-        put how to set that here
+        On Linux:
+        1. Go to ~/.bashrc
+        2. add the following line:
+        export PYTHONPATH="(/PATH/TO/IFG/GOES/HERE)$PATH"
+        example:
+        export PYTHONPATH="/media/wtrid/Wills_2nd_drive/Theses/CHMSeniorThesis/Resources/Code/IFG:$PATH"
+
+        On Windows:
+        1. Go to environment variables
+        2. Click on add new environment variables
+        3. Create a new environemnt variable called PYTHONPATH
+        4. Add its value as the path to the top level IFG folder
+        example:
+        C:/Users/wtriddle/OneDrive/Desktop/IFG
+
 """
 
 from main import main 
