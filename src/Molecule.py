@@ -121,9 +121,9 @@ class Molecule():
         # Atom and Bonding data
         self.ALCOHOLICINDICES = []                  # Holds indices of oxygens with alcoholic properties
         self.SMILES = self.SMILES.upper()           # After aromaticity analysis, convert SMILES to full uppercase for simplicity
-        self.atomData = self.initializeAtomData()
+        self.atomData = self.initializeAtomData()   # Atom index to symbol pairing dictionary
         self.atomCount = len(self.atomData)         
-        self.bondData = self.initializeBondData()
+        self.bondData = self.initializeBondData()   # Atom index to bonded atoms pairing dictionary
         self.chargedMol = (
                 True if len(self.CHARGE_REGEX.findall(smiles)) != 0 
                 else False
@@ -132,6 +132,18 @@ class Molecule():
                 True if len(re.compile(r'\[[nN]H[23]?\+\]').findall(smiles)) != 0 
                 else False
             )
+
+        self.ATOMCOUNTS = {
+            "Br" : len([atom for atom in self.atomData.values() if atom.symbol == "X"]),
+            "Cl" : len([atom for atom in self.atomData.values() if atom.symbol == "Z"]),
+            "I" : len([atom for atom in self.atomData.values() if atom.symbol == "I"]),
+            "F" : len([atom for atom in self.atomData.values() if atom.symbol == "F"]),
+            "C" : len([atom for atom in self.atomData.values() if atom.symbol == "C"]),
+            "O" : len([atom for atom in self.atomData.values() if atom.symbol == "O"]),
+            "N" : len([atom for atom in self.atomData.values() if atom.symbol == "N"]),
+            "S" : len([atom for atom in self.atomData.values() if atom.symbol == "S"]),
+            "P" : len([atom for atom in self.atomData.values() if atom.symbol == "P"]),
+        }
 
     def __str__(self):
         """ String representation of a Molecule SMILES object 

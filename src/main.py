@@ -1,162 +1,131 @@
-""" Module containing the functional script that loops over a CHON set of smiles codes and determines thier functional groups """
+""" Module containing the functional script that loops over a CHON set of smiles codes and determines thier functional groups 
+
+    To Do's:
+
+        4. Update README with a visual of the algorithm and more description, credits, etc. 
+
+"""
 
 from ifg import ifg
 import pandas as pd
 import re
 from helpers import createFgDataDict
-import sys
 import numpy as np
 from collections import defaultdict
 import os
 from progress.bar import IncrementalBar
 
 
-def identifyFunctionalGroups(allSheet, preciseSheet, verboseMode):
-    """ Returns a dictionary of two dataframes containing the data about functional groups for the entire smiles code set 
-
-
-        allSheet (bool) : Determines if script is to return functional group data in the all format
-        preciseSheet (bool) : Determines if script is to return functional group data in the precise format    
-        verboseMode (bool) : Determines to print functioanl group contents out to string or keep the same
+def main():
+    """ Returns a dictionary of two dataframes containing the data about functional groups for a given set of smiles codes
 
         Notes:
-            Dataframes are allDf and preciseDf, corellating to what type of functional group data it contains.
+            allDf is the dataframe where "all" functional groups are counted
+            preciseDf is the dataframe where the "precise" functional groups are counted
 
     """
 
-    # fgNames is a list of strings with each functional group name that participated in this analysis
-    # Retrieve functional group names (strings) from FGlist text file
-    fgNames = pd.read_csv(os.getcwd() + '/src/resources/FGlist.txt',
-                          sep=" ", header=None)
-    fgNames.columns = ['template', 'name']
+    FGlistPath = os.getcwd() + '/src/resources/FGlist.txt'      # Path to list of functional groups
+    SMILESlistPath =  os.getcwd() + '/src/resources/smiles.txt' # Path to list of smiles codes for FG analysis
 
-    # Alcohol/Primary amine manuel entry b/c no template in FGlist.txt
-    fgNames = fgNames.append(
-        pd.Series(["OH", "Alcohol"], index=fgNames.columns),
+    FGtemps = pd.read_csv(FGlistPath, sep=" ", header=None)     # Dataframe of functional group templates and names
+    FGtemps.columns = ['template', 'name']                      # Columns for FGlist
+
+                                                                # No Alcohol or Primary Amine in FGlist, manually determined
+    FGtemps = FGtemps.append(                                   # Manual Alcohol template entry
+        pd.Series(
+            ["OH", "Alcohol"], index=FGtemps.columns
+        ),
         ignore_index=True
     )
-    fgNames = fgNames.append(
-        pd.Series(["NR", "PrimaryAmine"], index=fgNames.columns),
+    FGtemps = FGtemps.append(                                   # Manual Primary Amine template entry
+        pd.Series(
+            ["NR", "PrimaryAmine"], index=FGtemps.columns
+        ),
         ignore_index=True
     )
-    fgNames = sorted({name for name in fgNames['name']})
+    FGnames = sorted({name for name in FGtemps['name']})        # FGnames in a sorted set
 
-    # Additional cyclic/aromaic nomenclatures for all functional groups in base string list
-    cyclicGroups = ["Cyclic" + group for group in fgNames]
-    aromaticGroups = ["Aromatic" + group for group in fgNames]
+    cyclicGroups = ["Cyclic" + group for group in FGnames]      # Cyclic nomenclatures for FGnames
+    aromaticGroups = ["Aromatic" + group for group in FGnames]  # Aromatic nomenclatures for FGnames
 
-    # Combine calssified and base functional group names into a single list
-    # (each item is of type string)
-    columns = [
-        name for names
-        in zip(fgNames, cyclicGroups, aromaticGroups)
-        for name in names
+    columns = [                                                 # Combine calssified and base functional group names into a single list of strings (no tuples)
+        name for names                                          # Loop over tuples created by zip
+        in zip(FGnames, cyclicGroups, aromaticGroups)           # Tuple of an FG with its cyclic and aromatic nomenclature, same bases
+        for name in names                                       # Loop over elements within tuple 
     ]
 
-    # Insert extra string info
     columns.insert(0, "SMILES")
     columns.insert(0, "Refcode")
 
-    # Extra info ontop of base functional group analysis
-    properties = ['aromaticRingCount',
+    properties = ['aromaticRingCount',                          # Extra data ontop of base functional group analysis
                   'nonAromaticRingCount',
                   'ringCount',
                   'totalAlcohols',
-                  'AminoAcid']
+                  'AminoAcid'
+    ]
 
-    for prop in properties:
+    for prop in properties:                                     # Attach additional prop names to column list
         columns.append(prop)
 
-    if verboseMode:
-        print("Created column names")
+    allDf = pd.DataFrame(columns=columns)                       # Initialize the all data frame with column names
+    preciseDf = pd.DataFrame(columns=columns)                   # And the precise data frame with column names
 
-    # Dataframe containers for SMILES (index) to Functioanl group (columns) counts relation
-    allDf = pd.DataFrame(columns=columns)
-    preciseDf = pd.DataFrame(columns=columns)
+    bar = IncrementalBar('Anlalyzing smiles codes',             # Progress bar for script execution, goes from 0 to the number of smiles codes
+            max=len(open(SMILESlistPath).readlines())           # Number of lines in smiles text file is total number of smiles
+    )
 
-    # Progress bar for script execution, goes to number of smiles codes
-    bar = IncrementalBar('Anlalyzing smiles codes', max=len(
-        open(os.getcwd() + '/src/resources/smiles.txt').readlines()
-    ))
+    for text in open(SMILESlistPath):                           # Loop over all smiles codes in this current dataset
 
-    # Loop over all smiles codes in this current dataset
-    for i, text in enumerate(open(os.getcwd() + '/src/resources/smiles.txt')):
+        line = re.compile(r'\S+').findall(text)                 # Get line from smiles text list
+        (smilesAlt, smiles, refcode) = line                     # Extract the line into variables
+        functionalGroups = ifg(smiles, refcode)                 # Determine the functional groups based on the input SMILES code
 
-        # Retrive Refcode and its smiles representation from set of smiles codes
-        line = re.compile(r'\S+').findall(text)
-        (smilesAlt, smiles, refcode) = line
-
-        # Process the smiles code with the ifg algorithm and retireve output data in the form of a dictionary
-        # Inherets molecule properties from Molecule class
-        functionalGroups = ifg(smiles, refcode)
-
-        if verboseMode:
-            print(refcode, " : ", smiles)
-
-        # Retrieve molecule data from functionalgroups algorithm and molecule data
-        propData = {
+        propData = {                                            # Add additional properties baesd on Molecule
             **functionalGroups.ringData,
             "totalAlcohols": len(functionalGroups.ALCOHOLICINDICES),
             "AminoAcid": "Yes" if functionalGroups.AMINOACID else "No"
         }
 
-        allFgs = defaultdict(int, {
-            **createFgDataDict(functionalGroups.allFgs),
+        allFgs = defaultdict(int, {                             # Combine properties with allFgs to get allFGs dict
+            **createFgDataDict(functionalGroups.allFgs),    
             **propData
         })
 
-        preciseFgs = defaultdict(int, {
+        preciseFgs = defaultdict(int, {                         # Combine properties with preciseFgs to get preciseFGs dict
             **createFgDataDict(functionalGroups.preciseFgs),
             **propData
         })
-
-        # Print results of each algorithm if verbose mode is turned on
-        if verboseMode:
-            print(allFgs)
-            print(preciseFgs)
-
-        # Loop over all possible FGs and,
-        # in the order of columns as they appear in dataframe,
-        # insert the count of a certain FG to the named column slot,
-        # if the name was not in the dictionary, NaN of that FG were found
-        allData = [
+                                                                # Decompse dictionary into values only list which mirrors the 
+                                                                # index positioning of the columns in the all dataframe
+        allData = [                                             
             allFgs[name] if allFgs[name]
             else np.nan
             for name in columns[2:]
         ]
-
+                                                                # Do this for precise FGs as well
         preciseData = [
             preciseFgs[name] if preciseFgs[name]
             else np.nan
             for name in columns[2:]
         ]
 
-        # Insert smiles and refcode to satify structure of columns
-        for _id in [smiles, refcode]:
+        for _id in [smiles, refcode]:                           # Prepend smiles and refcode to satify structure of columns
             allData.insert(0, _id)
             preciseData.insert(0, _id)
 
-        # Locate a new row indexed by refcode
-        if allSheet:
-            allDf.loc[refcode] = allData
+        allDf.loc[refcode] = allData                            # Locate a new row indexed by refcode
+        preciseDf.loc[refcode] = preciseData                    # For both dataframes
 
-        if preciseSheet:
-            preciseDf.loc[refcode] = preciseData
-
-        bar.next()
+        bar.next()                                              # Increment the progress bar once the Molecule is processed
 
     bar.finish()
 
-    # Set index by Refcode column
-    allDf.set_index("Refcode")
+    allDf.set_index("Refcode")                                  # Index the DF's by REFCODE
     preciseDf.set_index("Refcode")
 
-    # Return nan-filtered dataframes
-    # If a column is entirley Nan, it is dropped
-    dfs = {}
-    if allSheet:
-        dfs.update({"allDf": allDf.dropna(axis=1, how='all')})
-    if preciseSheet:
-        dfs.update({"preciseDf": preciseDf.dropna(axis=1, how='all')})
+    dfs = {}                                                    # Return nan-filtered dataframes (i.e. columns with all NaN are removed)
+    dfs.update({"allDf": allDf.dropna(axis=1, how='all')})
+    dfs.update({"preciseDf": preciseDf.dropna(axis=1, how='all')})
 
     return dfs

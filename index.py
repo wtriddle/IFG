@@ -1,74 +1,44 @@
-""" Top level script run with py RunIFG.py [args, [...]] """
+""" Top level wrapper script that runs main() from the src folder. 
 
-""" Create a dependencies list so people can install environemnt right off the bat
-    If the script has run once fully and failed at the end, add functionality to load the .json files directly to excel instead
-    Of re-calculating the results
+    To run this script, open a terminal and run:
+    python3 index.py
+
+    Notes:
+        To run this script, the PYTHONPATH variable must be set
+
+        put how to set that here
 """
 
-import sys
-import getopt
-from main import identifyFunctionalGroups
+from main import main 
 import pandas as pd
-import pathlib
-import os
 import json
 
 
-def main(argv):
-    preciseSheet = False
-    allSheet = False
-    verbose = False
-    file = 'output/FunctionalGroups.xlsx'
-    try:
-        args, opts = getopt.getopt(
-            argv, 'aphfv', ["all", "precise", "help", "verbose", "file="])
-    except getopt.GetoptError:
-        print('Bad usage. Type smiles.py -h for help')
-        sys.exit()
-    for opt, arg in args:
-        if opt in ['-h', '--help']:
-            # Help option
-            print(
-                """smiles.py [ -a | --all <bool> ] [ -p | --precise <bool> ] [ -v || --verbose <bool> ] [-h | --help] [ -f | --file <path>]
-                """)
-            sys.exit()
-        elif opt in ['-a', '--all']:
-            allSheet = True
-        elif opt in ['-p', '--precise']:
-            preciseSheet = True
-        elif opt in ['-v', '--verbose']:
-            verbose = True
-        elif opt in ['-f', '--file']:
-            file = 'output/' + arg + '.xlsx'
-    if not args:
-        preciseSheet = True
-        allSheet = True
-        file = 'output/FunctionalGroups.xlsx'
+def index():
+    """ Top level wrapper script to handle excel sheet outputs and formatting of columns """
 
-    # Retrieve functional groups data, returns a dictionary
-    data = identifyFunctionalGroups(allSheet, preciseSheet, verbose)
+    outfile = 'output/FunctionalGroups.xlsx'                # Output file path
+    data = main()                                           # Process FGs part of main
+    writer = pd.ExcelWriter(outfile, engine="xlsxwriter")   # Create pandas excel writer with xlsxwriter as engine
 
-    # Create pandas excel writer with xlsxwriter as engine
-    writer = pd.ExcelWriter(file, engine="xlsxwriter")
-
-    # Input respective data into excel sheets if they were created
     try:
         data['allDf'].to_excel(
             writer,
             sheet_name="All Functional Groups",
-            na_rep=0,
-            freeze_panes=(1, 1)
+            na_rep=0,                                       
+            freeze_panes=(1, 1)                             # Freeze columns and rows
         )
-        # XlsxWriter sheet object
-        allSheet = writer.sheets['All Functional Groups']
-        # Set sheet column width
-        allSheet.set_column(1, len(data['allDf'].columns), 21, None)
+        allSheet = writer.sheets['All Functional Groups']   # XlsxWriter sheet object
+        allSheet.set_column(1,                              # Set sheet column width based on longest name
+                            len(data['allDf'].columns), 
+                            21, 
+                            None
+        )
 
-        # JSON format of data
-        allJsonData = data['allDf'].to_json(orient="index")
+        allJsonData = data['allDf'].to_json(orient="index")     # JSON format of output data
         d = json.loads(allJsonData)
-        with open("allData.json", "w", encoding="utf-8") as f:
-            json.dump(d, f, indent=4)
+        with open("allData.json", "w", encoding="utf-8") as f:  # Save JSON data as allData.json
+            json.dump(d, f, indent=4)                           
     except:
         pass
 
@@ -77,27 +47,27 @@ def main(argv):
             writer,
             sheet_name="Precise Functional Groups",
             na_rep=0,
-            freeze_panes=(1, 1)
+            freeze_panes=(1, 1)                                     # Freeze columns and rows
         )
-        # XlsxWriter sheet object
-        preciseSheet = writer.sheets['Precise Functional Groups']
-        # Set sheet column width
-        preciseSheet.set_column(1, len(data['preciseDf'].columns), 21, None)
+        preciseSheet = writer.sheets['Precise Functional Groups']   # XlsxWriter sheet object
+        preciseSheet.set_column(1,                                  # Set sheet column width based on longest name
+                                len(data['preciseDf'].columns), 
+                                21, 
+                                None
+        )
 
-        # JSON format of data
-        preciseJsonData = data['preciseDf'].to_json(orient="index")
+        preciseJsonData = data['preciseDf'].to_json(orient="index") # JSON format of data
         d = json.loads(preciseJsonData)
-        with open("preciseData.json", "w", encoding="utf-8") as f:
+        with open("preciseData.json", "w", encoding="utf-8") as f:  # Save JSON data as preciseData.json
             json.dump(d, f, indent=4)
     except:
         pass
 
-    # Save the sheet
     try:
-        writer.save()
+        writer.save()                                               # Save the sheet
     except:
         raise EnvironmentError("File could not be saved")
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    index()

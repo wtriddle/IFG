@@ -1,7 +1,7 @@
 """ Represents a single atom part of any larger structure.
 
 Key Attributes:
-    Index: The index location of a specific atom within a larger molecule structure, such as the SMILES code
+    Index: The index location of a specific atom within a larger molecule structure, such as the SMILES code of functional group
     Symbol: The string representing the atom. It could be a charged group and be more than just a single symbol
 """
 

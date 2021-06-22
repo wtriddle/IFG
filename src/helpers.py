@@ -1,4 +1,4 @@
-""" Module where helping functiona, used across the program, can be defined """
+""" Module where helping functions are defined"""
 
 from collections import defaultdict
 
