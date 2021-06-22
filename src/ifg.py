@@ -337,7 +337,6 @@ class ifg(Molecule):
             functionalGroups (list) : List of Molecule obejects that represent the functional groups in a smiles code
 
             Notes:
-                An FG is identified as repeated if all the atoms within each one are identical
                 If every atom is identical in both functional groups and they are unique FGs identified individually, then they are repeated
         """
 
@@ -479,7 +478,7 @@ class ifg(Molecule):
             functionalGroups (list) : List of Molecule obejects that represent the functional groups in a SMILES
 
             Notes:
-                Relations such as ketone in ester, amine in amide, ether in ester are elimated. 
+                Relations such as ketone in ester, amine in amide, ether in ester are elimated using this function
         """
         preciseFgs = functionalGroups[:]
         index = -1
@@ -551,26 +550,26 @@ class ifg(Molecule):
 
         """
 
-        smilesBonds = self.bondData[nitrogenIndex]              # Check bonds on nitrogen to see if it is a Primary Amine
+        nitrogenBonds = self.bondData[nitrogenIndex]                    # Get bonds connected to nitrogen
 
         if(
-            len(smilesBonds) == 1                               # Primary amines have one, single bonded partner (i.e. no explicit bonds =/#), which may be in a ring
-            and not self.BOND_REGEX.findall(smilesBonds[0].symbol)
-        ):
+            len(nitrogenBonds) == 1                                     # Primary amines have one bond
+            and not self.BOND_REGEX.findall(nitrogenBonds[0].symbol)    # That must be a single bond
+        ):                                                              # Otherwise, nitrogen is not a primary amine
 
-            bondedIndex = smilesBonds[0].index
+            bondedIndex = nitrogenBonds[0].index                        
 
-            primaryAmine = Molecule("RN", "PrimaryAmine")
+            primaryAmine = Molecule("RN", "PrimaryAmine")               # Create primary amine Molecule object
 
-            primaryAmine.atomData[0].index = bondedIndex        # Set the R group index to that of the smiles bonded nitrogen index
-            primaryAmine.atomData[1].index = nitrogenIndex      # Set the nitrogen index to that of the smiles code nitrogen index
+            primaryAmine.atomData[0].index = bondedIndex                # Set the R group index to the smiles bonded nitrogen index
+            primaryAmine.atomData[1].index = nitrogenIndex              # Set the nitrogen index to the smiles code nitrogen index
 
-            if bondedIndex in self.AROMATICINDICES:
+            if bondedIndex in self.AROMATICINDICES:                     # Add aromatic nomenclature if necessary
                 primaryAmine.NAME = "AromaticPrimaryAmine"
 
-            elif bondedIndex in self.CYCLICINDICES:
+            elif bondedIndex in self.CYCLICINDICES:                     # Or cyclic nomenclature 
                 primaryAmine.NAME = "CyclicPrimaryAmine"
 
-            return primaryAmine
+            return primaryAmine                                         # Return the primary amine object if true
 
-        return False
+        return False                                                    # Otherwise return false
