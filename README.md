@@ -1,6 +1,10 @@
 # IFG (Identify Functional Groups)
 
 Python algorithms which extract functional group data from SMILES (Simplified molecular-input line-entry system) codes
+<p align="center">
+  <!-- <img src="https://github.com/wtriddle/IFG/blob/master/MoleculeGifSmall.gif" />
+  <img src="https://github.com/wtriddle/IFG/blob/master/MoleculeGifSmall.gif" /> -->
+</p>
 
 # Installation
 
