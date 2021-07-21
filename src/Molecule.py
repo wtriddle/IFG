@@ -36,6 +36,7 @@ Notes:
 """
 
 from Atom import Atom
+from helpers import formatSmiles
 import re
 from collections import OrderedDict
 
@@ -72,9 +73,9 @@ class Molecule():
         self.ATOM_REGEX = re.compile(r'[a-zA-Z]')
         self.CHARGE_REGEX = re.compile(r'\+|\-')
         self.BOND_REGEX = re.compile(r'\=|\#')
-        self.DLA_TO_SAR = {                                  # DLA to SAR legend
-            "Br": "X",                                       
-            "Cl": "Z"
+        self.DLA_TO_SAR = {                                  
+        "Br": "X",                                       
+        "Cl": "Z"
         }
         self.ATOMS =['C', 'O', 'N', 'S', 'I','F', 'P',       # SAR atoms non-aromatic
                     'c', 'n', 'o','s', 'i', 'f', 'p',        # SAR atoms aromatic
@@ -88,7 +89,7 @@ class Molecule():
         self.LINEARSYMBOLS = self.ATOMS + self.BONDS + self.BRACKETS + self.CHARGES
 
         # Input data
-        self.SMILES = self.formatSmiles(smiles)
+        self.SMILES = formatSmiles(smiles)
         self.NAME = name
 
         # Ring Containers
@@ -130,6 +131,13 @@ class Molecule():
                 True if len(re.compile(r'\[[nN]H[23]?\+\]').findall(smiles)) != 0 
                 else False
             )
+
+        self.HALOGENS = {
+            "Bromine" : len([atom for atom in self.atomData.values() if atom.symbol == "X"]),
+            "Chlorine" : len([atom for atom in self.atomData.values() if atom.symbol == "Z"]),
+            "Iodine" : len([atom for atom in self.atomData.values() if atom.symbol == "I"]),
+            "Fluorine" : len([atom for atom in self.atomData.values() if atom.symbol == "F"])
+        }
 
         self.ATOMCOUNTS = {
             "Br" : len([atom for atom in self.atomData.values() if atom.symbol == "X"]),
@@ -619,48 +627,3 @@ class Molecule():
                             if index not in self.CYCLICINDICES: 
                                 self.CYCLICINDICES.append(index)
 
-    def formatSmiles(self, smiles):
-        """ Remove [H+] symbols entirley from a smiles code and returns a DLA-SAR converted smiles code 
-        """
-
-        reFormatted = ""
-        for pos, symbol in enumerate(smiles):
-
-            if symbol == '[':
-                startBracketPos = pos
-
-            if symbol == 'H':
-                cutPos = pos
-                while smiles[cutPos] != ']':
-                    cutPos += 1
-                reFormatted = smiles[0:startBracketPos] + \
-                    smiles[startBracketPos+1] + smiles[cutPos+1:len(smiles)]
-                reFormatted = self.formatSmiles(reFormatted)
-                break
-
-        if reFormatted == "":
-            return self.DLAtoSARconversion(smiles)
-        else:
-            return self.DLAtoSARconversion(reFormatted)
-
-    def DLAtoSARconversion(self, smiles):
-        """ Return a double letterd atom (DLA) tranformed SMILES code using single atom representations (SAR)
-            Required to perform sybmol by symbol analysis on the SMILES
-        """
-
-        pos = -1                    # 0 based indexing
-        newSmiles = ""
-
-        while pos != len(smiles) - 1:       # Loop over SMILES
-
-            pos += 1
-            DLA = smiles[pos:pos+2]          # 2 char string is a potential DLA
-
-            if DLA in self.DLA_TO_SAR:                # Convert DLA'S via the legend if matched
-                newSmiles += self.DLA_TO_SAR[DLA]     # Add SAR in place of DLA
-                pos += 1                     
-
-            else:                            # No DLA match keeps smiles the same
-                newSmiles += smiles[pos]
-
-        return newSmiles

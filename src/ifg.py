@@ -23,6 +23,7 @@ Key Attributes:
 
 
 from Molecule import Molecule
+from helpers import formatSmiles
 import re
 import os
 
@@ -101,24 +102,24 @@ class ifg(Molecule):
 
         matches = []
         for line in open(os.getcwd() + '/src/resources/FGlist.txt', 'r'):           # Loop over every functional group
-            lineInfo = re.compile(r'\S+').findall(line)                             # Get the (FGTemplate, FGName) pair
-            lineInfo[0] = lineInfo[0].replace('[R]', 'R')                           # Remove [R] from brackets
-            FGtemplate = Molecule(lineInfo[0], lineInfo[1])                         # FG Molecule object
+            (FGsmiles, name) = re.compile(r'\S+').findall(line)                     # Get the (FGTemplate, FGName) pair
+            FGsmiles = formatSmiles(FGsmiles).replace('[R]', 'R')                   # Remove [R] from brackets
 
             if(                                                                     # Non-charged SMILES cannot contain a charged FG
                 len(self.CHARGE_REGEX.findall(atom.symbol)) == 0                    # Charged FG's
-                and len(self.CHARGE_REGEX.findall(FGtemplate.SMILES)) != 0          # In a non-charged SMILES
+                and len(self.CHARGE_REGEX.findall(FGsmiles)) != 0                   # In a non-charged SMILES
             ):
                 continue                                                            # Are skipped
 
-            if(                                                                     # Alcoholic FG's can only stem from alcoholic oxygens
-                FGtemplate.ALCOHOLICINDICES                                         # Alcoholic FG
-                and atom.index not in self.ALCOHOLICINDICES                         # With a Non-alcoholic oxygen atom
-            ):
-                continue                                                            # Are skipped
+            if atom.symbol in FGsmiles:                                             # If the atom symbol argument is inside the FGtemplate
+                FGtemplate = Molecule(FGsmiles, name)                               # FG Molecule object
 
+                if(                                                                 # Alcoholic FG's can only stem from alcoholic oxygens
+                    FGtemplate.ALCOHOLICINDICES                                     # Alcoholic FG
+                    and atom.index not in self.ALCOHOLICINDICES                     # With a Non-alcoholic oxygen atom
+                ):
+                    continue                                                        # Are skipped
 
-            if atom.symbol in FGtemplate.SMILES:                                    # If the atom symbol argument is inside the FGtemplate
                 expansionPoint = 0                                                  # String position within FG where the atom is located
 
                 for tempAtom in FGtemplate.atomData.values():                       # R group pathing is elimated in FGtemplate

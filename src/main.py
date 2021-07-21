@@ -21,7 +21,7 @@ def main():
     """
 
     FGlistPath = os.getcwd() + '/src/resources/FGlist.txt'      # Path to list of functional groups
-    SMILESlistPath =  os.getcwd() + '/src/resources/smiles.txt' # Path to list of smiles codes for FG analysis
+    SMILESlistPath =  os.getcwd() + '/src/resources/BenWillSmiles.txt' # Path to list of smiles codes for FG analysis
 
     FGtemps = pd.read_csv(FGlistPath, sep=" ", header=None)     # Dataframe of functional group templates and names
     FGtemps.columns = ['template', 'name']                      # Columns for FGlist
@@ -57,7 +57,11 @@ def main():
                   'nonAromaticRingCount',
                   'ringCount',
                   'totalAlcohols',
-                  'AminoAcid'
+                  'AminoAcid',
+                  'Bromine',
+                  'Chlorine',
+                  'Iodine',
+                  'Fluorine'
     ]
 
     for prop in properties:                                     # Attach additional prop names to column list
@@ -73,13 +77,14 @@ def main():
     for text in open(SMILESlistPath):                           # Loop over all smiles codes in this current dataset
 
         line = re.compile(r'\S+').findall(text)                 # Get line from smiles text list
-        (smilesAlt, smiles, refcode) = line                     # Extract the line into variables
+        (smiles, refcode) = line                                # Extract the line into variables
         functionalGroups = ifg(smiles, refcode)                 # Determine the functional groups based on the input SMILES code
 
         propData = {                                            # Add additional properties baesd on Molecule
             **functionalGroups.ringData,
             "totalAlcohols": len(functionalGroups.ALCOHOLICINDICES),
-            "AminoAcid": "Yes" if functionalGroups.AMINOACID else "No"
+            "AminoAcid": "Yes" if functionalGroups.AMINOACID else "No",
+            **functionalGroups.HALOGENS
         }
 
         allFgs = defaultdict(int, {                             # Combine properties with allFgs to get allFGs dict
