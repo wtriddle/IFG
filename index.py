@@ -1,10 +1,12 @@
-""" Top level wrapper script that runs main() from the src folder. 
+""" Converts ifg output data into an excel sheet
 
-    To run this script, open a terminal and run:
-    python3 index.py
+    Run this script in an anaconda environment with:
+    cd `Your downloaded IFG location`
+    conda activate base
+    python ./index.py
 
     Notes:
-        To run this script, the PYTHONPATH variable must be set to include the /src file as a target:
+        The PYTHONPATH variable must be set to include the /src file as a target:
 
         On Linux:
         1. Go to ~/.bashrc

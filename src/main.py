@@ -1,4 +1,4 @@
-""" Module containing the functional script that loops over a set of smiles codes and determines thier functional groups 
+""" Functional script that loops over the target set of smiles codes and determines thier functional groups 
 """
 
 from ifg import ifg
