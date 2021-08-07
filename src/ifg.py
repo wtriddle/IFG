@@ -25,7 +25,7 @@ Key Attributes:
 from Molecule import Molecule
 from helpers import formatSmiles
 import re
-import os
+from config import FGSPATH
 
 
 class ifg(Molecule):
@@ -101,7 +101,7 @@ class ifg(Molecule):
         """
 
         matches = []
-        for line in open(os.getcwd() + '/src/resources/FGlist.txt', 'r'):           # Loop over every functional group
+        for line in open(FGSPATH.resolve(), 'r'):                                   # Loop over every functional group
             (FGsmiles, name) = re.compile(r'\S+').findall(line)                     # Get the (FGTemplate, FGName) pair
             FGsmiles = formatSmiles(FGsmiles).replace('[R]', 'R')                   # Remove [R] from brackets
 

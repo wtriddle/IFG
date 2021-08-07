@@ -26,14 +26,14 @@
 from main import main 
 import pandas as pd
 import json
+from config import out_file
 
 
 def index():
     """ Top level wrapper script to handle excel sheet outputs and formatting of columns """
 
-    outfile = 'output/FunctionalGroups.xlsx'                # Output file path
-    data = main()                                           # Process FGs part of main
-    writer = pd.ExcelWriter(outfile, engine="xlsxwriter")   # Create pandas excel writer with xlsxwriter as engine
+    data = main()                                            # Retrieve the data from IFG
+    writer = pd.ExcelWriter(out_file, engine="xlsxwriter")   # Create pandas excel writer with xlsxwriter as engine
 
     try:
         data['allDf'].to_excel(
