@@ -8,21 +8,35 @@ Python algorithms which extract functional group data from SMILES (Simplified mo
 
 # Installation
 
-To generate the organic functional groups from a molecule, the following packages are required:
+A detailed install video for beginners is here:
+https://www.youtube.com/watch?v=kU3W452HC9s
 
-```
-    xlsxwriter
-    pandas
-    progress
-```
+Otherwise, follow these steps: <br>
 
-To execute the program, run python version 3.5+ in an anaconda environemnt with the above packages on the index.py file.
-An excel file of the generated smiles codes, according those given in the smiles.txt under resources, will be output and pre-cleaned, thanks
-to pandas
+1. Download anaconda and git <br>
+https://www.anaconda.com/products/individual <br>
+https://git-scm.com/downloads <br>
+
+2. Download the repository to your computer with:
+```
+  git clone https://github.com/wtriddle/IFG.git
+```
+3. Set your PYTHONPATH to include the /src folder <br>
+On Windows, edit environemnt variables and create PYTHONPATH to your /src location <br>
+On Linux, open .bashrc and place the following line
+```
+  export PYTHONPATH="Your/Path/To/Ifg/Source:$PYTHONPATH"
+```
+4. Create a folder called output in the root directory
+5. Activate the base anaconda environment in the root directory of IFG with
+```
+  conda activate base
+```
+6. Run index.py in the anaconda base environemnt to test the program
 
 # Usage
 
-This algorithm provides a decoded digital model of molecular SMILES codes. The implementation of IFG itself is an extension of this digital molecular model.
+Index.py is a top-level script which handles the src files, but those files can be directly used as well. This algorithm provides a decoded digital model of molecular SMILES codes. The implementation of IFG itself is an extension of this digital molecular model.
 
 Digital Molecule:
 ```
@@ -37,11 +51,31 @@ Identification of functional groups in a SMILES code:
 ```
     from ifg import ifg
     functionalGroups = ifg(SMILES="NN1C=NN=C1N",REFCODE="VUPTAC02")
+    print(functionalGroups.allFgs)
+    print(functionalGroups.preciseFgs)
+```
+
+# Configuration
+A detailed configuration video for beginners is here: pending <br>
+
+Otherwise, follow the instructions below
+
+## Adding Functional Groups
+Go into the FGlist.txt file and add the template with the name of the functional group to the end of the text file. <br>
+Ensure that the format contains [R] for R group atoms and that the atoms included in the new FG are all presente in Molecule <br>
+
+## Choosing a new set of SMILES codes
+Go into <b> config.py <b> and edit the ``` SMILESPATH ``` variable to target the new SMILES text list. <br>
+Ensure that the new set of SMILES codes is disjointed and follows the form for each line
+```
+  SMILES REFOCDE
 ```
 
 # Contributing
 
-When contributing, open an issue for suggestions and follow the commenting style observed across the repository
+When contributing, open an issue for suggestions and follow the commenting style observed across the repository <br>
+New formats of SMILES codes can be supported by updating and contributing to ``` Molecule ``` <br>
+Optimization of the DFS algorithm can be changed in ``` ifg ```
 
 # License
 [MIT](https://choosealicense.com/licenses/mit/)
