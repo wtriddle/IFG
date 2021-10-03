@@ -159,50 +159,6 @@ class ifg(Molecule):
             template (type Molecule) : The functional group for which the given atom will be checked against.
             skipIndex (int, default=None) : A template bond for which to skip over
             validSmilesIndex (int, default=None) : The indices confirmed in the SMILES code to be apart of a functional group, with designated positions
-
-            Notes:
-                This is a recusrive algorithm. It takes two atoms, which have identical symbol, and determines if a bonded path is equivalent in both. 
-                This algorithm answers the question: Is this atom, in the SMILES code, bonded in the same way that another atom, in the temaplte, is bonded?
-                If an atom in the SMILES code can trace its own bonds to mirror those inside of a functional group, then that functional group must exist within the SMILES code
-
-                The recursion comes from multiple atoms needed to be called upon. Example of how the algorithm will work
-
-                    Assume a nitrogen has been found, and we would like to validate if that nitrogen is part of an amide structure
-                    template: Molecule(SMILES=[R]C(=O)N([R])[R], indicies=[0,1,2,3,4,5],...atomData,...bondData)
-                    atom: Atom(symbol=N, index=5)
-
-                    In whichGroup, this N is prepared to "fit" the template. expandGroup will recieve this nitrogen atom object. The atom index, 5 in this case,
-                    will be used to retrieve its bonded content from the its SMILES molecule, which in this case is accessed by self (remember super call in __init__ method)
-
-                    The template has its own bond schema as well. Given an expansion point, i.e. where the atom of interest in the template is located, 
-                    the necessary bonds to complete a functional group can be retirved with the temaplte.bondData attribute. 
-
-                    With both pieces of bondData for each atom, it is now possible to check if valid a bonding path is present inside of the SMILES code 
-                    for a given functional group, represented in template
-
-                    All template bonds are looped over. The skipIndex inside of template is skipped.
-                    This is implemented to prevent a template bond from being validated by the bond it was just stemmed from during a recursive call
-
-                    The specific bond in the template is now checked against the available SMILES bonds. If a unique and unsused SMILES bond (i.e SMILES atom)
-                    is available for usage by the template (i.e. An availble carbon was just found for the nitrogen). 
-                    Then the bond path stemming from that atom must also be validated
-
-                    Continually, this algorithm first validates if all of the main group atoms which are necessary for a functional group are indeed paired
-                    inside of the SMILES code. Only after are the RGroups validated. In this way, both types of atoms are seperated, and main/Rgroup atoms get
-                    distinct analysis. There is no extra embedded crossover, they are handled independently for each atom in the template, with respect to the SMILES
-
-                    Remember, if a path is validated and a new path has begun, the bond representing the atom from which we just came from should not be used
-                    It already has a place in the template, and is being represented in the SMILES code. Therefore, a path is validted by virtue of being called upon with expandGroup
-
-                    If all R groups and previous paths are valid, then expandGroup finally returns true: This means that the entire bond path from a specific atom in a tempalte
-                    can be mirrored into the SMILES code and the stack of recursive calls is backtracked. Python allows the direct manipulation of the template indicies, so therefore
-                    Once expandGroup has fully finished its stack, the resultant FG with proper SMILES indicies is held within the expanded group
-
-                    If at any point expand group fails and returns false, it means that a specifc atom could not be branched into the functional group via its SMILES bonding schema.
-                    The stack calls finish and no FG is added to the list of matches
-
-                    For all valid atoms found, the template atomData is overwritten with proper SMILES index representations. Therefore, by appending template in whichGroup, 
-                    a functional group with indices pointing to the atoms within its SMILES code is saved and collected. 
         """
 
         smilesIndices = []                                      # Smiles indicies which have already been mapped into the template 
@@ -574,3 +530,10 @@ class ifg(Molecule):
             return primaryAmine                                         # Return the primary amine object if true
 
         return False                                                    # Otherwise return false
+
+    def printAllFgs(self):
+        for f in self.allFgs:
+            print(f)
+    def printSpecificFgs(self, fgs):
+        for f in fgs:
+            print(f, f.getSymbolDict())
