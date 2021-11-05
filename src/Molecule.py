@@ -105,16 +105,16 @@ class Molecule():
         self._INCIDES()             # Initalize Ring Index Containers
 
         # Collect ring data from ring containers
-        self.ringCount = len(self.RING_SELF) / 2
+        self.ringCount = len(self.RING_SELF) / 2        # Will always be integer value
         self.aromaticCount = 0
         self.nonAromaticCount = 0
         self._RING_COUNTS()         # Compute Ring counts
 
         # Dictionary mapping count by name to amount
         self.ringData = {
-            "aromaticRingCount": self.aromaticCount,
-            "nonAromaticRingCount": self.nonAromaticCount,
-            "ringCount": self.ringCount
+            "aromaticRingCount": int(self.aromaticCount),
+            "nonAromaticRingCount": int(self.nonAromaticCount),
+            "ringCount": int(self.ringCount)
         }
 
         # Atom and Bonding data
