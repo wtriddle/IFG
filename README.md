@@ -58,9 +58,8 @@ Identification of functional groups in a SMILES code:
 ```
 
 # Configuration
-A detailed configuration video for beginners is here: pending <br>
-
-Otherwise, follow the instructions below
+Use the config.py file to route resources files to IFG src algorithm for processing of new SMILES codes, FGs, and redirecting the output.
+The output is an excel file with path defined in config.py
 
 ## Adding Functional Groups
 Go into the FGlist.txt file and add the template with the name of the functional group to the end of the text file. <br>
