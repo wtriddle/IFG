@@ -1,3 +1,6 @@
+"""Configuration file to new SMILES codes lists, to the FGlist, and to the generated excel output file
+"""
+
 from pathlib import Path
 
 # Directory paths
