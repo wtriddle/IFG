@@ -3,3 +3,4 @@ _build
 _source
 *.xlsx
 tests/*.py
+*.json
