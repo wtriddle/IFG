@@ -13,10 +13,10 @@ Key Attributes:
     including extra classification like cyclic or aromatic. Also includes ring data and alcohol counts in both. They differ slightly:
 
 
-    allFgs (Dict) : The dictionary which counts all functional groups.
+    ALL_FGS (Dict) : The dictionary which counts all functional groups.
     "All" is defined as allowing overlapping functional groups, such as a ketone inside of an ester. 
     
-    preciseFgs (Dict) : The dictionary which counts precise functional groups.
+    EXACT_FGS (Dict) : The dictionary which counts precise functional groups.
     "Precise" is defined as allowing overlapping functional groups. This means ketones would not be seen inside esters, 
     nor tertiary amines inside amides, and so on. Only the largest functional groups will appear within this dictionary
 """
@@ -44,16 +44,16 @@ class ifg(Molecule):
             >>> REFCODE = "KUZQIG"
             >>> fgs = ifg(SMILES, REFCODE)
             >>> print(fgs)
-            allFgs: [CarboxylicAcid, Ketone, CyclicKetone, Alcohol]
-            preciseFgs: [CarboxylicAcid, CyclicKetone]
-            >>> data_all = createDataDict(fgs.allFgs)
-            >>> data_precise = createDataDict(fgs.preciseFgs)
+            ALL_FGS: [CarboxylicAcid, Ketone, CyclicKetone, Alcohol]
+            EXACT_FGS: [CarboxylicAcid, CyclicKetone]
+            >>> data_all = createDataDict(fgs.ALL_FGS)
+            >>> data_precise = createDataDict(fgs.EXACT_FGS)
             >>> ...
         """
 
         super().__init__(SMILES, REFCODE)                               # Create Molecule object from input SMILES code
-        self.allFgs = self.findFunctionalGroups()                       # Entry point of full IFG algorithm
-        self.preciseFgs = self.findPreciseGroups(self.allFgs)           # Filter output to obtain precise group counts
+        self.ALL_FGS = self.findFunctionalGroups()                       # Entry point of full IFG algorithm
+        self.EXACT_FGS = self.findPreciseGroups(self.ALL_FGS)           # Filter output to obtain precise group counts
 
     def findFunctionalGroups(self):
         """ Return a list of Molecule objects which represent the functional groups of a particular SMILES code
@@ -441,17 +441,17 @@ class ifg(Molecule):
             Notes:
                 Relations such as ketone in ester, amine in amide, ether in ester are elimated using this function
         """
-        preciseFgs = functionalGroups[:]
+        EXACT_FGS = functionalGroups[:]
         index = -1
-        while index != len(preciseFgs) - 1:
+        while index != len(EXACT_FGS) - 1:
 
             index += 1
-            group = preciseFgs[index]
+            group = EXACT_FGS[index]
             groupAtoms = group.atomData
             groupIndices = []
             for atom in groupAtoms.values():
                 groupIndices.append(atom.index)
-            for compareIndex, compareGroup in enumerate(preciseFgs):
+            for compareIndex, compareGroup in enumerate(EXACT_FGS):
 
                 if compareIndex == index:
                     continue
@@ -464,14 +464,14 @@ class ifg(Molecule):
                 if len(compareIndices) != len(groupIndices):
 
                     if all(i in groupIndices for i in compareIndices):
-                        del(preciseFgs[compareIndex])
+                        del(EXACT_FGS[compareIndex])
                         del(groupIndices)
                         del(compareIndices)
                         index = -1
                         break
 
                     elif all(i in compareIndices for i in groupIndices):
-                        del(preciseFgs[index])
+                        del(EXACT_FGS[index])
                         del(groupIndices)
                         del(compareIndices)
                         index = -1
@@ -486,14 +486,14 @@ class ifg(Molecule):
                     numCompareRAtoms = len(self.getRgroups(compareAtoms))
 
                     if numMainRAtoms > numCompareRAtoms:
-                        del(preciseFgs[index])
+                        del(EXACT_FGS[index])
                         del(groupIndices)
                         del(compareIndices)
                         index = -1
                         break
 
                     elif numCompareRAtoms > numMainRAtoms:
-                        del(preciseFgs[compareIndex])
+                        del(EXACT_FGS[compareIndex])
                         del(groupIndices)
                         del(compareIndices)
                         index = -1
@@ -501,7 +501,7 @@ class ifg(Molecule):
 
                 del(compareIndices)
 
-        return preciseFgs
+        return EXACT_FGS
 
     def detetminePrimaryAmine(self, nitrogenIndex):
         """ Return primary amine Molecule object with proper ring classification, if it exists on a ring
@@ -535,25 +535,25 @@ class ifg(Molecule):
 
         return False                                                    # Otherwise return false
 
-    def printAllFgs(self):
-        for f in self.allFgs:
+    def printALL_FGS(self):
+        for f in self.ALL_FGS:
             print(f)
     def printSpecificFgs(self, fgs):
         for f in fgs:
             print(f, f.getSymbolDict())
 
     def __str__(self):
-        allFgs = self.allFgs
-        preciseFgs = self.preciseFgs
-        s = "allFgs: ["
-        for f in allFgs:
+        ALL_FGS = self.ALL_FGS
+        EXACT_FGS = self.EXACT_FGS
+        s = "ALL_FGS: ["
+        for f in ALL_FGS:
             s+=f.NAME
             s+=", "
         s=s[0:-2]       # , correction
         s+=']\n'
 
-        s+= "preciseFgs: ["
-        for f in preciseFgs:
+        s+= "EXACT_FGS: ["
+        for f in EXACT_FGS:
             s+=f.NAME
             s+=", "
         s=s[0:-2]       # , correction

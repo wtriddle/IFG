@@ -41,19 +41,20 @@ Index.py is a top-level script which handles the src files, but those files can 
 
 Digital Molecule:
 ```python
-    from Molecule import Molecule
-    mol = Molecule('O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O', 'ABEGOH')
-    print(mol)
-    >> ABEGOH : O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O
+    >>> from Molecule import Molecule
+    >>> mol = Molecule('O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O', 'ABEGOH')
+    >>> print(mol)
+    ABEGOH : O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O
 ```
 
 
 Identification of functional groups in a SMILES code:
 ```python
-    from ifg import ifg
-    functionalGroups = ifg(SMILES="NN1C=NN=C1N",REFCODE="VUPTAC02")
-    print(functionalGroups.allFgs)
-    print(functionalGroups.preciseFgs)
+    >>> from ifg import ifg
+    >>> functionalGroups = ifg(SMILES="COC(=O)C(C)(O)NC(C)=O",REFCODE="LAQSOM")
+    >>> print(functionalGroups)
+    ALL_FGS : [Ether, Ketone, Ester, Amide, SecondaryAmine, Ketone, Alcohol]
+    EXACT_FGS : [Ester, Amide, Alcohol]
 ```
 
 # Configuration

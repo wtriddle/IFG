@@ -80,35 +80,35 @@ def main():
                 **functionalGroups.HALOGENS
             }
 
-            allFgs = defaultdict(int, {                             # Combine properties with allFgs to get allFGs dict
-                **createFgDataDict(functionalGroups.allFgs),    
+            ALL_FGS = defaultdict(int, {                             # Combine properties with ALL_FGS to get ALL_FGS dict
+                **createFgDataDict(functionalGroups.ALL_FGS),    
                 **propData
             })
 
-            preciseFgs = defaultdict(int, {                         # Combine properties with preciseFgs to get preciseFGs dict
-                **createFgDataDict(functionalGroups.preciseFgs),
+            EXACT_FGS = defaultdict(int, {                         # Combine properties with EXACT_FGS to get EXACT_FGS dict
+                **createFgDataDict(functionalGroups.EXACT_FGS),
                 **propData
             })
                                                                     # Decompse dictionary into values only list which mirrors the 
                                                                     # index positioning of the columns in the all dataframe
-            allData = [                                             
-                allFgs[name] if allFgs[name]
+            ALL_DATA = [                                             
+                ALL_FGS[name] if ALL_FGS[name]
                 else np.nan
                 for name in columns[2:]
             ]
                                                                     # Do this for precise FGs as well
-            preciseData = [
-                preciseFgs[name] if preciseFgs[name]
+            EXACT_DATA = [
+                EXACT_FGS[name] if EXACT_FGS[name]
                 else np.nan
                 for name in columns[2:]
             ]
 
             for _id in [smiles, refcode]:                           # Prepend smiles and refcode to satify structure of columns
-                allData.insert(0, _id)
-                preciseData.insert(0, _id)
+                ALL_DATA.insert(0, _id)
+                EXACT_DATA.insert(0, _id)
 
-            allDf.loc[refcode] = allData                            # Locate a new row indexed by refcode
-            preciseDf.loc[refcode] = preciseData                    # For both dataframes
+            allDf.loc[refcode] = ALL_DATA                            # Locate a new row indexed by refcode
+            preciseDf.loc[refcode] = EXACT_DATA                    # For both dataframes
 
             bar.update(1)                                           # Increment the progress bar once the Molecule is processed
 
