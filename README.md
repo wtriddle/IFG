@@ -40,7 +40,7 @@ On Linux, open .bashrc and place the following line
 Index.py is a top-level script which handles the src files, but those files can be directly used as well. This algorithm provides a decoded digital model of molecular SMILES codes. The implementation of IFG itself is an extension of this digital molecular model.
 
 Digital Molecule:
-```
+```python
     from Molecule import Molecule
     mol = Molecule('O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O', 'ABEGOH')
     print(mol)
@@ -49,7 +49,7 @@ Digital Molecule:
 
 
 Identification of functional groups in a SMILES code:
-```
+```python
     from ifg import ifg
     functionalGroups = ifg(SMILES="NN1C=NN=C1N",REFCODE="VUPTAC02")
     print(functionalGroups.allFgs)
