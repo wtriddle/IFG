@@ -1,7 +1,7 @@
 """ Module where helping functions are defined"""
 
 from collections import defaultdict
-
+from constants import DLA_TO_SAR
 
 def createFgDataDict(functionalGroups):
     """ Return a dictionary count of every functional group in a valid functional groups list
@@ -23,11 +23,6 @@ def formatSmiles(smiles):
         Return a double letterd atom (DLA) tranformed SMILES code using single atom representations (SAR)
         Required to perform sybmol by symbol analysis on the SMILES
     """
-
-    DLA_TO_SAR = {                                  
-        "Br": "X",                                       
-        "Cl": "Z"
-    }
 
     while 'H' in smiles:                               # Filter H if present, otherwise skip
         for pos, symbol in enumerate(smiles):

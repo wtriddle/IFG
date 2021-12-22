@@ -39,6 +39,7 @@ from Atom import Atom
 from helpers import formatSmiles
 import re
 from collections import OrderedDict
+from constants import ATOM_REGEX, CHARGE_REGEX, BOND_REGEX, ATOMS, BONDS, BRACKETS, NUMBERS, NON_BRANCHING_SYMBOLS
 
 
 class Molecule():
@@ -68,25 +69,6 @@ class Molecule():
 
             After the decoding process has ran, the Molecule object digitally represents the moleucle
         """
-
-        # Symbol matching lists and regex's for decoding process
-        self.ATOM_REGEX = re.compile(r'[a-zA-Z]')
-        self.CHARGE_REGEX = re.compile(r'\+|\-')
-        self.BOND_REGEX = re.compile(r'\=|\#')
-        self.DLA_TO_SAR = {                                  
-        "Br": "X",                                       
-        "Cl": "Z"
-        }
-        self.ATOMS =['C', 'O', 'N', 'S', 'I','F', 'P',       # SAR atoms non-aromatic
-                    'c', 'n', 'o','s', 'i', 'f', 'p',        # SAR atoms aromatic
-                    'R',                                     # R group atom (used for FG templates)
-                    'X', 'Z',                                # DLA->SAR converted atoms
-                    ]
-        self.BONDS = ['=', '#']
-        self.BRACKETS = ['[', ']']
-        self.CHARGES = ['+', '-']
-        self.NUMBERS = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
-        self.LINEARSYMBOLS = self.ATOMS + self.BONDS + self.BRACKETS + self.CHARGES
 
         # Input data
         self.SMILES = formatSmiles(smiles)
@@ -124,7 +106,7 @@ class Molecule():
         self.atomCount = len(self.atomData)         
         self.bondData = self.initializeBondData()   # Atom index to bonded atoms pairing dictionary
         self.chargedMol = (
-                True if len(self.CHARGE_REGEX.findall(smiles)) != 0 
+                True if len(CHARGE_REGEX.findall(smiles)) != 0 
                 else False
             )
         self.AMINOACID = (
@@ -179,7 +161,7 @@ class Molecule():
 
         for pos, symbol in enumerate(self.SMILES):
 
-            if symbol in self.ATOMS:                            # Exclusively analyze atoms
+            if symbol in ATOMS:                            # Exclusively analyze atoms
                 atomIndex += 1
                 atomSymbol = symbol
                 
@@ -210,7 +192,7 @@ class Molecule():
 
         for pos, symbol in enumerate(self.SMILES):
 
-            if symbol in self.ATOMS:
+            if symbol in ATOMS:
                 atomIndex += 1
                 bonds = []                              # Bonds which stem from a single atom
 
@@ -267,7 +249,7 @@ class Molecule():
 
         explicitBond = (            # Explicit double/triple left bond case
             LN 
-            if LN in self.BONDS     # Save results of bond if LN is initially a bond
+            if LN in BONDS     # Save results of bond if LN is initially a bond
             else ""
         )
         if explicitBond:            # If an explicit bond is found
@@ -278,7 +260,7 @@ class Molecule():
         leftBond = []               # Left bond list
 
         
-        while LN not in self.LINEARSYMBOLS or scope > 0:    # Loop until a LINEARSYMBOL is found on the 0th scope (i.e. same scope as inital atom)
+        while LN not in NON_BRANCHING_SYMBOLS or scope > 0:    # Loop until a LINEARSYMBOL is found on the 0th scope (i.e. same scope as inital atom)
 
             if LN == ')' and scope == -1:                   # Double parenthesis case i.e X(Y)(Z) starting within second parenthesised Z
                 scope = 0                                   # Reset scope to allow second atom Z to locate X as its proper left-bonded neighbor
@@ -286,7 +268,7 @@ class Molecule():
                 scope += 1
             elif LN == '(':                                 # Decrement into higher parenthesis gropus
                 scope -= 1
-            elif LN in self.ATOMS:                          # Decrement atomic index for each atom found
+            elif LN in ATOMS:                          # Decrement atomic index for each atom found
                 LNIndex -= 1
             LNPos -= 1                                      # Decrement to next left symbol
             if LNPos < 0:                                   # Outside scope of SMILES means no left bonds
@@ -328,7 +310,7 @@ class Molecule():
         scope = 0                        # Parenthesis depth counter is 0 index based
         rightBonds = []                  # Right bonding list
 
-        while RN not in self.LINEARSYMBOLS or scope > 0:    # Loop until a LINEARSYMBOL is found on the 0th scope (i.e. same scope as inital atom)
+        while RN not in NON_BRANCHING_SYMBOLS or scope > 0:    # Loop until a LINEARSYMBOL is found on the 0th scope (i.e. same scope as inital atom)
 
             if RN == '(':                                   # Nested parenthesis case
 
@@ -343,9 +325,9 @@ class Molecule():
 
             if RN == ')':                                   # Decrement scope for right bond upon closing parenthesis
                 scope -= 1
-            if RN in self.ATOMS:                            # Increment atom index each atom encountered
+            if RN in ATOMS:                            # Increment atom index each atom encountered
                 RNIndex += 1
-            if scope == 0 and RN in self.NUMBERS:           # Every number always has a bonded partner
+            if scope == 0 and RN in NUMBERS:           # Every number always has a bonded partner
                 numGroup = self.numbersHandler(RNPos)       # Handle ring junction bond via numbersHandler
                 rightBonds.append(numGroup)                 # Add bonded group to list of bonds
 
@@ -357,10 +339,10 @@ class Molecule():
         else:                                               # RN is the final right bonded neighbor within this scope
             RNIndex += 1                                    # Increment atomic index to correct index offset
 
-            if RN in self.ATOMS:                            # Generic atom right bond case
+            if RN in ATOMS:                            # Generic atom right bond case
                 rightBonds.append(Atom(RNIndex, RN))
 
-            elif RN in self.BONDS:                          # Explicit right bond case
+            elif RN in BONDS:                          # Explicit right bond case
                 explicitBond = RN                           # RN must be explicit bond
                 RNPos += 1
                 RN = self.SMILES[RNPos] 
@@ -395,7 +377,7 @@ class Molecule():
                 pos += 1
             return chargedGroup + ']'
 
-        if self.SMILES[pos] not in self.BRACKETS:   # Capture errors in positions
+        if self.SMILES[pos] not in BRACKETS:   # Capture errors in positions
             raise ValueError(
                 "The position passed does not point to a bracket in the smiles code"
             )
@@ -419,11 +401,11 @@ class Molecule():
 
         for pos, symbol in enumerate(self.SMILES):              # Loop over SMILES 
 
-            if symbol in self.ATOMS:
+            if symbol in ATOMS:
                 atomIndex += 1
                 atomSymbol = symbol
 
-            if symbol in self.NUMBERS:                          # Symbol is a number in this scope
+            if symbol in NUMBERS:                          # Symbol is a number in this scope
 
                 if self.SMILES[pos-1] == ']':                   # Charged group at ring junction
                     atomSymbol = self.getChargedGroup(pos-1)    # Retrieve charged group from closing bracket
@@ -467,7 +449,7 @@ class Molecule():
         if pos == len(self.SMILES) - 1:                         # Final atom alcohol group case
             if(
                 self.SMILES[pos-1].upper() == 'C'               # Can be connected to an linear carbon
-                or self.SMILES[pos-1] in self.NUMBERS           # Or connected at a ring junction
+                or self.SMILES[pos-1] in NUMBERS           # Or connected at a ring junction
                 or self.SMILES[pos-1] == ')'                    # Or connected at a normal junction
             ):
                 self.ALCOHOLICINDICES.append(atomIndex)         
@@ -483,8 +465,8 @@ class Molecule():
 
         elif(                                                   # Ending parenthesis alcohol group
             self.SMILES[pos+1] == ')'                           # Must be directly next to closing parenthesis
-            and self.SMILES[pos-1] not in self.BONDS            # Not connected to a double/triple bond
-            and self.SMILES[pos-1] not in self.BRACKETS         # And not connected to a charge group
+            and self.SMILES[pos-1] not in BONDS            # Not connected to a double/triple bond
+            and self.SMILES[pos-1] not in BRACKETS         # And not connected to a charge group
         ):
             self.ALCOHOLICINDICES.append(atomIndex)
 
@@ -499,7 +481,7 @@ class Molecule():
                 Some extra neighbor checking is required to confirm aromatic/non aromatic presence fully
         """
 
-        allAtoms = ''.join(self.ATOM_REGEX.findall(self.SMILES))    # Simplification of aromatic/nonaromatic count
+        allAtoms = ''.join(ATOM_REGEX.findall(self.SMILES))    # Simplification of aromatic/nonaromatic count
 
         if allAtoms.islower():                                      # All lower case atoms means all counted rings are aromatic
             self.aromaticCount = self.ringCount
@@ -518,7 +500,7 @@ class Molecule():
                 and ringClose.symbol.islower()
             ):
 
-                if self.SMILES[pos+1] in self.ATOMS:                # Check if first symbol deeper in ring is an atom
+                if self.SMILES[pos+1] in ATOMS:                # Check if first symbol deeper in ring is an atom
 
                     if self.SMILES[pos+1].islower():                # Another lower atom in ring confirms aromatic ring
                         self.aromaticCount += 1
@@ -534,7 +516,7 @@ class Molecule():
                 and ringClose.symbol.isupper()
             ):
 
-                if self.SMILES[pos+1] in self.ATOMS:                # Check if first symbol deeper in ring is an atom
+                if self.SMILES[pos+1] in ATOMS:                # Check if first symbol deeper in ring is an atom
 
                     if self.SMILES[pos+1].islower():                # Another lower atom in ring confirms aromaic ring
                         self.aromaticCount += 1
@@ -582,7 +564,7 @@ class Molecule():
 
         for pos, symbol in enumerate(self.SMILES):              # Loop over SMILES
 
-            if symbol in self.ATOMS:
+            if symbol in ATOMS:
                 atomIndex += 1
 
             if symbol.islower() and atomIndex not in self.AROMATICINDICES:       # Lower case letters are aromatic atoms
@@ -590,7 +572,7 @@ class Molecule():
                 continue
 
             
-            if symbol in self.NUMBERS and pos not in evaluatedNumPositions:      # If a new ring has been found in the SMILES code via a number
+            if symbol in NUMBERS and pos not in evaluatedNumPositions:      # If a new ring has been found in the SMILES code via a number
 
                 evaluatedNumPositions.append(pos)               # Current position is a number
                 scopeIndices = [[]]                             # ScopeIndicies list for cyclic index tracking
@@ -602,7 +584,7 @@ class Molecule():
                
                 while RN != symbol:                             # Loop until ring closes (symbol is opening number within this scope)
 
-                    if RN in self.ATOMS:                        
+                    if RN in ATOMS:                        
                         RNindex += 1                            # Increment atom index
 
                         if len(scopeIndices) == scope:          # If this atom is apart of a deeper parenthesis scope, i.e. 1(...

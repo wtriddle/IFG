@@ -4,7 +4,6 @@
 
 
 from Molecule import Molecule
-import inspect
 
 mol = Molecule("[NH3+]CCC(O)C(=O)[O-]", "RABTUL")
 print('\nBy passing object of class')

@@ -27,7 +27,10 @@ def print_data(matches_list):
 
 # Run IFG and collect matches_list output
 fgs = ifg(SMILES, REFCODE)
-print("All fgs")
+print("\nOUTPUT \n")
+print(fgs)
+print("\nAll fgs")
 print_data(fgs.allFgs)
 print("\nPrecise fgs")
 print_data(fgs.preciseFgs)
+print("\n")

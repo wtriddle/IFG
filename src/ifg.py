@@ -23,6 +23,7 @@ Key Attributes:
 
 
 from Molecule import Molecule
+from constants import BONDS, CHARGE_REGEX, NON_BRANCHING_SYMBOLS, BOND_REGEX
 from helpers import formatSmiles
 import re
 from config import FGSPATH
@@ -32,19 +33,22 @@ class ifg(Molecule):
     """ The class algorithm which identifies the functional group counts of a SMILES code. """
 
     def __init__(self, SMILES, REFCODE):
-        """ Initalizes SMILES code Molecule representation, then processes the functional group algorithm on that molecule. 
-
+        """ Retrieve functional groups from SMILES code:
+            
+            ## Parameters:
             SMILES (string) : A valid simplified molecular input line entry system (SMILES) code
             REFCODE (string) : The referenced code for this particular SMILES code
-        
-            Process of __init__:
-            
-            1. Decode the input SMILES code into a digital Molecule
-            2. Determine the functional groups from the digital Molecule
 
-            Notes:
-                invoking "self." within this class after the super().__init__(SMILES, REFCODE) function call will allow 
-                access to all the molecular properties for the specific input SMILES codes.
+            ## Usage:
+            >>> SMILES = "OC(=O)CC1CCC(=O)CC1"
+            >>> REFCODE = "KUZQIG"
+            >>> fgs = ifg(SMILES, REFCODE)
+            >>> print(fgs)
+            allFgs: [CarboxylicAcid, Ketone, CyclicKetone, Alcohol]
+            preciseFgs: [CarboxylicAcid, CyclicKetone]
+            >>> data_all = createDataDict(fgs.allFgs)
+            >>> data_precise = createDataDict(fgs.preciseFgs)
+            >>> ...
         """
 
         super().__init__(SMILES, REFCODE)                               # Create Molecule object from input SMILES code
@@ -106,8 +110,8 @@ class ifg(Molecule):
             FGsmiles = formatSmiles(FGsmiles).replace('[R]', 'R')                   # Remove [R] from brackets
 
             if(                                                                     # Non-charged SMILES cannot contain a charged FG
-                len(self.CHARGE_REGEX.findall(atom.symbol)) == 0                    # Charged FG's
-                and len(self.CHARGE_REGEX.findall(FGsmiles)) != 0                   # In a non-charged SMILES
+                len(CHARGE_REGEX.findall(atom.symbol)) == 0                    # Charged FG's
+                and len(CHARGE_REGEX.findall(FGsmiles)) != 0                   # In a non-charged SMILES
             ):
                 continue                                                            # Are skipped
 
@@ -220,7 +224,7 @@ class ifg(Molecule):
 
                     if(
                         smilesIndex in smilesIndices            # A used SMILES atom index
-                        or smilesSymbol[0] in self.BONDS        # Or a non single-bonded atom
+                        or smilesSymbol[0] in BONDS        # Or a non single-bonded atom
                     ):                                          # Are invalid for R group requirements, skip to next bonds
                         continue
 
@@ -336,7 +340,7 @@ class ifg(Molecule):
             aromaticCount = cyclicCount = 0                         # Tallies for atoms part of a specific ring
             for templateIndex, smilesAtom in groupAtoms.items():    # Loop over all atoms, with their indicies, in the FG
 
-                if smilesAtom.symbol not in self.LINEARSYMBOLS:     # Non-linear symbols are never cyclic
+                if smilesAtom.symbol not in NON_BRANCHING_SYMBOLS:     # Non-linear symbols are never cyclic
                     continue
 
                 if(                                                 
@@ -511,7 +515,7 @@ class ifg(Molecule):
 
         if(
             len(nitrogenBonds) == 1                                     # Primary amines have one bond
-            and not self.BOND_REGEX.findall(nitrogenBonds[0].symbol)    # That must be a single bond
+            and not BOND_REGEX.findall(nitrogenBonds[0].symbol)    # That must be a single bond
         ):                                                              # Otherwise, nitrogen is not a primary amine
 
             bondedIndex = nitrogenBonds[0].index                        
@@ -537,3 +541,21 @@ class ifg(Molecule):
     def printSpecificFgs(self, fgs):
         for f in fgs:
             print(f, f.getSymbolDict())
+
+    def __str__(self):
+        allFgs = self.allFgs
+        preciseFgs = self.preciseFgs
+        s = "allFgs: ["
+        for f in allFgs:
+            s+=f.NAME
+            s+=", "
+        s=s[0:-2]       # , correction
+        s+=']\n'
+
+        s+= "preciseFgs: ["
+        for f in preciseFgs:
+            s+=f.NAME
+            s+=", "
+        s=s[0:-2]       # , correction
+        s+=']\n'
+        return s
