@@ -51,9 +51,9 @@ class ifg(Molecule):
             >>> ...
         """
 
-        super().__init__(SMILES, REFCODE)                               # Create Molecule object from input SMILES code
-        self.ALL_FGS = self.findFunctionalGroups()                       # Entry point of full IFG algorithm
-        self.EXACT_FGS = self.findPreciseGroups(self.ALL_FGS)           # Filter output to obtain precise group counts
+        super().__init__(SMILES, REFCODE)                           # Create Molecule object from input SMILES code
+        self.ALL_FGS = self.findFunctionalGroups()                  # ALL_FGS is a property ready after IFG
+        self.EXACT_FGS = self.overlapFilter(self.ALL_FGS)           # Filter overlapping groups to get different format of the data
 
     def findFunctionalGroups(self):
         """ Return a list of Molecule objects which represent the functional groups of a particular SMILES code
@@ -63,27 +63,30 @@ class ifg(Molecule):
                 reflect the positioning within the SMILES
             """
 
-        functionalGroups = []
+        # List of identified functional groups
+        matches_list = []
 
+        # Main IFG loop (loops for num_atoms*num_fgs times)
         for atom in self.atomData.values():                     # Loop over all atoms in the SMILES
-            groups = self.whichGroup(atom)                      # Determine the functional groups which stem from an atom
+            groups = self.whichGroup(atom)                      # Determine the functional groups which stem from an atom (loops over all FGS)
 
             if atom.symbol == 'N':                              # Special handling for nitrogens
                 primaryAmine = self.detetminePrimaryAmine(atom.index)
 
                 if primaryAmine:
-                    functionalGroups.append(primaryAmine)
+                    matches_list.append(primaryAmine)
 
             for group in groups:                                # For each group (each are Molecule objects) found to stem from an atom
-                functionalGroups.append(group)                  # Add it to the full list of identified FG
+                matches_list.append(group)                      # Add it to the "Matches list" of identified FG
 
-        self.repetitionFilter(functionalGroups)                 # Remove repeated groups
-        self.priorityFilter(functionalGroups)                   # Remove overlapped groups based on priority of R groups 
+        # Post data processing and classification methods
+        self.repetitionFilter(matches_list)                 # Remove repeated groups
+        self.hierarchyFilter(matches_list)                  # Remove hierarchically overlapped groups
 
-        self.determineCyclicGroups(functionalGroups)            # Identify the groups which are cyclic by index analysis
-        self.determineAlcoholGroups(functionalGroups)           # Create Molecule objects for identified alcohols
+        self.classifyCyclic(matches_list)            # Identify the groups which are aromatic and non-aromatic
+        self.determineAlcoholGroups(matches_list)           # Create Molecule objects for identified alcohols
 
-        return functionalGroups
+        return matches_list
 
     def whichGroup(self, atom):
         """ Returns the list of functional groups as Molecule objects that stem from a given atom in the SMILES code
@@ -101,17 +104,16 @@ class ifg(Molecule):
                 Loops over every possible functional group in FGlist
                 Every atom has a possibility to be branched into a functional group. Therefore, every atom must be looked at individually.
                 R group paths are elimated because they cannot be expanded from to validate the functional group. Only main group atoms can be expanded from
-                Function currently ONLY SUPPORTS SINGLE POINT ALCOHOL EXPANSION (i.e. only 1 alcohol is allowed in FG)
         """
 
         matches = []
         for line in open(FGSPATH.resolve(), 'r'):                                   # Loop over every functional group
-            (FGsmiles, name) = re.compile(r'\S+').findall(line)                     # Get the (FGTemplate, FGName) pair
+            (FGsmiles, name) = re.compile(r'\S+').findall(line)                     # Get the (SMILES, Name) pair from FGlist.txt
             FGsmiles = formatSmiles(FGsmiles).replace('[R]', 'R')                   # Remove [R] from brackets
 
             if(                                                                     # Non-charged SMILES cannot contain a charged FG
-                len(CHARGE_REGEX.findall(atom.symbol)) == 0                    # Charged FG's
-                and len(CHARGE_REGEX.findall(FGsmiles)) != 0                   # In a non-charged SMILES
+                len(CHARGE_REGEX.findall(atom.symbol)) == 0                         # Charged FG's
+                and len(CHARGE_REGEX.findall(FGsmiles)) != 0                        # In a non-charged SMILES
             ):
                 continue                                                            # Are skipped
 
@@ -137,7 +139,7 @@ class ifg(Molecule):
                             expansionPoint = tempAtom.index                         # Set the string expansion point at that atom within the FG
                             break
                     else:                                                           # Alcoholic FG's can only expand from its alcohol group
-                        expansionPoint = FGtemplate.ALCOHOLICINDICES[0]             # Only one alcohol is considered inside of the FG
+                        expansionPoint = FGtemplate.ALCOHOLICINDICES[0]             # Choose 0th one (if FG exists in molecule, match will occur)
                         break
 
                                                                                     # Set FGtemplate for expandGroup
@@ -324,7 +326,7 @@ class ifg(Molecule):
 
         return 
 
-    def determineCyclicGroups(self, functionalGroups):
+    def classifyCyclic(self, functionalGroups):
         """ Label functional groups with ring classification based on the ring structure of Molecule (self) 
 
             functionalGroups (list) : List of Molecule obejects that represent the functional groups in a smiles code
@@ -390,17 +392,15 @@ class ifg(Molecule):
 
         return 
 
-    def priorityFilter(self, functionalGroups):
+    def hierarchyFilter(self, functionalGroups):
         """ Filters functionalGroups list of all non-maximized R groups representations of functional group families
 
-            functionalGroups (list) : List of Molecule obejects that represent the functional groups in a smiles code
+            functionalGroups (list) : List of Molecule objects that represents the functional groups in a smiles code
 
             Notes:
                 For exmaple, a secondary amine and a tertiary amine. The tertiary amine is the more complete strucuture.
                 RN(R)R vs RNR
-                Heirarchy filter will remove the lower of the two from these relations, but keep non-R group contained ones such as ketone and ester.
-                RC(=O) vs RC(=O)O
-                Because the number of R groups is the same, this group will not be filtered, and instead by considered as two individual groups
+                Uses a comparsion for R group with more R atoms given that the non-R group structures are equal 
         """
 
         index = -1
@@ -433,8 +433,8 @@ class ifg(Molecule):
                         break
         return 
 
-    def findPreciseGroups(self, functionalGroups):
-        """ Filters functional groups for their precise groups.
+    def overlapFilter(self, functionalGroups):
+        """ Filters functional groups list based on full overlapping condition
 
             functionalGroups (list) : List of Molecule obejects that represent the functional groups in a SMILES
 
@@ -543,8 +543,16 @@ class ifg(Molecule):
             print(f, f.getSymbolDict())
 
     def __str__(self):
+        """ String function for printing out fgs object to screen
+            >>> fgs = ifg(SMILES, REFCODE)
+            >>> print(fgs)
+            __str__ output
+        """
+
         ALL_FGS = self.ALL_FGS
         EXACT_FGS = self.EXACT_FGS
+
+        # All FGS list to screen
         s = "ALL_FGS: ["
         for f in ALL_FGS:
             s+=f.NAME
@@ -552,10 +560,13 @@ class ifg(Molecule):
         s=s[0:-2]       # , correction
         s+=']\n'
 
+        # EXACT FGS list to screen
         s+= "EXACT_FGS: ["
         for f in EXACT_FGS:
             s+=f.NAME
             s+=", "
         s=s[0:-2]       # , correction
         s+=']\n'
+
+        # Display constructed string
         return s
