@@ -5,7 +5,7 @@
 
 from Molecule import Molecule
 
-mol = Molecule("[NH3+]CCC(O)C(=O)[O-]", "RABTUL")
+mol = Molecule("COc1ccc(C(C)=O)c(O)c1", "RABTUL")
 print('\nBy passing object of class')
 print(mol.__dict__)                                 # __dict__ is the winner
 
@@ -24,11 +24,11 @@ print("")
 print("RING_CLOSE_POSITIONS: ")
 print(mol.RING_CLOSE_POSITIONS)
 print("")
-print("RING_COMPLEMENTS: ")
-print(mol.RING_COMPLEMENTS)
+print("ring_complements: ")
+print(mol.ring_complements)
 print("")
-print("RING_SELF: ")
-print(mol.RING_SELF)
+print("ring_self: ")
+print(mol.ring_self)
 print("")
 print("RING_OPEN_POSITIONS: ")
 print(mol.RING_OPEN_POSITIONS)

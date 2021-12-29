@@ -13,12 +13,11 @@ Key Attributes:
     including extra classification like cyclic or aromatic. Also includes ring data and alcohol counts in both. They differ slightly:
 
 
-    ALL_FGS (Dict) : The dictionary which counts all functional groups.
-    "All" is defined as allowing overlapping functional groups, such as a ketone inside of an ester. 
+    all_fgs (Dict) : The set of FGS after.
+    Includes overlapping functional groups, such as a ketone inside of an ester. 
     
-    EXACT_FGS (Dict) : The dictionary which counts precise functional groups.
-    "Precise" is defined as allowing overlapping functional groups. This means ketones would not be seen inside esters, 
-    nor tertiary amines inside amides, and so on. Only the largest functional groups will appear within this dictionary
+    exact_fgs (Dict) : The dictionary which consider overlapping funcitonal groups.
+    Excludes overlapping functional groups, ex ketones left unrecorded when seen inside esters, etc.
 """
 
 
@@ -33,7 +32,7 @@ class ifg(Molecule):
     """ The class algorithm which identifies the functional group counts of a SMILES code. """
 
     def __init__(self, SMILES, REFCODE):
-        """ Retrieve functional groups from SMILES code:
+        """ Determine the functional groups from a SMILES code:
             
             ## Parameters:
             SMILES (string) : A valid simplified molecular input line entry system (SMILES) code
@@ -44,16 +43,16 @@ class ifg(Molecule):
             >>> REFCODE = "KUZQIG"
             >>> fgs = ifg(SMILES, REFCODE)
             >>> print(fgs)
-            ALL_FGS: [CarboxylicAcid, Ketone, CyclicKetone, Alcohol]
-            EXACT_FGS: [CarboxylicAcid, CyclicKetone]
-            >>> data_all = createDataDict(fgs.ALL_FGS)
-            >>> data_precise = createDataDict(fgs.EXACT_FGS)
+            all_fgs: [CarboxylicAcid, Ketone, CyclicKetone, Alcohol]
+            exact_fgs: [CarboxylicAcid, CyclicKetone]
+            >>> data_all = createDataDict(fgs.all_fgs)
+            >>> data_precise = createDataDict(fgs.exact_fgs)
             >>> ...
         """
 
         super().__init__(SMILES, REFCODE)                           # Create Molecule object from input SMILES code
-        self.ALL_FGS = self.findFunctionalGroups()                  # ALL_FGS is a property ready after IFG
-        self.EXACT_FGS = self.overlapFilter(self.ALL_FGS)           # Filter overlapping groups to get different format of the data
+        self.all_fgs = self.findFunctionalGroups()                  # all_fgs is a property ready after IFG
+        self.exact_fgs = self.overlapFilter(self.all_fgs)           # Filter overlapping groups to get different format of the data
 
     def findFunctionalGroups(self):
         """ Return a list of Molecule objects which represent the functional groups of a particular SMILES code
@@ -441,17 +440,17 @@ class ifg(Molecule):
             Notes:
                 Relations such as ketone in ester, amine in amide, ether in ester are elimated using this function
         """
-        EXACT_FGS = functionalGroups[:]
+        exact_fgs = functionalGroups[:]
         index = -1
-        while index != len(EXACT_FGS) - 1:
+        while index != len(exact_fgs) - 1:
 
             index += 1
-            group = EXACT_FGS[index]
+            group = exact_fgs[index]
             groupAtoms = group.atomData
             groupIndices = []
             for atom in groupAtoms.values():
                 groupIndices.append(atom.index)
-            for compareIndex, compareGroup in enumerate(EXACT_FGS):
+            for compareIndex, compareGroup in enumerate(exact_fgs):
 
                 if compareIndex == index:
                     continue
@@ -464,14 +463,14 @@ class ifg(Molecule):
                 if len(compareIndices) != len(groupIndices):
 
                     if all(i in groupIndices for i in compareIndices):
-                        del(EXACT_FGS[compareIndex])
+                        del(exact_fgs[compareIndex])
                         del(groupIndices)
                         del(compareIndices)
                         index = -1
                         break
 
                     elif all(i in compareIndices for i in groupIndices):
-                        del(EXACT_FGS[index])
+                        del(exact_fgs[index])
                         del(groupIndices)
                         del(compareIndices)
                         index = -1
@@ -486,14 +485,14 @@ class ifg(Molecule):
                     numCompareRAtoms = len(self.getRgroups(compareAtoms))
 
                     if numMainRAtoms > numCompareRAtoms:
-                        del(EXACT_FGS[index])
+                        del(exact_fgs[index])
                         del(groupIndices)
                         del(compareIndices)
                         index = -1
                         break
 
                     elif numCompareRAtoms > numMainRAtoms:
-                        del(EXACT_FGS[compareIndex])
+                        del(exact_fgs[compareIndex])
                         del(groupIndices)
                         del(compareIndices)
                         index = -1
@@ -501,7 +500,7 @@ class ifg(Molecule):
 
                 del(compareIndices)
 
-        return EXACT_FGS
+        return exact_fgs
 
     def detetminePrimaryAmine(self, nitrogenIndex):
         """ Return primary amine Molecule object with proper ring classification, if it exists on a ring
@@ -535,8 +534,8 @@ class ifg(Molecule):
 
         return False                                                    # Otherwise return false
 
-    def printALL_FGS(self):
-        for f in self.ALL_FGS:
+    def printall_fgs(self):
+        for f in self.all_fgs:
             print(f)
     def printSpecificFgs(self, fgs):
         for f in fgs:
@@ -549,20 +548,20 @@ class ifg(Molecule):
             __str__ output
         """
 
-        ALL_FGS = self.ALL_FGS
-        EXACT_FGS = self.EXACT_FGS
+        all_fgs = self.all_fgs
+        exact_fgs = self.exact_fgs
 
         # All FGS list to screen
-        s = "ALL_FGS: ["
-        for f in ALL_FGS:
+        s = "all_fgs: ["
+        for f in all_fgs:
             s+=f.NAME
             s+=", "
         s=s[0:-2]       # , correction
         s+=']\n'
 
         # EXACT FGS list to screen
-        s+= "EXACT_FGS: ["
-        for f in EXACT_FGS:
+        s+= "exact_fgs: ["
+        for f in exact_fgs:
             s+=f.NAME
             s+=", "
         s=s[0:-2]       # , correction

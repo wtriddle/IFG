@@ -11,8 +11,8 @@ REFCODE = "LAQSOM"
 ###########################
 
 def print_data(matches_list):
-    """ Displays data in ALL_FGS or EXACT_FGS via pandas
-        matches_list (list):  either ALL_FGS or EXACT_FGS
+    """ Displays data in all_fgs or exact_fgs via pandas
+        matches_list (list):  either all_fgs or exact_fgs
     """
     # Organize and format data for pandas dataframe inputs
     data = createFgDataDict(matches_list)
@@ -30,7 +30,7 @@ fgs = ifg(SMILES, REFCODE)
 print("\nOUTPUT \n")
 print(fgs)
 print("\nAll fgs")
-print_data(fgs.ALL_FGS)
+print_data(fgs.all_fgs)
 print("\Exact fgs")
-print_data(fgs.EXACT_FGS)
+print_data(fgs.exact_fgs)
 print("\n")

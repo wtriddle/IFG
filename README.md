@@ -53,8 +53,8 @@ Identification of functional groups in a SMILES code:
     >>> from ifg import ifg
     >>> functionalGroups = ifg(SMILES="COC(=O)C(C)(O)NC(C)=O",REFCODE="LAQSOM")
     >>> print(functionalGroups)
-    ALL_FGS : [Ether, Ketone, Ester, Amide, SecondaryAmine, Ketone, Alcohol]
-    EXACT_FGS : [Ester, Amide, Alcohol]
+    all_fgs : [Ether, Ketone, Ester, Amide, SecondaryAmine, Ketone, Alcohol]
+    exact_fgs : [Ester, Amide, Alcohol]
 ```
 
 # Configuration

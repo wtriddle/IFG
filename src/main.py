@@ -80,25 +80,25 @@ def main():
                 **functionalGroups.HALOGENS
             }
 
-            ALL_FGS = defaultdict(int, {                             # Combine properties with ALL_FGS to get ALL_FGS dict
-                **createFgDataDict(functionalGroups.ALL_FGS),    
+            all_fgs = defaultdict(int, {                             # Combine properties with all_fgs to get all_fgs dict
+                **createFgDataDict(functionalGroups.all_fgs),    
                 **propData
             })
 
-            EXACT_FGS = defaultdict(int, {                         # Combine properties with EXACT_FGS to get EXACT_FGS dict
-                **createFgDataDict(functionalGroups.EXACT_FGS),
+            exact_fgs = defaultdict(int, {                         # Combine properties with exact_fgs to get exact_fgs dict
+                **createFgDataDict(functionalGroups.exact_fgs),
                 **propData
             })
                                                                     # Decompse dictionary into values only list which mirrors the 
                                                                     # index positioning of the columns in the all dataframe
             ALL_DATA = [                                             
-                ALL_FGS[name] if ALL_FGS[name]
+                all_fgs[name] if all_fgs[name]
                 else np.nan
                 for name in columns[2:]
             ]
                                                                     # Do this for precise FGs as well
             EXACT_DATA = [
-                EXACT_FGS[name] if EXACT_FGS[name]
+                exact_fgs[name] if exact_fgs[name]
                 else np.nan
                 for name in columns[2:]
             ]

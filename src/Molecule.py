@@ -76,18 +76,18 @@ class Molecule():
 
         # Ring Containers
         self.RING_OPEN_POSITIONS = []
-        self.RING_SELF = {}
+        self.ring_self = {}
         self.RING_CLOSE_POSITIONS = []
-        self.RING_COMPLEMENTS = {}
+        self.ring_complements = {}
         self._RING()                # Initalize Ring Containers
 
         # Ring Index Containers
         self.AROMATICINDICES = []
         self.CYCLICINDICES = []
-        self._INCIDES()             # Initalize Ring Index Containers
+        self._INDICES()             # Initalize Ring Index Containers
 
         # Collect ring data from ring containers
-        self.ringCount = len(self.RING_SELF) / 2        # Will always be integer value
+        self.ringCount = len(self.ring_self) / 2        # Will always be integer value
         self.aromaticCount = 0
         self.nonAromaticCount = 0
         self._RING_COUNTS()         # Compute Ring counts
@@ -384,8 +384,8 @@ class Molecule():
 
     def _RING(self):
         """ Initalizes the four ring data containers
-            RING_SELF (dictionary): string position of number to its direct atom pair (i.e. open number position gives opening atom data)
-            RING_COMPLEMENTS (dictionary): string position of a number to its complementary atom pair (i.e. open number position gives closing atom data)
+            ring_self (dictionary): string position of number to its direct atom pair (i.e. open number position gives opening atom data)
+            ring_complements (dictionary): string position of a number to its complementary atom pair (i.e. open number position gives closing atom data)
             RING_OPEN_POSITIONS (list): string positions of the numbers which opened a junction
             RING_CLOSE_POSITIONS (list): string positions of the numbers which closed a junction
 
@@ -411,13 +411,13 @@ class Molecule():
                     atomSymbol = self.getChargedGroup(pos-1)    # Retrieve charged group from closing bracket
 
                 atom = Atom(atomIndex, atomSymbol)              # Ring junction atom object
-                self.RING_SELF[pos] = atom                      # Opening ring junction string position to opening atom pair
+                self.ring_self[pos] = atom                      # Opening ring junction string position to opening atom pair
 
                 if symbol in evaluatedNumbers:                  # If a closing ring junction has been located
 
                     initalNumberPos = evaluatedNumbers[symbol]                  # Inital string position of number where ring junction opened
-                    self.RING_COMPLEMENTS[initalNumberPos] = atom               # Opening ring junction string position to closing atom pair
-                    self.RING_COMPLEMENTS[pos] = self.RING_SELF[initalNumberPos]# Closing ring junction string position to opening atom pair
+                    self.ring_complements[initalNumberPos] = atom               # Opening ring junction string position to closing atom pair
+                    self.ring_complements[pos] = self.ring_self[initalNumberPos]# Closing ring junction string position to opening atom pair
                     self.RING_CLOSE_POSITIONS.append(pos)                       # Position of where the ring ends in the SMILES
                     del(evaluatedNumbers[symbol])                               # Close ring path once completed to allow other paths with the same number
                     continue                                                    # Process the next ring
@@ -426,12 +426,12 @@ class Molecule():
                 evaluatedNumbers[symbol] = pos                  # Number to positioning key:value pairing
 
     def numbersHandler(self, pos):
-        """ Return the partner of a given position to retrieve what atom a specific number is connected to
+        """ Return the non-linear bond from a specific number position (Atom Object)
 
-            pos (int) : Position of a ring whose partner atom is to be determined
+            pos (int) : Position of number in SMILES code
         """
 
-        return self.RING_COMPLEMENTS[pos]
+        return self.ring_complements[pos]
 
     def determineAlcoholGroup(self, pos, atomIndex):
         """ Validates if an given string position and atom index in a Molecule correspond to an alochol group
@@ -492,8 +492,8 @@ class Molecule():
             return 
 
         for pos in self.RING_OPEN_POSITIONS:                        # Loop over the opening ring junction string positions in a Molecule
-            ringOpen = self.RING_SELF[pos]                          # Get the opening atom data
-            ringClose = self.RING_COMPLEMENTS[pos]                  # Get the closing atom data
+            ringOpen = self.ring_self[pos]                          # Get the opening atom data
+            ringClose = self.ring_complements[pos]                  # Get the closing atom data
 
             if(                                                     # Both atomic junctions are aromatic case
                 ringOpen.symbol.islower() 
@@ -530,7 +530,7 @@ class Molecule():
             else:                                                   # Different ring junction atom types means take non-aromatic priority
                 self.nonAromaticCount += 1
 
-    def _INCIDES(self):
+    def _INDICES(self):
         """ Determines the cyclic/aromatic atom indicies inside the SMILES
 
             AROMATICINDICES (list): List of atom indicies which are apart of an aromatic ring
