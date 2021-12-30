@@ -70,7 +70,7 @@ def main():
         for text in open(SMILESPATH.resolve()):                     # Loop over all smiles codes in this current dataset
 
             line = re.compile(r'\S+').findall(text)                 # Get line from smiles text list
-            (smiles, refcode) = line                                # Extract the line into variables
+            (temp, smiles, refcode) = line                                # Extract the line into variables
             functionalGroups = ifg(smiles, refcode)                 # Determine the functional groups based on the input SMILES code
 
             propData = {                                            # Add additional properties baesd on Molecule

@@ -14,8 +14,8 @@ resources_path = Path("resources")
 # [x for x in resources_path.iterdir()]
 
 # SMILES Codes path
-SMILESPATH = resources_path / 'BenWillSmiles.txt'          # Change target SMILES file
-# for x in open(SMILESPATH.resolve(), 'r'):           # Test SMILES path
+SMILESPATH = resources_path / 'smiles.txt'              # Change target SMILES file
+# for x in open(SMILESPATH.resolve(), 'r'):             # Test SMILES path
 #     print(x)
 
 # Functional Groups path

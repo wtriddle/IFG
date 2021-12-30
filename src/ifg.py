@@ -1,6 +1,6 @@
-""" Algorithm which analyzes the atom and bond data of a given SMILES code to produce counts of pre-defined organic functional groups.
+""" Algorithm which analyzes the atom and bond data of a given SMILES code to produce counts of pre-defined organic functional groups in FGlist.txt.
 
-    This algorithm is built off of the Molecule object, which has two important containers: atomData and bondData. These two
+    This algorithm is built from the Molecule class, which has two important data structures: atomData and bondData. These two
     dictionaries possess the data of how the molecule atoms are connected. bondData contains all the possible bond paths that stem from
     every atom in the SMILES code. The same is true of decoded functional group templates from the Molecule class.
     Therefore, if a functional group template can model itself upon at least one of those paths in the SMILES code, 
@@ -9,9 +9,8 @@
 
 Key Attributes:
 
-    The following two functional group containers have keys for the counts of their that specific SMILES code functional groups, 
+    The following two functional group data have keys for the counts of their that specific SMILES code functional groups, 
     including extra classification like cyclic or aromatic. Also includes ring data and alcohol counts in both. They differ slightly:
-
 
     all_fgs (Dict) : The set of FGS after.
     Includes overlapping functional groups, such as a ketone inside of an ester. 
