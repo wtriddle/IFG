@@ -25,6 +25,7 @@ from constants import BONDS, CHARGE_REGEX, NON_BRANCHING_SYMBOLS, BOND_REGEX
 from helpers import formatSmiles
 import re
 from config import FGSPATH
+from datetime import datetime
 
 
 class ifg(Molecule):
@@ -50,6 +51,8 @@ class ifg(Molecule):
         """
 
         super().__init__(SMILES, REFCODE)                           # Create Molecule object from input SMILES code
+        self.dfs_time = datetime.now()                              # Performance metric for DFS portion of the algorithm (main IFG)
+        self.filter_time = datetime.now()                           # Performance metric for the filter portion of the algorithm
         self.all_fgs = self.findFunctionalGroups()                  # all_fgs is a property ready after IFG
         self.exact_fgs = self.overlapFilter(self.all_fgs)           # Filter overlapping groups to get different format of the data
 
@@ -64,6 +67,7 @@ class ifg(Molecule):
         # List of identified functional groups
         matches_list = []
 
+        now = datetime.now()
         # Main IFG loop (loops for num_atoms*num_fgs times)
         for atom in self.atomData.values():                     # Loop over all atoms in the SMILES
             groups = self.whichGroup(atom)                      # Determine the functional groups which stem from an atom (loops over all FGS)
@@ -76,14 +80,17 @@ class ifg(Molecule):
 
             for group in groups:                                # For each group (each are Molecule objects) found to stem from an atom
                 matches_list.append(group)                      # Add it to the "Matches list" of identified FG
+        
+        self.dfs_time = datetime.now() - now
 
         # Post data processing and classification methods
+        now = datetime.now()
         self.repetitionFilter(matches_list)                 # Remove repeated groups
         self.hierarchyFilter(matches_list)                  # Remove hierarchically overlapped groups
 
         self.classifyCyclic(matches_list)            # Identify the groups which are aromatic and non-aromatic
         self.determineAlcoholGroups(matches_list)           # Create Molecule objects for identified alcohols
-
+        self.filter_time = datetime.now() - now
         return matches_list
 
     def whichGroup(self, atom):

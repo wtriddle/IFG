@@ -62,9 +62,11 @@ def main():
 
     for prop in properties:                                     # Attach additional prop names to column list
         columns.append(prop)
-
-    allDf = pd.DataFrame(columns=columns)                       # Initialize the all data frame with column names
-    preciseDf = pd.DataFrame(columns=columns)                   # And the precise data frame with column names
+       
+    allDfData = []
+    preciseDfData = []
+    p = 0
+    z = 0
 
     with tqdm(total=len(open(SMILESPATH.resolve()).readlines())) as bar:
         for text in open(SMILESPATH.resolve()):                     # Loop over all smiles codes in this current dataset
@@ -72,6 +74,9 @@ def main():
             line = re.compile(r'\S+').findall(text)                 # Get line from smiles text list
             (temp, smiles, refcode) = line                                # Extract the line into variables
             functionalGroups = ifg(smiles, refcode)                 # Determine the functional groups based on the input SMILES code
+
+            p+=functionalGroups.dfs_time.total_seconds()
+            z+=functionalGroups.filter_time.total_seconds()
 
             propData = {                                            # Add additional properties baesd on Molecule
                 **functionalGroups.ringData,
@@ -107,10 +112,14 @@ def main():
                 ALL_DATA.insert(0, _id)
                 EXACT_DATA.insert(0, _id)
 
-            allDf.loc[refcode] = ALL_DATA                            # Locate a new row indexed by refcode
-            preciseDf.loc[refcode] = EXACT_DATA                    # For both dataframes
+            allDfData.append(ALL_DATA)                            # Locate a new row indexed by refcode
+            preciseDfData.append(EXACT_DATA)                        # For both dataframes
 
             bar.update(1)                                           # Increment the progress bar once the Molecule is processed
+
+
+    allDf = pd.DataFrame(columns=columns, data=allDfData)                       # Initialize the all data frame with column names
+    preciseDf = pd.DataFrame(columns=columns, data=preciseDfData)                   # And the precise data frame with column names
 
     allDf.set_index("Refcode")                                  # Index the DF's by REFCODE
     preciseDf.set_index("Refcode")
@@ -118,5 +127,20 @@ def main():
     dfs = {}                                                    # Return nan-filtered dataframes (i.e. columns with all NaN are removed)
     dfs.update({"allDf": allDf.dropna(axis=1, how='all')})
     dfs.update({"preciseDf": preciseDf.dropna(axis=1, how='all')})
+
+
+    total = p + z
+    print("DFS Performance Evaluation")
+    print("all seconds = ", p)
+    print("percentage dfs = ", (p/total)*100)
+    print("average time = ", p/831) # Change to varaible length
+    print("\n")
+
+    print("FILTERING Performance Evaluation")
+    print("all seconds = ", z)
+    print("percentage filtering = ",(z/total)*100)
+    print("average time = ", z/831) # Change to varaible length
+    print("\n")
+
 
     return dfs
