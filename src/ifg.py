@@ -112,8 +112,11 @@ class ifg(Molecule):
         """
 
         matches = []
-        for line in open(FGSPATH.resolve(), 'r'):                                   # Loop over every functional group
-            (FGsmiles, name) = re.compile(r'\S+').findall(line)                     # Get the (SMILES, Name) pair from FGlist.txt
+        for (FGsmiles, name) in [                                                   # Fetch the (smiles, name) functional group pairs from FGlist.txt
+            [y.strip() for y in x.split(' ')]                                       # Split into a formatted (smiles, name) pair
+            for x                                                                   # Done for each line
+            in open(FGSPATH.resolve(), "r+").readlines()                            # Create list using all lines in FGlist.txt
+        ]:
             FGsmiles = formatSmiles(FGsmiles).replace('[R]', 'R')                   # Remove [R] from brackets
 
             if(                                                                     # Non-charged SMILES cannot contain a charged FG

@@ -19,23 +19,16 @@ def main():
 
     """
 
-    FGtemps = pd.read_csv(FGSPATH.resolve(), sep=" ", header=None)  # Dataframe of functional group templates and names
-    FGtemps.columns = ['template', 'name']                          # Columns for FGlist
 
-                                                                # No Alcohol or Primary Amine in FGlist, manually determined
-    FGtemps = FGtemps.append(                                   # Manual Alcohol template entry
-        pd.Series(
-            ["OH", "Alcohol"], index=FGtemps.columns
-        ),
-        ignore_index=True
-    )
-    FGtemps = FGtemps.append(                                   # Manual Primary Amine template entry
-        pd.Series(
-            ["NR", "PrimaryAmine"], index=FGtemps.columns
-        ),
-        ignore_index=True
-    )
-    FGnames = sorted({name for name in FGtemps['name']})        # FGnames in a sorted set
+    FGlist_data = [                                           # Fetch the (smiles, name) functional group pairs from FGlist.txt
+        [y.strip() for y in x.split(' ')]                     # Split into a formatted (smiles, name) pair
+        for x                                                 # Done for each line
+        in open(FGSPATH.resolve(), "r+").readlines()          # Create list using all lines in FGlist.txt
+    ]
+    FGlist_data.append(["OH", "Alcohol"])
+    FGlist_data.append(["NR", "PrimaryAmine"])
+
+    FGnames = sorted({name[1] for name in FGlist_data})        # FGnames in a sorted set
 
     cyclicGroups = ["Cyclic" + group for group in FGnames]      # Cyclic nomenclatures for FGnames
     aromaticGroups = ["Aromatic" + group for group in FGnames]  # Aromatic nomenclatures for FGnames
@@ -62,9 +55,12 @@ def main():
 
     for prop in properties:                                     # Attach additional prop names to column list
         columns.append(prop)
-       
+    
+    # Set up data lists
     allDfData = []
     preciseDfData = []
+
+    # Set up performance metric varbiales for execution times
     p = 0
     z = 0
 
@@ -129,6 +125,7 @@ def main():
     dfs.update({"preciseDf": preciseDf.dropna(axis=1, how='all')})
 
 
+    # Show the total performance
     total = p + z
     print("DFS Performance Evaluation")
     print("all seconds = ", p)
