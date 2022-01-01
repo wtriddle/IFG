@@ -1,12 +1,8 @@
-""" Converts ifg output data into an excel sheet
+""" Top level script for running IFG and exporting excel sheet data of structure-functional group data
 
-    Run this script in an anaconda environment with:
-    cd `Your downloaded IFG location`
-    conda activate base
-    python ./index.py
+    SETUP & EXECUTION:
 
-    Notes:
-        The PYTHONPATH variable must be set to include the /src file as a target:
+        - The PYTHONPATH variable must be set to include the /src file as a target to find required files for execution:
 
         On Linux:
         1. Go to ~/.bashrc
@@ -14,14 +10,24 @@
         export PYTHONPATH="(/PATH/TO/IFG/GOES/HERE)$PATH"
         example:
         export PYTHONPATH="/media/wtrid/Wills_2nd_drive/Theses/CHMSeniorThesis/Resources/Code/IFG:$PATH"
+        3. cd ~/IFG
+        4. python index.py
+            ...
+        5. View results in targeted output folder 
 
         On Windows:
         1. Go to environment variables
         2. Click on add new environment variables
         3. Create a new environemnt variable called PYTHONPATH
         4. Add its value as the path to the top level IFG folder
-        example:
-        C:/Users/wtriddle/OneDrive/Desktop/IFG
+            example:
+            C:/Users/wtriddle/OneDrive/Desktop/IFG
+        5. Restart computer
+        6. Run this script in the anaconda base environment with:
+            C:/Users/wtriddle/OneDrive/Desktop/IFG> conda activate base
+            (base) C:/Users/wtriddle/OneDrive/Desktop/IFG> python ./index.py
+            ...
+        7. View results in targeted output folder
 
 """
 

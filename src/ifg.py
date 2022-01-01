@@ -1,42 +1,37 @@
-""" Algorithm which analyzes the atom and bond data of a given SMILES code to produce counts of pre-defined organic functional groups in FGlist.txt.
+""" Class which performs the Identify Functional Groups (IFG) algorithm to retrieve the counts of aromatic, non-aromatic and non-cyclic functional groups from a molecular SMILES string
 
-    This algorithm is built from the Molecule class, which has two important data structures: atomData and bondData. These two
-    dictionaries possess the data of how the molecule atoms are connected. bondData contains all the possible bond paths that stem from
-    every atom in the SMILES code. The same is true of decoded functional group templates from the Molecule class.
-    Therefore, if a functional group template can model itself upon at least one of those paths in the SMILES code, 
-    then that functional group must be present inside of the SMILES code. The concept of a valid path for a functional group
-    within the SMILES code string is the solution to this algorithm.
+Attributes of IFG:
+    all_fgs (Dict) : The set of identified fgs which includes overlapping functional groups, such as a ketone inside of an ester. 
+    exact_fgs (Dict) : The set of identified fgs which excludes overlapping funcitonal groups, such as ketones left unrecorded when seen inside esters, etc.
+    dfs_time (DateTime) : The time object which records execution time of the DFS portion of IFG (collection of the raw IFG data)
+    filter_time (DateTime) : The time object which records execution time of the filtering portion of IFG (post data processing on the raw IFG output)
 
-Key Attributes:
+Notes:
+    - Algorithm uses FGlist.txt as the set of identifiable functional groups in addition to primary amines and alcohols
+    - Algorithm is built from the Molecule class and leverages atomData and bondData. 
+    - DFS utilzes bondData from given SMILES code and functional group to determine exsistence
 
-    The following two functional group data have keys for the counts of their that specific SMILES code functional groups, 
-    including extra classification like cyclic or aromatic. Also includes ring data and alcohol counts in both. They differ slightly:
-
-    all_fgs (Dict) : The set of FGS after.
-    Includes overlapping functional groups, such as a ketone inside of an ester. 
-    
-    exact_fgs (Dict) : The dictionary which consider overlapping funcitonal groups.
-    Excludes overlapping functional groups, ex ketones left unrecorded when seen inside esters, etc.
 """
 
 
 from Molecule import Molecule
 from constants import BONDS, CHARGE_REGEX, NON_BRANCHING_SYMBOLS, BOND_REGEX
 from helpers import formatSmiles
-import re
 from config import FGSPATH
 from datetime import datetime
 
 
 class ifg(Molecule):
-    """ The class algorithm which identifies the functional group counts of a SMILES code. """
+    """ The class wraps IFG algorithm 
+        Identifies molecular data and functional groups based on a SMILES string 
+    """
 
     def __init__(self, SMILES, REFCODE):
-        """ Determine the functional groups from a SMILES code:
+        """ Determine the functional groups and molecular data from a SMILES string:
             
             ## Parameters:
             SMILES (string) : A valid simplified molecular input line entry system (SMILES) code
-            REFCODE (string) : The referenced code for this particular SMILES code
+            REFCODE (string) : The referenced code for this particular SMILES string
 
             ## Usage:
             >>> SMILES = "OC(=O)CC1CCC(=O)CC1"
@@ -166,7 +161,7 @@ class ifg(Molecule):
         return matches
 
     def expandGroup(self, atom, expansionPoint, template, skipIndex=None, validSmilesIndex=None):
-        """ Return true if an atom can be expanded into the given template
+        """ The recursive DFS function which returns true if a molecular atom is determined to be part of a functional group
 
             atom (type Atom) : the SMILES code atom which is to be analyzed for having a valid bond with respect to the template
             expansionPoint (int) : The position inside of the template for which atom tested as having the matching bond paths inside of the template with respect to the SMILES code bonding paths

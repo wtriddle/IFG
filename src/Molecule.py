@@ -1,44 +1,37 @@
-""" Represents a SMILES code as its molecular equivalent with atomic properties.
-
-A molecule class contains various containers, holding numerical data, string data, and Atom objects
-It derives the bonding schema and cyclic connectivity of the moleucle in space using the SMILES
-The class is built on a string decoding algorithm 
-
-Basic usage:
-
-    // For a smiles code
-    mol = Molecule('O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O', 'ABEGOH')
-    
-    // For a functioanl group template
-    functionalGroup = Molecule('RC(=O)O', 'Carboxylicacid')
+""" Implements the Single Smiles Code Decoder (SSCD) to represent a SMILES code (string) as its molecular equivalent with atomic properties in data strucutres.
 
 Key Attributes:
-    atomData: Dictionary with atomIndex key to Atom Object value pairing
-    bondData: Dictionary with atomIndex key to list of Atom Object value pairing
-    ringData: Dictionary with ring key to count of specific ring type value
 
-    bondData can be visualized as follows:
-    Molecule
-    [
-        ATOMS→BOND PATHS
-        atom1 → [atom2, atom3, atom4…]
-        atom2 → [atom1, atom3, atom4…]
-        …
-        atomN → [atom1, atom2, … atom(N-1)]
-    ]
+    atomData (dict): AtomIndex key to Atom Object value pairing
+    bondData (dict): AtomIndex key to list of Atom Object value pairing
+    ringData (dict): Ring type key to number of ring type occurences in SMILES code value pairing
 
 Notes:
-    SMILES codes are exported from this module in all upper case
-    The module contains Atom objects which are simply symbol index objects 
-    SAR = Single Atom Representations
-    DLA = Double Lettered Atoms
+
+    - Output format of the SSCD is called the Uniform Software Description (USD) of SMILES codes (strings)
+    - A molecule class contains various data structures, holding numerical data, string data, and Atom objects
+    - It derives the bonding schema and cyclic connectivity of the moleucle in space using the SMILES
+    - The class is built on a string decoding algorithm 
+
+    - SMILES codes are exported from this module in all upper case
+    - The module contains Atom objects which are simply symbol index objects 
+    - SAR = Single Atom Representations
+    - DLA = Double Lettered Atoms
+            
+    - Conceptual Structure of bondData
+    bondData = {
+        atom1 : [atom2, atom3, atom4…]
+        atom2 : [atom1, atom3, atom4…]
+        …
+        atomN : [atom1, atom2, … atom(N-1)]
+    }
+
 
 """
 
 from Atom import Atom
 from helpers import formatSmiles
 import re
-from collections import OrderedDict
 from constants import ATOM_REGEX, CHARGE_REGEX, BOND_REGEX, ATOMS, BONDS, BRACKETS, NUMBERS, NON_BRANCHING_SYMBOLS
 
 
@@ -47,15 +40,17 @@ class Molecule():
 
     Basic usage:
 
-    Molecule objects:
-    >> mol = Molecule('O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O', 'ABEGOH')
-    >> print(mol)
+    Molecule SMILES strings:
+    >>> mol = Molecule('O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O', 'ABEGOH')
+    >>> print(mol)
     ABEGOH : O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O
 
-    Functional group templats:
-    >> functionalGroup = Molecule('RC(=O)O', 'Carboxylicacid')
+    Functional group SMILES strings:
+    >>> functionalGroup = Molecule('[R]C(=O)O', 'Carboxylicacid')
+    >>> print(functionalGroup)
+    Carboxylicacid : RC(=O)O
 
-    This class is utilized for the ifg algorithm
+    This class is utilized for the ifg algorithm, but can also be interperted as its own
     """
 
     def __init__(self, smiles, name):
@@ -70,45 +65,52 @@ class Molecule():
             After the decoding process has ran, the Molecule object digitally represents the moleucle
         """
 
-        # Input data
+        ##### Input Data Formatting #####
         self.SMILES = formatSmiles(smiles)
         self.NAME = name
 
-        # Ring Containers
+        ##### Atom Construction ####
+        self.ALCOHOLICINDICES = []                                      # Holds indices of oxygens with alcoholic properties
+        self.atomData = self.initializeAtomData(self.SMILES.upper())    # Use upper case SMILES string for construction (lower case only used for rings)
+        self.atomCount = len(self.atomData)                             # Count number atoms in structure
+        
+        ##### Ring Construction #####
+
+        # Non-Linear Bonding Creation
         self.RING_OPEN_POSITIONS = []
         self.ring_self = {}
         self.RING_CLOSE_POSITIONS = []
         self.ring_complements = {}
-        self._RING()                # Initalize Ring Containers
+        self._RING()                # Determine Non-Linear Bonds
 
-        # Ring Index Containers
+        # Aromatic & Non-Aromatic Index Labeling
         self.AROMATICINDICES = []
         self.CYCLICINDICES = []
-        self._INDICES()             # Initalize Ring Index Containers
+        self._INDICES()             # Determine Indexing
 
-        # Collect ring data from ring containers
-        self.ringCount = len(self.ring_self) / 2        # Will always be integer value
+        # Ring Counting
+        self.ringCount = len(self.ring_self) / 2        # Total number of rings comes from ring_self format
         self.aromaticCount = 0
         self.nonAromaticCount = 0
-        self._RING_COUNTS()         # Compute Ring counts
+        self._RING_COUNTS()         # Determine ring counts (considers polycyclic rings)
 
-        # Dictionary mapping count by name to amount
+        # ringData Dictionary 
         self.ringData = {
             "aromaticRingCount": int(self.aromaticCount),
             "nonAromaticRingCount": int(self.nonAromaticCount),
             "ringCount": int(self.ringCount)
         }
 
-        # Atom and Bonding data
-        self.ALCOHOLICINDICES = []                  # Holds indices of oxygens with alcoholic properties
-        self.SMILES = self.SMILES.upper()           # After aromaticity analysis, convert SMILES to full uppercase for simplicity
-        self.atomData = self.initializeAtomData()   # Atom index to symbol pairing dictionary
-        self.atomCount = len(self.atomData)         
+        ##### Bond Construction #####
+        self.SMILES = self.SMILES.upper()           # All non-ring related operations best carried out in upper case format
         self.bondData = self.initializeBondData()   # Atom index to bonded atoms pairing dictionary
+
+        ##### Miscellaneous Molecular Data #####
         self.chargedMol = (
                 True if len(CHARGE_REGEX.findall(smiles)) != 0 
                 else False
             )
+
         self.AMINOACID = (
                 True if len(re.compile(r'\[[nN]H[23]?\+\]').findall(smiles)) != 0 
                 else False
@@ -149,7 +151,7 @@ class Molecule():
         }
         return symbolDict
 
-    def initializeAtomData(self):
+    def initializeAtomData(self, SMILES):
         """ Return dictionary of atomData based on all symbols in SMILES code.
 
             Atom objects are created based on the symbol and index position of that atom
@@ -159,13 +161,13 @@ class Molecule():
         atomData = {}
         atomIndex = -1                                          # 0 based indexing of atoms
 
-        for pos, symbol in enumerate(self.SMILES):
+        for pos, symbol in enumerate(SMILES):
 
-            if symbol in ATOMS:                            # Exclusively analyze atoms
+            if symbol in ATOMS:                                 # Exclusively analyze atoms
                 atomIndex += 1
                 atomSymbol = symbol
                 
-                if self.SMILES[pos-1] == '[':                   # If atom charged, collect its bracketed group
+                if SMILES[pos-1] == '[':                        # If atom charged, collect its bracketed group
                     atomSymbol = self.getChargedGroup(pos-1)    # Use opening bracket for charge group
 
                 atom = Atom(atomIndex, atomSymbol)              # Create new atom objects

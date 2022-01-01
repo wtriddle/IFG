@@ -1,9 +1,18 @@
-""" Functional script that loops over the target set of smiles codes and determines thier functional groups 
+""" Handles foramtting of inputs and outputs of IFG to retireve the data and export it to two dataframes
+    Gives performance report of computation time 
+    Notes:
+        **dict notation inside of dictionary construction dumps 
+        all key-value pairs from **dict into new dict
+
+        Ex:
+        newDict = {
+            **otherDict,    (All k-v pairs dumped into newDict)
+            key: value      (New k-v pair into newDict as well)
+        }
 """
 
 from ifg import ifg
 import pandas as pd
-import re
 from helpers import createFgDataDict
 import numpy as np
 from collections import defaultdict
@@ -12,37 +21,36 @@ from tqdm import tqdm
 
 def main():
     """ Returns a dictionary of two dataframes containing the data about functional groups for a given set of smiles codes
-
+        Gives performance report of IFG (DFS process and Filtering processes included)
         Notes:
             allDf is the dataframe where "all" functional groups are counted
-            preciseDf is the dataframe where the "precise" functional groups are counted
-
+            precise is the dataframe which does not use the overlapping filter
     """
 
-
-    FGlist_data = [                                           # Fetch the (smiles, name) functional group pairs from FGlist.txt
-        [y.strip() for y in x.split(' ')]                     # Split into a formatted (smiles, name) pair
-        for x                                                 # Done for each line
-        in open(FGSPATH.resolve(), "r+").readlines()          # Create list using all lines in FGlist.txt
+    ##### Functional Group SMILES & NAME Loading #####
+    FGlist_data = [                                             # Fetch the (smiles, name) functional group pairs from FGlist.txt
+        [y.strip() for y in x.split(' ')]                       # Split into a formatted (smiles, name) pair
+        for x                                                   # Done for each line
+        in open(FGSPATH.resolve(), "r+").readlines()            # Create list using all lines in FGlist.txt
     ]
-    FGlist_data.append(["OH", "Alcohol"])
-    FGlist_data.append(["NR", "PrimaryAmine"])
+    FGlist_data.append(["OH", "Alcohol"])                       # Alochol not identified using FGlist.txt
+    FGlist_data.append(["NR", "PrimaryAmine"])                  # PrimaryAmine not identified using FGlist.txt
 
-    FGnames = sorted({name[1] for name in FGlist_data})        # FGnames in a sorted set
-
+    ##### Functional Group Dataframe Column NAME Creation #####
+    FGnames = sorted({name[1] for name in FGlist_data})         # Names of all identifiable functional groups by IFG
     cyclicGroups = ["Cyclic" + group for group in FGnames]      # Cyclic nomenclatures for FGnames
     aromaticGroups = ["Aromatic" + group for group in FGnames]  # Aromatic nomenclatures for FGnames
 
-    columns = [                                                 # Combine calssified and base functional group names into a single list of strings (no tuples)
+    columns = [                                                 # List of all functional group named columns in exported Dataframe from IFG
         name for names                                          # Loop over tuples created by zip
-        in zip(FGnames, cyclicGroups, aromaticGroups)           # Tuple of an FG with its cyclic and aromatic nomenclature, same bases
-        for name in names                                       # Loop over elements within tuple 
+        in zip(FGnames, cyclicGroups, aromaticGroups)           # Tuple list in format like: [("Ether", "CyclicEther", "AromaticEther"), ...]
+        for name in names                                       # Loop over elements within tuple list to obtain all FG names with aromatic, non-aromatic, non-cyclic nomenclature
     ]
 
+    ##### Structure NAMES & Molecular Data NAMES Column Creations #####
     columns.insert(0, "SMILES")
     columns.insert(0, "Refcode")
-
-    properties = ['aromaticRingCount',                          # Extra data ontop of base functional group analysis
+    for prop in [ 'aromaticRingCount',           # Molecular based SMILES data (properties) that comes with IFG (from SSCD) on SMILES code
                   'nonAromaticRingCount',
                   'ringCount',
                   'totalAlcohols',
@@ -51,93 +59,95 @@ def main():
                   'Chlorine',
                   'Iodine',
                   'Fluorine'
-    ]
-
-    for prop in properties:                                     # Attach additional prop names to column list
+    ]:                                     # Add each Molecular data NAME to column names
         columns.append(prop)
     
-    # Set up data lists
+    ##### I/O and Performance Metric Variables #####
     allDfData = []
     preciseDfData = []
 
-    # Set up performance metric varbiales for execution times
-    p = 0
-    z = 0
+    dfs_time_total = 0
+    filter_time_total = 0
 
-    with tqdm(total=len(open(SMILESPATH.resolve()).readlines())) as bar:
-        for text in open(SMILESPATH.resolve()):                     # Loop over all smiles codes in this current dataset
+    SMILES_FILE = open(SMILESPATH.resolve(), "r+")
+    SMILES_LINES = SMILES_FILE.readlines()
+    TOTAL_STRUCTURES_NUM = len(SMILES_LINES)
 
-            line = re.compile(r'\S+').findall(text)                 # Get line from smiles text list
-            (temp, smiles, refcode) = line                                # Extract the line into variables
-            functionalGroups = ifg(smiles, refcode)                 # Determine the functional groups based on the input SMILES code
+    ##### SMILES Set Loop & IFG Data Collection #####
+    with tqdm(total=TOTAL_STRUCTURES_NUM) as bar:           # Show progress of smiles processing
 
-            p+=functionalGroups.dfs_time.total_seconds()
-            z+=functionalGroups.filter_time.total_seconds()
+        for (temp, smiles, refcode) in [                    # Tuple split SMILES string and structure refcode (adjusted to fit format of target file)
+            [y.strip() for y in x.split(' ') if y != '']               # Split each space-divided string into a formatted tuple set
+            for x                                           # Do this for each line
+            in SMILES_LINES                                 # Loop is over all SMILES strings in selected SMILES list for data collection 
+        ]:
 
-            propData = {                                            # Add additional properties baesd on Molecule
+            functionalGroups = ifg(smiles, refcode)                 # Collect molecular and functional group data from the SMILES code
+
+            dfs_time_total+=functionalGroups.dfs_time.total_seconds()
+            filter_time_total+=functionalGroups.filter_time.total_seconds()
+
+            molData = {                                             # Retrieve molecular data (SSCD from smiles)
                 **functionalGroups.ringData,
                 "totalAlcohols": len(functionalGroups.ALCOHOLICINDICES),
                 "AminoAcid": "Yes" if functionalGroups.AMINOACID else "No",
                 **functionalGroups.HALOGENS
             }
 
-            all_fgs = defaultdict(int, {                             # Combine properties with all_fgs to get all_fgs dict
+            all_fgs = defaultdict(int, {                           # Combine all_fgs and molecular data for all_fgs format
                 **createFgDataDict(functionalGroups.all_fgs),    
-                **propData
+                **molData
             })
 
-            exact_fgs = defaultdict(int, {                         # Combine properties with exact_fgs to get exact_fgs dict
+            exact_fgs = defaultdict(int, {                         # Combine exact_fgs and molecular data for exact_fgs format
                 **createFgDataDict(functionalGroups.exact_fgs),
-                **propData
+                **molData
             })
-                                                                    # Decompse dictionary into values only list which mirrors the 
-                                                                    # index positioning of the columns in the all dataframe
-            ALL_DATA = [                                             
-                all_fgs[name] if all_fgs[name]
+
+            ALL_DATA = [                                            # Create row of ALL_DATA dataframe based on column positioning
+                all_fgs[name] if all_fgs[name]                      # Dictionary key from name
                 else np.nan
-                for name in columns[2:]
+                for name in columns[2:]                             # Name in list order of columns so it matches row in dataframe with column positions
             ]
-                                                                    # Do this for precise FGs as well
-            EXACT_DATA = [
+                                                                    
+            EXACT_DATA = [                                          # Create row of ALL_DATA dataframe based on column positioning
                 exact_fgs[name] if exact_fgs[name]
                 else np.nan
                 for name in columns[2:]
             ]
 
-            for _id in [smiles, refcode]:                           # Prepend smiles and refcode to satify structure of columns
+            for _id in [smiles, refcode]:                           # Prepend smiles and refcode to identify structure
                 ALL_DATA.insert(0, _id)
                 EXACT_DATA.insert(0, _id)
 
-            allDfData.append(ALL_DATA)                            # Locate a new row indexed by refcode
-            preciseDfData.append(EXACT_DATA)                        # For both dataframes
+            allDfData.append(ALL_DATA)                              # Append the ALL_DATA row allDf data
+            preciseDfData.append(EXACT_DATA)                        # Append the EXACT_DATA row preciseDf data
 
-            bar.update(1)                                           # Increment the progress bar once the Molecule is processed
+            bar.update(1)                                           # Increment the progress bar once smiles finishes processing
 
-
-    allDf = pd.DataFrame(columns=columns, data=allDfData)                       # Initialize the all data frame with column names
-    preciseDf = pd.DataFrame(columns=columns, data=preciseDfData)                   # And the precise data frame with column names
-
-    allDf.set_index("Refcode")                                  # Index the DF's by REFCODE
-    preciseDf.set_index("Refcode")
-
-    dfs = {}                                                    # Return nan-filtered dataframes (i.e. columns with all NaN are removed)
-    dfs.update({"allDf": allDf.dropna(axis=1, how='all')})
-    dfs.update({"preciseDf": preciseDf.dropna(axis=1, how='all')})
-
-
-    # Show the total performance
-    total = p + z
+    ##### IFG Performance Report #####
+    total_IFG = dfs_time_total + filter_time_total
     print("DFS Performance Evaluation")
-    print("all seconds = ", p)
-    print("percentage dfs = ", (p/total)*100)
-    print("average time = ", p/831) # Change to varaible length
+    print("all seconds = ", dfs_time_total)
+    print("percentage dfs = ", (dfs_time_total/total_IFG)*100)
+    print("average time = ", dfs_time_total/TOTAL_STRUCTURES_NUM)                # Change to varaible length
     print("\n")
 
     print("FILTERING Performance Evaluation")
-    print("all seconds = ", z)
-    print("percentage filtering = ",(z/total)*100)
-    print("average time = ", z/831) # Change to varaible length
+    print("all seconds = ", filter_time_total)
+    print("percentage filtering = ",(filter_time_total/total_IFG)*100)
+    print("average time = ", filter_time_total/TOTAL_STRUCTURES_NUM)             # Change to varaible length
     print("\n")
 
+    ##### Data Frame Creation and Export #####
+    allDf = pd.DataFrame(columns=columns, data=allDfData)                 
+    preciseDf = pd.DataFrame(columns=columns, data=preciseDfData)        
+
+    allDf.set_index("Refcode")
+    preciseDf.set_index("Refcode")
+
+    dfs = {}
+    dfs.update({"allDf": allDf.dropna(axis=1, how='all')})          # Add the allDf to exported data from main
+    dfs.update({"preciseDf": preciseDf.dropna(axis=1, how='all')})  # Add the preciseDf to exported data from main
 
     return dfs

@@ -6,7 +6,7 @@ from ifg import ifg
 import pandas
 
 # User Test Molecule
-SMILES = "COC(=O)C(C)(O)NC(C)=O"
+SMILES = "CCOC(=O)c1ccnc(c1)c1cc(ccn1)C(=O)OCC"
 REFCODE = "LAQSOM"
 ###########################
 
