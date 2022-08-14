@@ -1,613 +1,305 @@
-""" Implements the Single Smiles Code Decoder (SSCD) to represent a SMILES code (string) as its molecular equivalent with atomic properties in data strucutres.
+"""
+Molecule attribute notes:
+    smiles is a symbol list of every smiles symbol minus hydrogen symbols
+    atoms is a symbol list of every atom symbol including double letter atoms in the smiles
+    name is the name of the molecule of interest
+    verticies are the vertex objects in the graph containing atomic data
+    order is the number of verticies in the graph (i.e. the number of atoms in the molecule)
+    edges are the vertex to vertex connection in the graph (i.e. the undirected lines connecting verticies)
+    size are the number of edges in the graph
+    ring_atoms are the set of atom indices which belong to rings
+    ring_counts is the total number of aromatic and non-aromtic rings in the molecule
+    total_rings is the combined number of total rings (aromatic and non-aromtic)
+    total_ring_atoms is the number of atoms which are apart of a ring
+    total_aromatic_atoms are the total number of aromatic atoms
+    total_non_aromatic_atoms are the total number of non_aromatic_atoms
+    atom_counts are the total number of each type of atom, double letter atom inclusive
+    amino_acid is whether or not an amino acid is present in the molecule
 
-Key Attributes:
 
-    atomData (dict): AtomIndex key to Atom Object value pairing
-    bondData (dict): AtomIndex key to list of Atom Object value pairing
-    ringData (dict): Ring type key to number of ring type occurences in SMILES code value pairing
+Algorithm Notes:
 
-Notes:
+    Ring Contruction Notes:
+    Due to the complexity of non-aromatic ring polycyclism described in the SMILES code,
+    the algorithm cannot identify the exact atoms of each ring index individually for non-aromatic atoms
+    Instead, it is only capable of identifying the specific atoms of aromtic rings individually,
+    and can only identify that atoms are within a non-aromtic ring rather than the exact ring index
+    they are apart of.
+    This is due to the highly complex expression of polycyclism inside the SMILES code,
+    and reaches outside of the bounds of the necessary implementation of the algorithm.
+    (i.e all information is still derivable despite this level of accuracy not being achieved in the algorithm)
 
-    - Output format of the SSCD is called the Uniform Software Description (USD) of SMILES codes (strings)
-    - A molecule class contains various data structures, holding numerical data, string data, and Atom objects
-    - It derives the bonding schema and cyclic connectivity of the moleucle in space using the SMILES
-    - The class is built on a string decoding algorithm 
 
-    - SMILES codes are exported from this module in all upper case
-    - The module contains Atom objects which are simply symbol index objects 
-    - SAR = Single Atom Representations
-    - DLA = Double Lettered Atoms
-            
-    - Conceptual Structure of bondData
-    bondData = {
-        atom1 : [atom2, atom3, atom4…]
-        atom2 : [atom1, atom3, atom4…]
-        …
-        atomN : [atom1, atom2, … atom(N-1)]
-    }
 
+Molecule Class Notes:
+    -Single core atom FGs will be identifiable in IFG
+    -Vertex ring_type attribute will identify ring_types of FGs
+    -ring_counts and ring_type attributes identified using createRings() algorithm
+    -Edges description of software molecule graph refine IFG graph search algorithm to properly identify all FGs (replaces bondData for more refined understanding and conceptual foundation)
+    -SMILES code list of symbols minus explict hydrogens and support Double lettered atoms with usage of ATOM_REGEX and SMILES_REGEX 
 
 """
 
-from Atom import Atom
-from helpers import formatSmiles
-import re
-from constants import ATOM_REGEX, CHARGE_REGEX, BOND_REGEX, ATOMS, BONDS, BRACKETS, NUMBERS, NON_BRANCHING_SYMBOLS
+
+from collections import Counter
+import itertools
+from typing import Literal
+from Vertex import Vertex
+from Edge import Edge
+from constants import ATOM_REGEX, BOND_REGEX, DIGIT_REGEX, PARENTH_REGEX, AMINO_ACID_REGEX, SMILES_REGEX
+
 
 
 class Molecule():
-    """ Object representation of a SMILES code based on symbol by symbol analysis 
-
-    Basic usage:
-
-    Molecule SMILES strings:
-    >>> mol = Molecule('O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O', 'ABEGOH')
-    >>> print(mol)
-    ABEGOH : O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O
-
-    Functional group SMILES strings:
-    >>> functionalGroup = Molecule('[R]C(=O)O', 'Carboxylicacid')
-    >>> print(functionalGroup)
-    Carboxylicacid : RC(=O)O
-
-    This class is utilized for the ifg algorithm, but can also be interperted as its own
+    """ Defines the software molecule space for an organic molecule based on the SMILES code
+        through creation of a Simple Undirected Connected Molecular Graph and an identification of ring atoms
     """
 
-    def __init__(self, smiles, name):
-        """ Initialize molecule obejct with bonding and atom data
+    def __init__(self, smiles: str, name: str):
+        """ Initialize a molecule obejct from smiles with software molecular graph and identified rings"""
 
-            Decoding process is as follows:
+        ##### Input Data #####
+        self.smiles: list[str] = [symbol for symbol in SMILES_REGEX.findall(smiles) if 'H' not in symbol] # remove all hydrogens
+        self.atoms: list[str] = ATOM_REGEX.findall(''.join(self.smiles))
+        self.name: str = name
+        assert ['+', '-', '[', ']', 'H'] not in self.atoms
 
-            1. Decode ring structure of SMILES using numbers and SMILES ring junction pairing
-            2. Compute ring counts, aromatic and cyclic properties of atoms
-            3. Decode full bonding schema of SMILES using ring pairing and string parsing
+        ##### Software Molecule Graph (Graph Theory) #####
+        self.verticies: "list[Vertex]" = [Vertex(index, symbol.upper(), symbol.islower()) for index, symbol in enumerate(self.atoms)]
+        self.order: int = len(self.verticies)
+        self.edges: "list[Edge]" = self.createEdges() 
+        self.size: int = len(self.edges)
+        assert self.order == len(self.atoms)
 
-            After the decoding process has ran, the Molecule object digitally represents the moleucle
-        """
+        ##### Ring Data #####
+        self.ring_atoms, self.ring_counts = self.createRings()
+        self.total_rings = self.ring_counts["aromatic"] + self.ring_counts["non-aromatic"]
+        self.total_ring_atoms = len(self.ring_atoms)
+        self.total_aromatic_atoms = len([symbol for symbol in self.atoms if symbol.islower()])
+        self.total_non_aromatic_atoms = self.total_ring_atoms-self.total_aromatic_atoms
+    
+        ##### Atom Counts #####
+        self.atom_counts: dict[str, int] = Counter([v.symbol for v in self.verticies])
+    
+        #### Miscellaneous Molecular Data ####
+        self.amino_acid: bool = len(AMINO_ACID_REGEX.findall(smiles)) != 0 
+            
+    def createEdges(self):
+        """Create the edges of the software molecule graph using the SMILES code"""
 
-        ##### Input Data Formatting #####
-        self.SMILES = formatSmiles(smiles)
-        self.NAME = name
-
-        ##### Atom Construction ####
-        self.ALCOHOLICINDICES = []                                      # Holds indices of oxygens with alcoholic properties
-        self.atomData = self.initializeAtomData(self.SMILES.upper())    # Use upper case SMILES string for construction (lower case only used for rings)
-        self.atomCount = len(self.atomData)                             # Count number atoms in structure
+        atom_index: int = 0
+        match_index: int = 0
+        ring_queue: "dict[str, int]" = {}      # actual number involved in the ring as well as the atom_index => {ring_number: atom_index}
+        parenth_stack: list[int] = []
+        bond: Literal["", "=", "#"] = ""
+        edges: "list[Edge]" = []
         
-        ##### Ring Construction #####
 
-        # Non-Linear Bonding Creation
-        self.RING_OPEN_POSITIONS = []
-        self.ring_self = {}
-        self.RING_CLOSE_POSITIONS = []
-        self.ring_complements = {}
-        self._RING()                # Determine Non-Linear Bonds
+        for symbol in self.smiles[1:]:
 
-        # Aromatic & Non-Aromatic Index Labeling
-        self.AROMATICINDICES = []
-        self.CYCLICINDICES = []
-        self._INDICES()             # Determine Indexing
+            # match atom case
+            if ATOM_REGEX.match(symbol):
 
-        # Ring Counting
-        self.ringCount = len(self.ring_self) / 2        # Total number of rings comes from ring_self format
-        self.aromaticCount = 0
-        self.nonAromaticCount = 0
-        self._RING_COUNTS()         # Determine ring counts (considers polycyclic rings)
-
-        # ringData Dictionary 
-        self.ringData = {
-            "aromaticRingCount": int(self.aromaticCount),
-            "nonAromaticRingCount": int(self.nonAromaticCount),
-            "ringCount": int(self.ringCount)
-        }
-
-        ##### Bond Construction #####
-        self.SMILES = self.SMILES.upper()           # All non-ring related operations best carried out in upper case format
-        self.bondData = self.initializeBondData()   # Atom index to bonded atoms pairing dictionary
-
-        ##### Miscellaneous Molecular Data #####
-        self.chargedMol = (
-                True if len(CHARGE_REGEX.findall(smiles)) != 0 
-                else False
-            )
-
-        self.AMINOACID = (
-                True if len(re.compile(r'\[[nN]H[23]?\+\]').findall(smiles)) != 0 
-                else False
-            )
-
-        self.HALOGENS = {
-            "Bromine" : len([atom for atom in self.atomData.values() if atom.symbol == "X"]),
-            "Chlorine" : len([atom for atom in self.atomData.values() if atom.symbol == "Z"]),
-            "Iodine" : len([atom for atom in self.atomData.values() if atom.symbol == "I"]),
-            "Fluorine" : len([atom for atom in self.atomData.values() if atom.symbol == "F"])
-        }
-
-        self.ATOMCOUNTS = {
-            "Br" : len([atom for atom in self.atomData.values() if atom.symbol == "X"]),
-            "Cl" : len([atom for atom in self.atomData.values() if atom.symbol == "Z"]),
-            "I" : len([atom for atom in self.atomData.values() if atom.symbol == "I"]),
-            "F" : len([atom for atom in self.atomData.values() if atom.symbol == "F"]),
-            "C" : len([atom for atom in self.atomData.values() if atom.symbol == "C"]),
-            "O" : len([atom for atom in self.atomData.values() if atom.symbol == "O"]),
-            "N" : len([atom for atom in self.atomData.values() if atom.symbol == "N"]),
-            "S" : len([atom for atom in self.atomData.values() if atom.symbol == "S"]),
-            "P" : len([atom for atom in self.atomData.values() if atom.symbol == "P"]),
-        }
-
-    def __str__(self):
-        """ String representation of a Molecule SMILES object 
-        """
-        
-        return self.NAME + " : " + self.SMILES
-
-    def getSymbolDict(self):
-        """ Create a dictionary of atom index to atom symbol of the molecule's atoms based on its current state
-        """
-
-        symbolDict = {
-            atom.index: atom.symbol
-            for atom in self.atomData.values()
-        }
-        return symbolDict
-
-    def initializeAtomData(self, SMILES):
-        """ Return dictionary of atomData based on all symbols in SMILES code.
-
-            Atom objects are created based on the symbol and index position of that atom
-            Handles charges and finds valid alcohol indices
-        """
-
-        atomData = {}
-        atomIndex = -1                                          # 0 based indexing of atoms
-
-        for pos, symbol in enumerate(SMILES):
-
-            if symbol in ATOMS:                                 # Exclusively analyze atoms
-                atomIndex += 1
-                atomSymbol = symbol
-                
-                if SMILES[pos-1] == '[':                        # If atom charged, collect its bracketed group
-                    atomSymbol = self.getChargedGroup(pos-1)    # Use opening bracket for charge group
-
-                atom = Atom(atomIndex, atomSymbol)              # Create new atom objects
-                atomData[atomIndex] = atom                      # Atom index to atom object pairing
-                
-                if symbol == 'O':                               # Alochols stem from oxygens
-                    self.determineAlcoholGroup(pos, atomIndex)
-
-        return atomData
-
-    def initializeBondData(self):
-        """ Returns the bonding schema for a given SMILES
-
-            Psuedo-code
-            For each atom in the SMILES
-                Determine the left bonds
-                Determine the right bonds
-                Combine both bond pathways into a single pathway that stems from current atom
-                Assign the atomIndex of bondData to its bonding pathways
-        """
-
-        bondData = {}
-        atomIndex = -1                                  # 0 indexed atom schema
-
-        for pos, symbol in enumerate(self.SMILES):
-
-            if symbol in ATOMS:
-                atomIndex += 1
-                bonds = []                              # Bonds which stem from a single atom
-
-                if self.SMILES[pos-1] == '[':           # Charged atom case
-
-                    leftBond = self.getLeftBond(        
-                            LNPos=pos-1,                # Start left pathway at open bracket
-                            LNIndex=atomIndex
-                    )
-
-                    rightBonds = self.getRightBonds(   
-                            RNPos=pos+2,                # Start right pathway at closed bracket
-                            RNIndex=atomIndex
-                    )
-
-                else:                                   # Uncharged atom case
-                    leftBond = self.getLeftBond(        
-                            LNPos=pos, 
-                            LNIndex=atomIndex
-                    )
-
-                    rightBonds = self.getRightBonds(
-                            RNPos=pos, 
-                            RNIndex=atomIndex
-                    )
-
-                if leftBond:                            # Left bond is always one bond if it exists
-                    bonds.append(leftBond)
-
-                if rightBonds:                          # Right bonds can be more than 1 (parenthesis and number cases)
-                    for rightBond in rightBonds:
-                        bonds.append(rightBond)
-
-                bondData[atomIndex] = bonds             # Assign the atom index to its bonded neighbors with the bondData dictionary
-                del(bonds)
-
-        return bondData
-
-    def getLeftBond(self, LNPos, LNIndex):
-        """ Return the single Atom object that is left bonded with respect to a specific string position
-            Return an empty array [] if no LN exists from a specific string position
-
-            LNPos (int) : string position of the atom whose left bond is to be found
-            LNIndex (int) : index position of that atom within the smiles code
-
-            Notes:
-                LN stands for Left Neighbor
-        """
-
-        LNPos -= 1                  # Begin one position to left of given atom position
-        if LNPos < 0:               # Outside scope of SMILES means no left bonds
-            return []
-        LN = self.SMILES[LNPos]     # Initalize LN as the first symbol to left of positon given
-
-        explicitBond = (            # Explicit double/triple left bond case
-            LN 
-            if LN in BONDS     # Save results of bond if LN is initially a bond
-            else ""
-        )
-        if explicitBond:            # If an explicit bond is found
-            LNPos -= 1              # Move to next symbol, bond is saved in explicitBond
-            LN = self.SMILES[LNPos]
-
-        scope = 0                   # Parenthesis depth counter is 0 index based
-        leftBond = []               # Left bond list
-
-        
-        while LN not in NON_BRANCHING_SYMBOLS or scope > 0:    # Loop until a LINEARSYMBOL is found on the 0th scope (i.e. same scope as inital atom)
-
-            if LN == ')' and scope == -1:                   # Double parenthesis case i.e X(Y)(Z) starting within second parenthesised Z
-                scope = 0                                   # Reset scope to allow second atom Z to locate X as its proper left-bonded neighbor
-            if LN == ')':                                   # Increment over deeper parenthesis groups
-                scope += 1
-            elif LN == '(':                                 # Decrement into higher parenthesis gropus
-                scope -= 1
-            elif LN in ATOMS:                          # Decrement atomic index for each atom found
-                LNIndex -= 1
-            LNPos -= 1                                      # Decrement to next left symbol
-            if LNPos < 0:                                   # Outside scope of SMILES means no left bonds
-                return []
-            LN = self.SMILES[LNPos]                         # Update LN
-
-        else:                                               # LN in this scope is the correct left-bonded atom of given arguments
-            LNIndex -= 1                                    # Decrement to find corrected LN index
-            if LN == ']':                                   # Charged LN case
-                LN = self.getChargedGroup(LNPos)            # Find LN directly from final position 
-
-            leftBond = Atom(LNIndex, explicitBond + LN)     # Create new bonded atom at LNindex with the explicitBond and the determined LN
-
-        return leftBond                                     
-
-    def getRightBonds(self, RNPos, RNIndex):
-        """ Returns an atom list of all right bonds which stems from a specific string position
-            Returns an empty list if no right bond exists from the given position
-
-
-            RNPos (int) : The position of the atom in the SMILES code whose right bonds are to be found
-            RNIndex (int) : The index position of the atom in the SMILES code
-
-            Notes:
-                This is a recursive function
-                RN stands for Right Neighbor
-                Right groups split to different potions of the smiles code (dynamic symbols)
-                The two dynamic symbols are () and numbers. Both are handled accordingly here. 
-        """
-
-        RNPos += 1                       # Begin at one position to right
-        if RNPos >= len(self.SMILES):    # Outside SMILES scope means no right bond
-            return []
-        RN = self.SMILES[RNPos]          # Initalize RN as the symbol one position to right of positional arguments
-
-        if RN == ')':                    # A closing parenthesis explicitly means no right bonds
-            return []
-
-        scope = 0                        # Parenthesis depth counter is 0 index based
-        rightBonds = []                  # Right bonding list
-
-        while RN not in NON_BRANCHING_SYMBOLS or scope > 0:    # Loop until a LINEARSYMBOL is found on the 0th scope (i.e. same scope as inital atom)
-
-            if RN == '(':                                   # Nested parenthesis case
-
-                innerParenthBond = self.getRightBonds(      # Only allow single depth right bond neighbors (i.e. first bond on 1st scope)
-                    RNPos, RNIndex
-                ) if scope == 0 else ''                     # Nonzero scope implies deeper RN's unconnected to the initial posiiton relative to arguments
-
-                if innerParenthBond:                        # Variable is a list of bonds, but only first bond is valid instead of deeper scoped bonds
-                    rightBonds.append(innerParenthBond[0])
-
-                scope += 1                                  # Increment scope depth
-
-            if RN == ')':                                   # Decrement scope for right bond upon closing parenthesis
-                scope -= 1
-            if RN in ATOMS:                            # Increment atom index each atom encountered
-                RNIndex += 1
-            if scope == 0 and RN in NUMBERS:           # Every number always has a bonded partner
-                numGroup = self.numbersHandler(RNPos)       # Handle ring junction bond via numbersHandler
-                rightBonds.append(numGroup)                 # Add bonded group to list of bonds
-
-            RNPos += 1                                      # Increment position to process next symbol
-            if RNPos >= len(self.SMILES) or scope < 0:      # Outside of scope 
-                return rightBonds                           # Return current state of bonded list
-            RN = self.SMILES[RNPos]                         # Update RN
-
-        else:                                               # RN is the final right bonded neighbor within this scope
-            RNIndex += 1                                    # Increment atomic index to correct index offset
-
-            if RN in ATOMS:                            # Generic atom right bond case
-                rightBonds.append(Atom(RNIndex, RN))
-
-            elif RN in BONDS:                          # Explicit right bond case
-                explicitBond = RN                           # RN must be explicit bond
-                RNPos += 1
-                RN = self.SMILES[RNPos] 
-
-                if self.SMILES[RNPos] == '[':               # Explicit bond to charge group case
-                    RN = self.getChargedGroup(RNPos)
-
-                rightBonds.append(Atom(RNIndex, explicitBond + RN))     # Create new atom bond with explicit bond and RN
-
-            elif RN == '[':                                             # Explicit charge group right bond case
-                chargedGroup = self.getChargedGroup(RNPos)
-                rightBonds.append(Atom(RNIndex, chargedGroup))          # Create new atom with full charged group no explicit bond case
-
-        return rightBonds
-
-    def getChargedGroup(self, pos):
-        """ Returns a charged group based on a selected bracket position in the its smiles code
-            pos (int): string position of an openeing or closing bracket in the smiles code
-        """
-
-        chargedGroup = ''                           # Resultant charged group string
-
-        if self.SMILES[pos] == ']':                 # Closing (Reversed) case
-            while self.SMILES[pos] != '[':
-                chargedGroup += self.SMILES[pos]
-                pos -= 1
-            return '[' + chargedGroup[::-1]         # Reverse resultant string
-
-        if self.SMILES[pos] == '[':                 # Opening (Forwards) case
-            while self.SMILES[pos] != ']':
-                chargedGroup += self.SMILES[pos]
-                pos += 1
-            return chargedGroup + ']'
-
-        if self.SMILES[pos] not in BRACKETS:   # Capture errors in positions
-            raise ValueError(
-                "The position passed does not point to a bracket in the smiles code"
-            )
-
-    def _RING(self):
-        """ Initalizes the four ring data containers
-            ring_self (dictionary): string position of number to its direct atom pair (i.e. open number position gives opening atom data)
-            ring_complements (dictionary): string position of a number to its complementary atom pair (i.e. open number position gives closing atom data)
-            RING_OPEN_POSITIONS (list): string positions of the numbers which opened a junction
-            RING_CLOSE_POSITIONS (list): string positions of the numbers which closed a junction
-
-
-            Notes: 
-                Ring junctions open with an arbitrary number and close with the same number
-                The atoms to the left of each number are at the opening/closing atoms at ring junction
-        """
-
-        atomIndex = -1              # 0 based indexing of atoms
-        evaluatedNumbers = {}       # Number to string position in smiles code
-        atomSymbol = ''
-
-        for pos, symbol in enumerate(self.SMILES):              # Loop over SMILES 
-
-            if symbol in ATOMS:
-                atomIndex += 1
-                atomSymbol = symbol
-
-            if symbol in NUMBERS:                          # Symbol is a number in this scope
-
-                if self.SMILES[pos-1] == ']':                   # Charged group at ring junction
-                    atomSymbol = self.getChargedGroup(pos-1)    # Retrieve charged group from closing bracket
-
-                atom = Atom(atomIndex, atomSymbol)              # Ring junction atom object
-                self.ring_self[pos] = atom                      # Opening ring junction string position to opening atom pair
-
-                if symbol in evaluatedNumbers:                  # If a closing ring junction has been located
-
-                    initalNumberPos = evaluatedNumbers[symbol]                  # Inital string position of number where ring junction opened
-                    self.ring_complements[initalNumberPos] = atom               # Opening ring junction string position to closing atom pair
-                    self.ring_complements[pos] = self.ring_self[initalNumberPos]# Closing ring junction string position to opening atom pair
-                    self.RING_CLOSE_POSITIONS.append(pos)                       # Position of where the ring ends in the SMILES
-                    del(evaluatedNumbers[symbol])                               # Close ring path once completed to allow other paths with the same number
-                    continue                                                    # Process the next ring
-
-                self.RING_OPEN_POSITIONS.append(pos)            # Position of where the ring starts in the SMILES
-                evaluatedNumbers[symbol] = pos                  # Number to positioning key:value pairing
-
-    def numbersHandler(self, pos):
-        """ Return the non-linear bond from a specific number position (Atom Object)
-
-            pos (int) : Position of number in SMILES code
-        """
-
-        return self.ring_complements[pos]
-
-    def determineAlcoholGroup(self, pos, atomIndex):
-        """ Validates if an given string position and atom index in a Molecule correspond to an alochol group
-            Valid alcoholic oxygen indicies will be added to the ALOCHOLICINDICIES list 
-
-            pos (int) : position of the oxygen to be checked for alocholic properties
-            atomIndex (int) : index position of the oxygen
-
-            Notes:
-                Only four cases where an alcohol is determined. 
-                Currently alochol cases are hard coded here
-                The index of the oxygen is recorded as being alocholic using the ALOCHOLICINDICES list
-        """
-
-        if pos == len(self.SMILES) - 1:                         # Final atom alcohol group case
-            if(
-                self.SMILES[pos-1].upper() == 'C'               # Can be connected to an linear carbon
-                or self.SMILES[pos-1] in NUMBERS           # Or connected at a ring junction
-                or self.SMILES[pos-1] == ')'                    # Or connected at a normal junction
-            ):
-                self.ALCOHOLICINDICES.append(atomIndex)         
-
-        elif(                                                   # First atom alcohol group case
-            atomIndex == 0                                      # At index 0
-            and self.SMILES[pos+1].upper() == 'C'               # Can only be connected to a linear carbon
-        ):
-            self.ALCOHOLICINDICES.append(atomIndex)            
-
-        elif self.SMILES[pos-1:pos+2] == '(O)':                 # Lone alcohol group case
-            self.ALCOHOLICINDICES.append(atomIndex)
-
-        elif(                                                   # Ending parenthesis alcohol group
-            self.SMILES[pos+1] == ')'                           # Must be directly next to closing parenthesis
-            and self.SMILES[pos-1] not in BONDS            # Not connected to a double/triple bond
-            and self.SMILES[pos-1] not in BRACKETS         # And not connected to a charge group
-        ):
-            self.ALCOHOLICINDICES.append(atomIndex)
-
-        return 
-
-    def _RING_COUNTS(self):
-        """ Loops over Ring containers to determine the counts of aromatic and non aromatic rings in the molecule
-
-            Notes:
-                Aromaticity takes priority (i.e. if a single atom within ring is aromatic, take ring as being aromatic)
-                Uses the two atoms involved in the number ring positioning to detemine what kind of ring the atoms are apart of
-                Some extra neighbor checking is required to confirm aromatic/non aromatic presence fully
-        """
-
-        allAtoms = ''.join(ATOM_REGEX.findall(self.SMILES))    # Simplification of aromatic/nonaromatic count
-
-        if allAtoms.islower():                                      # All lower case atoms means all counted rings are aromatic
-            self.aromaticCount = self.ringCount
-            return 
-
-        elif allAtoms.isupper():                                    # All upper case atoms means all counted rings are non-aromatic
-            self.nonAromaticCount = self.ringCount
-            return 
-
-        for pos in self.RING_OPEN_POSITIONS:                        # Loop over the opening ring junction string positions in a Molecule
-            ringOpen = self.ring_self[pos]                          # Get the opening atom data
-            ringClose = self.ring_complements[pos]                  # Get the closing atom data
-
-            if(                                                     # Both atomic junctions are aromatic case
-                ringOpen.symbol.islower() 
-                and ringClose.symbol.islower()
-            ):
-
-                if self.SMILES[pos+1] in ATOMS:                # Check if first symbol deeper in ring is an atom
-
-                    if self.SMILES[pos+1].islower():                # Another lower atom in ring confirms aromatic ring
-                        self.aromaticCount += 1
-
-                    elif self.SMILES[pos+1].isupper():              # Non-aromatic atom in ring means polycyclic non-aromatic and aromatic ring interaction
-                        self.nonAromaticCount += 1
-
-                else:                                               # If next symbol is not an atom, then the ring is aromatic
-                    self.aromaticCount += 1                         
-
-            elif(                                                   # Both atomic junctions are non aromatic case
-                ringOpen.symbol.isupper() 
-                and ringClose.symbol.isupper()
-            ):
-
-                if self.SMILES[pos+1] in ATOMS:                # Check if first symbol deeper in ring is an atom
-
-                    if self.SMILES[pos+1].islower():                # Another lower atom in ring confirms aromaic ring
-                        self.aromaticCount += 1
-
-                    elif self.SMILES[pos+1].isupper():              # Otherwise another upper atom confirms non-aromatic ring
-                        self.nonAromaticCount += 1
-
-                else:                                               # Ring is non-aromatic otherwise
-                    self.nonAromaticCount += 1                      
-
-            else:                                                   # Different ring junction atom types means take non-aromatic priority
-                self.nonAromaticCount += 1
-
-    def _INDICES(self):
-        """ Determines the cyclic/aromatic atom indicies inside the SMILES
-
-            AROMATICINDICES (list): List of atom indicies which are apart of an aromatic ring
-            CYCLICINDICES (list): List of atom indicies which are apart of a ring
-
-            Notes:
-                Scope is the parenthesis group level, counted relative to numbered opening position, which starts at 0th index
-                If a ring ceases inside a parenthesis group, then all indicies in that scope and above it are contained in the ring
-                Therefore, tracking of indices on specific scope levels (parenthesis scopes) is necessary to obtain the most accurate
-                ring indices
-
-                If a number ends within a depth deeper than 0, i.e. ...1... (... (...1)...),
-                Then all all indices in in between must be cyclic
-                Some nested scopes may go deeper, but may not conclude the ring.
-                For example, ...1... (... (...) ... 1). The middle parenthesis is not apart of the ring structure related to the number 1.
-                However, the number 1 still closes within a nested parenthesis. Because the depth of conclusion is not known before this algorithm is run
-                All depths within indivudal depth counts must be tracked to obtain accurate cyclic index information
-
-                Form of scopeIndices
-                scopeIndicies =
-                [
-                    [index1,index2...],        scope = 0           (same scope as where the number appears)
-                    [index3,index4...],        scope = 1           (one scope deeper from where number appears)
-                    ...
-                    [indexN...]                scope = N-1         (N'th scope deeper from where number appears)
+                atom_index+=1
+                edge_atoms = [
+                    self.verticies[match_index], 
+                    self.verticies[atom_index]
                 ]
-        """
+                new_edge = Edge(edge_atoms, bond)
+                edges.append(new_edge)
+                match_index = atom_index
+                bond = ""
 
-        atomIndex = -1                  # 0 based indexing of SMILES
-        evaluatedNumPositions = []      # String positions of numbers in SMILES (opening/closing ring junctions)
-
-        for pos, symbol in enumerate(self.SMILES):              # Loop over SMILES
-
-            if symbol in ATOMS:
-                atomIndex += 1
-
-            if symbol.islower() and atomIndex not in self.AROMATICINDICES:       # Lower case letters are aromatic atoms
-                self.AROMATICINDICES.append(atomIndex)
                 continue
 
+            # match number case
+            if DIGIT_REGEX.match(symbol):
+
+                if symbol in ring_queue:
+                    corresponding_index = ring_queue.pop(symbol)
+                    edge_atoms = [
+                        self.verticies[corresponding_index], 
+                        self.verticies[atom_index]
+                    ]
+                    new_edge = Edge(edge_atoms, "")
+                    edges.append(new_edge)
+                else:
+                    ring_queue[symbol] = atom_index 
+                
+                continue
             
-            if symbol in NUMBERS and pos not in evaluatedNumPositions:      # If a new ring has been found in the SMILES code via a number
 
-                evaluatedNumPositions.append(pos)               # Current position is a number
-                scopeIndices = [[]]                             # ScopeIndicies list for cyclic index tracking
-                scope = 0                                       # 0 index scope for number scope
-                scopeIndices[0].append(atomIndex)               # Add first index to 0th scope level
-                RNPos = pos + 1                                 # Start RN next to opening ring number
-                RNindex = atomIndex                             # Start RN index at most recent atom index
-                RN = self.SMILES[RNPos]                         # Get symbol from SMILES
-               
-                while RN != symbol:                             # Loop until ring closes (symbol is opening number within this scope)
+            # match bond case
+            if BOND_REGEX.match(symbol):
 
-                    if RN in ATOMS:                        
-                        RNindex += 1                            # Increment atom index
+                bond = symbol               # type: ignore
 
-                        if len(scopeIndices) == scope:          # If this atom is apart of a deeper parenthesis scope, i.e. 1(...
-                            scopeIndices.append([RNindex])      # Then create a new list for tracking the indices part that scoped group
-                        else:                                   # Otherwise, the atom is still apart of the same scope
-                            scopeIndices[scope].append(RNindex) # Add atom index to scoped list
+                continue
 
-                    if RN == '(':                               # Open parenthesis increments scope depth 
-                        scope += 1                  
 
-                    if RN == ')':                               # Close parenthesis decrements scope depth and removes deepest scope from ring 
-                        del(scopeIndices[scope])               
-                        scope -= 1                              
+            # match parenth case
+            if PARENTH_REGEX.match(symbol):
 
-                    RNPos += 1                                  # Go to next symbol position
-                    RN = self.SMILES[RNPos]                     # Get next symbol
+                if symbol == '(':
+                    parenth_stack.append(atom_index)
+                else:
+                    match_index = parenth_stack.pop()
+                
+                continue
+        
+        # assert that the parenthesis stack and the ring_queue are empty
+        assert not parenth_stack
+        assert not ring_queue
 
-                else:                                           # Closing ring number has been located
-                    evaluatedNumPositions.append(RNPos)         # Add number position to evaluated number positions
-                    for scope in scopeIndices:                  # Every unique index in scopeIndicies is cyclic, AKA apart of a ring
-                        for index in scope:                     
-                            if index not in self.CYCLICINDICES: 
-                                self.CYCLICINDICES.append(index)
+        return edges
+
+        
+    def createRings(self):
+        """ Determine the ring counts and ring types of each atom in the molecule
+            ring_stack[-1] === index of most recently opened ring
+            p_stack[-1] === index of current p_group during iteration
+
+            Algorithm Steps:
+                Step 1: Define per ring index which p_groups are allowable for each ring
+                Step 2: Identify that atoms of each ring by index and identify all atoms apart of rings
+                Step 3: Identify the number of aromatic and non-aromatic rings, and label atoms as aromatic, non-aromatic and non-cyclic
+        """
+
+        # Step 1: Define per ring index which p_groups are allowable for each ring
+        ring_index: int = 0                                     # counter for the ring index in the SMILES
+        p_stack: list[int] = [0]                                # parenthetical group stack order (always has 0 as root level)
+        p_group_counter: int = 0                                # counter for the p_group and p_stack data structure
+        ring_queue: dict[str, int] = {}                         # ring_number: ring index pairing for open rings
+        ring_info: dict[int, list[int]] = {}                    # ring_index: [p_groups]
+
+        # fill ring_info (set up our NPR and PR defined rings)
+        # Generates per ring index the allowable p_groups where atoms apart of their ring may appear
+        for symbol in self.smiles[1:]:
+
+            if PARENTH_REGEX.match(symbol):
+
+                if symbol == '(':
+                    p_group_counter+=1
+                    p_stack.append(p_group_counter)
+                    for ring_idx in ring_queue.values():
+                        ring_info[ring_idx].append(p_group_counter)
+
+                else:
+                    closing_p_group = p_stack.pop(-1)
+                    for ring_idx in ring_queue.values():
+                        ring_info[ring_idx] = [p_group for p_group in ring_info[ring_idx] if p_group != closing_p_group]
+
+            if DIGIT_REGEX.match(symbol):
+
+                if symbol in ring_queue:
+                    ring_queue.pop(symbol)
+
+                else:
+                    ring_queue[symbol] = ring_index
+                    ring_info[ring_index] = [p_stack[-1]]
+                    ring_index+=1
+
+        # ring queue should be empty and p_stack should end on p_group 0
+        assert not ring_queue
+        assert p_stack == [0]
+        p_group_counter = 0
+        ring_index = 0
+
+
+        # Step 2: Determine the aromatic ring indicies and find all atoms apart of a ring
+        atom_index: int = 0                                     # current atomic index in the SMILES
+        ring_stack: list[int] = []                              # order of open rings in the iteration 2
+        ring_set: dict[int, list[int]] = {}                     # ring_index to atom index list of atoms apart of ring index pairing (used for aromatic ring identification)
+        ring_p_groups: set[int] = set()                         # set of p_groups for open rings
+        total_ring_indices: list[int] = []                      # list of all atoms apart of rings
+
+        for symbol in self.smiles[1:]:
+
+            if PARENTH_REGEX.match(symbol):
+
+                if symbol == '(':
+                    p_group_counter+=1
+                    p_stack.append(p_group_counter)
+
+                else:
+                    p_stack.pop(-1)
+
+            if DIGIT_REGEX.match(symbol):
+
+                if symbol in ring_queue:
+
+                    close_ring_index = ring_queue.pop(symbol)
+
+                    # Polycylic atom when closing a ring that is consecutive with another ring on the same p_group 
+                    if ring_queue:
+                        prev_ring_index = ring_stack[ring_stack.index(close_ring_index)-1]
+                        p_end_group = ring_info[close_ring_index][-1]
+                        if p_end_group in ring_info[prev_ring_index]:
+                            ring_set[prev_ring_index].append(atom_index)
+
+                    if not atom_index in ring_set[close_ring_index]:
+                        ring_set[close_ring_index].append(atom_index)
+                else:
+                    ring_queue[symbol] = ring_index
+                    ring_set[ring_index] = [atom_index]
+                    total_ring_indices.append(atom_index)
+                    ring_index+=1
+                
+                # Update the ring stack and ring_p_groups when a new ring is viewed
+                ring_stack = list(ring_queue.values())
+                ring_p_groups = set(
+                    itertools.chain.from_iterable([p_groups for ring_idx, p_groups in ring_info.items() if ring_idx in ring_queue.values()])
+                )
+
+            if ATOM_REGEX.match(symbol):
+                atom_index+=1
+
+                # if rings are open
+                if ring_queue:
+
+                    # track all atoms apart of a ring
+                    if p_stack[-1] in ring_p_groups:
+                        total_ring_indices.append(atom_index)
+
+                    # add atom to MROR if atom is in valid p_group of MROR
+                    if p_stack[-1] in ring_info[ring_stack[-1]]:
+                        ring_set[ring_stack[-1]].append(atom_index)
+
+        # ring_queue should be empty and p_stack should be on group 0
+        assert not ring_queue
+        assert p_stack == [0]
+
+
+        # Step 3: Use data from step 2 to identify non-aromatic atoms and identify the number of aromatic rings
+        aromatic_ring_count: int = 0
+        non_aromatic_ring_count: int = 0
+
+        # Data 1: Determine the aromatic and non-aromatic rings present in the molecule
+        for (ring_idx, atom_indices) in ring_set.items():
+
+            # all atoms are aromatic in ring means aromatic ring, otherwise nonaromatic ring
+            if len([v for v in atom_indices if self.verticies[v].ring_type == "aromatic"]) == len(atom_indices):
+                aromatic_ring_count+=1
+            else:
+                non_aromatic_ring_count+=1
+
+        # Data 2: Determine the aromatic and non-aromatic atoms present in the molecule
+        for (ring_idx, atom_indices) in ring_set.items():
+
+            # all aromatic atoms already labeled, if an atom appears in a ring list, then it must be non-aromatic
+            for atom_index in atom_indices:
+                if self.verticies[atom_index].ring_type == "non-cyclic":
+                    self.verticies[atom_index].ring_type = "non-aromatic"
+
+        return (
+            set(total_ring_indices),  
+            {"aromatic": aromatic_ring_count, "non-aromatic": non_aromatic_ring_count}
+        )
+
+
+    def __str__(self):
+        return self.name + " : " + ''.join(self.smiles)
+
+    def __repr__(self):
+        return self.name + " : " + ''.join(self.smiles)
 
