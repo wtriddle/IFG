@@ -1,0 +1,479 @@
+"""
+Molecule Class Write-Up:
+
+    The goal of creating a program to perform automatic identification of functioanl groups from SMILES codes
+    leads to the natural solution of a graph comparison algorithm. The graph comparison algorithm is a breadth first
+    search type which uses comparison of edges and verticies of a functional group graph and a molecular graph to achieve
+    the goal of identification in the molecule. In order to perform a graph algorithm, there must exist first a method to
+    construct a graph from a SMILES code. This involved creating a set of edges and verticies of a graph which become 
+    synonomous with bonds and atoms in a molecule. Once this is achieved, the mathematical description of a graph
+    becomes defined in the software space for any given SMILES code and a graph algorithm can be created utilizing
+    this mathematical description. Both SMILES functional groups and molecules deconstruct into this represenation
+    and allow for the application of a graph algorithm built around this representation. Therefore, the purpose
+    of this Molecule class is to provide this uniform space such that any SMILES code can be decomposed into a molecular 
+    graph, and as a result, can be used during a functional group focused graph comparison algorithm.
+    
+    While the main purpose of the molecule class is to create the software space for a mathematically defined moelcular graph,
+    the SMILES code contains further chemical information which is useful for the purposes of functional group accuracy
+    and identification. The primary piece of information is the categorization of atoms as being aromatic, non-aromatic, 
+    and non-cyclic. This categorization can be utilized in order to increase the precision of the functional group accuracy
+    by denoting functional groups as aromatic, non-aromatic, and non-cyclic. This extra level of precision allows for the 
+    increasing utility of the algorithm and makes full usage of the chemical information that is held within the SMILES code
+    as it relates to functional group identification. Therefore, in addition to a method for construction of a software graph defined
+    by mathematical represenation of edges and verticies for a molecule, there exists in the Molecule class a method for identifying
+    the aromatic, non-aromatic, and non-cyclic atoms in the structure. By deduciton, it follows that the identification of the
+    total number of aromatic and non-aromatic rings is also present as well. Therefore, the Molecule class contains the capability 
+    of extracting the total number of rings, both aromatic and non-aromatic, as well as the capability to distguish all atoms as either
+    aromatic, non-aromtic, or non-cyclic. The disguinshment of atoms as aromatic, non-aromatic, and non-cyclic leads to the precise and 
+    more accurate description of functional groups apart of a ring structure, and furthermore lead to the ability to identify the total
+    number of rings, both aromatic and non-aromatic. This leads to a higher degree of chemical data accuracy for the program and lead to
+    a more refined and complete program which makes use of all the aspects of the SMILES code that are available to any user of the code. 
+
+    With this in mind, the Molecule class only contains two methods, createEdges() and createRings(), and simultaneously utilizes a collection
+    of regular expressions to achieve the aforementioned outcomes. The createEdges() function performs the construction of the graph edges, which
+    are edges part of a Simple Undirected Connected Graph. This leads to the representaion of the edges as a single set of edges without any cause for
+    direction. As long as the two verticies which are invovled in the edge are labeled through a single edge object, this is sufficient to identify 
+    the presence of an edge connection in the graph. This edge may be referenced via either atom involved in it, meaning that either atom can be used
+    to identify that the edge exists. The verticies of the molecule are defined as the atoms and their symbols, and these are extracted into a set of
+    vertex objects which save the type of ring that the atom is apart of if any, as well as the symbol and index that the atom is apart of. These
+    piece of information are sufficient to identify a vertex comparison during the graph comparison algorithm, such that vertex objects with an 
+    inherent index property can be referenced inside of another molecule (during fg to moelcule extraction process). Furthermore, the edges set is 
+    sufficient to pull down which edges are connected or stemming off of which atoms, and this can be further compared with the atoms involved in those edges
+    This functioanlity drives the graph algorith, which is discussed later. (The molecule class must contain an edges filter method to return all of the edges
+    which belong to a particular atom index, i.e return the edges in which an atom is present in).
+    
+    The createRings() method is aimed towards identification of all atoms part of a ring, as well as the total number of ring counts in the molecule. This is
+    first achieved by identifying aromatic atoms by their lower case symbols in the SMILES code during generation of the vertex set. Therefore, to proceed
+    with the identificaiton of all other non-aromatic atoms, simply identification of all ring atoms and adding the non-aromatic nomencalture to defaulted 
+    non-cyclic atoms will be sufficient to identify all atoms which are apart of non-aromatic rings. This leads to the deduction that all aromatic, non-aromatc, and 
+    non-cyclic atoms can be distinguished from one another. Additionally, the total number of aromatic and non-aromatic rings can be deduced in a similar way.
+    An algorithm which identifies all aromatic rings, and then simltaneously determins the total number of indepdenent rings in the SMILES code through the 
+    numbering system, will sufficently lead to botht the total number of rings and the total number of aromatic rings. Using this information, the non-aromatic
+    ring counts can be determiend by applying the equation total number of rings minus total number of aromatic rings. In this way, the complex polycyclisms 
+    that are exhibited in the SMILES code, and the extreme precesion required to disginguish all atoms part of a ring individually is side stepped. Futhermore,
+    this leads to the simplification of the algorithm to simply identify all aromatic rings and atoms, then identify all non-aromatic atoms afterwards, and 
+    the full set of ring related data is captured as a result. This leads to the variables of interests related to rings.
+
+    The final portion of the Molecule class contains some small miscellaneous pieces of data that are related to the total number of atoms as well as the
+    precense of an amino acid or not. These are auxillary chemical pieces of information whcih are also availble in the SMILES code. 
+
+    With this discussion in mind, the Molecule class should be viewed as a software space which extracts chemical information from the SMILES code
+    and saves it to a computer in a software space. This view of the Molecule class means that it is a space which deals directly with the SMILES
+    code and can be used in various other applications, such as a functional group identificaiton algorithm. 
+
+    The discussions of the createEdges() algorithm and the createRings() algorithm can be viewed below:
+
+    createEdges():
+        atom_index      (int):                      the atom index of the most recently viewed atom
+        match_index     (int):                      the atom index to be paired as an edge with the most recently viewed atom
+        ring_queue      (dict[str, int]):           a hash table which saves the atom index that appears next to ring_number's first appearence ({ring_number: atom_index})
+        parenth_stack   (list[int]):                a list of atoms indices which appear directly before an open parenthesis, in the order they appear
+        bond            (Literal['', '=', '#'']):   the most recently viewed bond 
+        edges           (list[Edge]):               the output list of edges
+
+        Algorithm Description:
+            The goal of this algorithm is to generate an undirected set of edges which identify which atoms are connected in a graph
+            In order to achieve this from the SMILES code, the connectivity of the Molecule must be atom by atom. However, two 
+            extraneous symbols, namley the parenthetical symbols and numerical digits in the SMILES code, also add a layer of complexity
+            by describing branched groups of atoms. Therefore, the algorithm takes into account the four following symbols to create the 
+            algorithm: Atom, Digit, Parenthesis, and Bond. These four symbols, as they appear in the SMILES code linearly, each perform
+            a specific set of operations to either prepare for a forthcoming edge connection, or to set up the connection between two new
+            verticies. The following cases will be described in detail and their purposes will be listed below.
+            The algorithm will begin at the second symbol in the SMILES code by assuming that every SMILES code will always show the first
+            symbol as an atom. With this in mind, atom index 0 is already labeled and need no further operation on it. Therefore, this algorithm
+            begins on the second symbol. 
+
+            This algorithm utilizes a special variable called the match_index variable. This variable is used to match atoms with their correct
+            edge atom while linearly scanning the SMILES code. The match_index is specifically a lagging index which, with respect to the current atom,
+            identifies a preceeding atom, and these two atoms, the current and preceeding, become the new edge. The match_index is set either simlpy
+            as the previously viewed atom, or during parenthetical cases, it becomes the atom directly outside of the parenthetical group. In this way,
+            the lagging match_index tracker allows for the SMILES code to be linearly scanned and handles the connection between atoms which are
+            both seperated by parenthetical symbols, and which directly appear inside of a parenthetical group. 
+
+            The match index plus a most recently viewed bond variable together handle all non-digit related edges, that is, atomic bonds which are
+            described in the SMILES code through neighboring atomic symbols or through disjointed parenthetical groups. The final type of bond described
+            in the SMILES code is the digit based edge. The digit based edge simlpy states that the two atomic symbols which appear to the left of two
+            like ring numbers are bound together in an edge. With this in mind, a simply hash table ring_queue that saves the ring number viewed and the
+            key and links it to the atomic index which is first viewed when the ring number is first seen. Then, once the ring number re-appears later in the
+            SMILES code, the ring number is checked within the hash table for exsistence, and the atomic index is then fetched. Therefore, when a ring number
+            which has already been added to the hash table appears again, the atomic index most recently viewed and the saved atomic index mark the two atoms
+            involved in the digit-based edge. Then, this ring number ceases for this particular edge and the same ring number may appear later, but just for 
+            a different ring index.
+
+            With these descriptions in mind, the match_index edge linking as well as the ring_queue digit edges can be handled and applied by setting up 
+            the match_index and ring_queue linearly and then proceeding with a symbol by symbol analysis of the SMILES code which applies the aforementioned
+            properties of the edges described in the SMILES code. These ideas lay out and formalize the following cases which appear in the algorithm, which 
+            loops over all symbols in the SMILES code except the first, which is assumed to be an atom.
+
+            When an atom symbol is viewed, the following is performed:
+                The current atom index is incremented
+                The match index and new current atom index form an edge of the molecular graph, incluive of the most recently viewed bond (single, double or triple)
+                An edge object is constructed with the edge atoms and bond
+                The edge object is added to the set of all edges in the molecular graph
+                The match index is incremented to the new current atom index for the next iteration
+                The bond most recently viewed is reset, since it is 'consumed' in this edge
+
+            When a digit symbol is viewed, the following is performed:
+                If the digit does not yet exist in the ring_queue hash table, 
+                the digit is saved as the key and paired with the value of the most recently viewed atom index, 
+                which is the current atom index
+
+                If the digit already exists in the ring_queue hash table, 
+                the digit is popped from the hash table along with its paried atom index,
+                and a new edge is formed between the paired atom index and the current atom index.
+                The edge object is added to the set of all edges in the molecular graph
+                The ring number is removed from the ring_queue and a new ring identified by the same
+                ring number may be reused later in the SMILES code
+
+            When a parenthetical symbol is viewed, the following is performed:
+                If the parenthetical symbol is an opening parenthesis '(', then the most recently viewed atom index (i.e the current atom index)
+                is pushed onto a stack to save the index for the future match_index once this specific parenthetical group closes later in the string
+
+                If the parenthetical symbol is a closing parenthesis ')', then the last elemnt of the stack is popped and set to the value of the
+                match_index. In this way, the next atom to be viewed will form an edge between the atom index which directly before the parenthetical group
+                began and itself. It furthermore does not impede the ability for the algorithm to handle edges which appear within the parenthetical group
+                itself. 
+
+            When a bond symbol is viewed, the following is performed:
+                The bond symbol is saved to a most recently viewed bond variables is used in the formation of an edge when an atom is viewed.
+                The usage of the bond is discarded afterwards during the atom symbol case (see atom symbol is viewed operations)
+
+            By applying all of the aforementioned steps to an iteration over every symbol in the SMILES code list (which is double letter atom and charged atom inclusive),
+            the set of edges for a molecular graph will be collected under the set of edges called edges. The edges list is a list of edge objects, each which save the 
+            particular symbol and index associated in the edge, as well as the type identifier core/R for functional group edges. This means that this algorithm is supporitve
+            also within functional groups. Since the SMILES code list of symbols handle double letter atoms and charged atoms by encapsulating them into a single symbol, 
+            the symbols which appear in the edges contain both letters of the atomic symbol and for charged groups contain the charged symbol on them. This is useful
+            for the identificaiton of functional groups and flexiblity of the algorithm listed above. 
+
+            As a check at the end of the algorithm, it is asserted that the ring_queue as well as the parenthetical stack of atom indicies and ring number are both empty
+            this ensures that all rings and parenthetical symbols where properly paired together and processed through the algorithm successfully. 
+            As new symbols appear in the SMILES code, they must first be captured in the regular expression indepdentely so that the iterative list of symbols remains
+            consistent, then their case can be implemented with an symbol specifc list of operations which create the edge between a particular pair of two atoms. 
+
+            
+        
+    ...
+
+    createRings():
+
+        ring_index              (int):                  an index counter for the linear appearance of rings
+        p_group_counter         (int):                  an index counter to track the parenthetical groups viewed
+        parenth_stack           (list[int]):            a parenthetical group stack for the p_group_counter intger for tracking of parenthetical groups passed or within (always has 0 as root level, and parenth_stack[-1] === index of current p_group during iteration at any symbol step except for parenthetical symbol)        
+        ring_queue              (dict[str, int]):       a hash table that saves the ring_number key to its ring_index value that is used to identify which ring index a particular ring number is associated with upon viewed its second ring_number, and identifes whether or not a particualr ring_number has already been viewed previously in the SMILES string (i.e. whether or not it is open) also ring_index: ring_index for open rings
+        ring_info               (dict[int, list[int]]): a hash table that saves the list of allowabled parenthetical groups where atoms apart of a particular ring identified by index may appear (i.e. ring_index X may have its atoms appear in parenthetical groups [W,Y,Z,...N])
+
+        atom_index              (int):                  an atomic index counter for the current atomic index in the SMILES
+        ring_stack              (list[int]):            a list of ring indices of the order in which the rings first appeared in the SMILES code (ring_stack[-1] === index of most recently opened or viewed ring)
+        ring_set                (dict[int, list[int]]): a hash table that saves the list of atom indices which are associated with a particular aromatic ring index 
+        ring_p_groups           (set[int]):             the total set of all allowable p_groups for the currently 'open' rings in the SMILES code (whatever iteration that the iteration is on)
+        ring_atom_indices       (list[int]):            a list of all atom indices which are apart of any ring structure (aromatic or non-aromatic)
+
+        aromatic_ring_count     (int):                  the number of aromatic rings
+        non_aromatic_ring_count (int):                  the number of non-aromatic rings 
+
+        Algorithm Steps
+            Step 1: Define per ring index which p_groups are allowable for each ring (i.e. fill the ring_info hash table)
+            Step 2: Identify the specific atom indices apart of each specific aromatic ring by index and identify all atoms apart of rings (i.e. fill the ring_set hash table and ring_atom_indices list)
+            Step 3: Identify the number of aromatic and non-aromatic rings, and label atoms as aromatic, non-aromatic and non-cyclic (i.e. determine the aromatic_ring_count and non_aromatic_ring_count, and update the ring_type attribute identifier on all Vertex objects which satisfy the condition that the Vertex is non-cyclic, that is is not already aromatic, and that it appears in the ring_atom_indices list of atom indices which are apart of a ring structure)
+
+
+
+        Algorithm Description:
+            The purpose of this algorithm is to generate the number of aromatic and non-aromatic rings in the Molecule from the SMILES code, and to distinguish all atoms with the properties
+            of aromatic, non-aromatic, and non-cyclic. These two pieces of information serve the following puroposes. First, the number of aromatic and non-aromatic rings is a numerical property 
+            that is assigned to the molecule which identified the number of aromatic and non-aromatic ring structures that appear inside of its connected moleular structure. Second, the identification
+            of atoms as either aromatic, non-aromatic, and non-cyclic is useful for the identification of functional groups as being classified as either aromatic, non-aromatic or non-cyclic. These
+            aspects both lead to the natural conclusion that the algorithm is useful for collection of data about the ring structures which appear inside of a particular Molecule. Hence, the name
+            of the algorithm is called createRings() because the purpose is to generate the 'ring structure' of the molecule through investigation of the total number of aromatic and non-aromatic rings
+            as well as the identification of the specific atoms which are aromatic, non-aromatic, and non-cyclic. In this way, this algorithm creates the rings of a molecule, and it is deduced from the
+            SMILES code.
+
+            The SMILES code identifies its rings through the usage of a digit numbering system. The digit number system behaves in the following way. When a number appears in the SMILES code,
+            this indicates that a portion of a ring structure is now being traversed in the SMILES code with the forthcoming atoms, and it is associated with an individual ring. Each number which 
+            appears in the SMILES code is associated with another number of the same digit value (i.e the number 1 goes with the number 1, and the number 2 goes with the number 2 and so on). The first
+            appeareance of the number indicates that some of the forthcoming atoms which will appear in the SMILES code will be apart of a particular ring exhibited in the molecular structure. This condition
+            will remain true for this particular ring until its paired number re-appears farther down the in the string code at a later point in time. This indicates that the SMILES code traverses through 
+            ring structures through a numbering system. The number system allows numbers of digits up to as many rings as is necessary to describe the rings that the SMILES code has partially traversed. 
+            In other words, higher order numbers appear in the SMILES code when a ring that has been partially traversed either polycyclically interceeds with another ring, or the linear appearance of a new
+            ring in a brancehd parenthetical group is traversed in a different part of the molecule that is away from the previously traversed ring. In this way, higher order numbers indicate the following:
+            atoms of a new ring are being traversed before all of the atoms of another ring have been completed viewed from the perspective of the linear SMILES code. This indicates that higher order numbers
+            have the potential to describe polycyclic structures, but only under a certain set of condition. The set of conditions which indicate that these higher order number pairs are necesarily polycyclic
+            in their intearaction (i.e. that a portion of a new ring that is being traversed in the higher order number is also being exhibited in a previously traversed ring) is defined by the parenthetical
+            groups in which the ring numbers appear. The parenthetical groups in which a specific ring appear are defined as the allowable range of parenthetical gropus where its atoms may appear, and they are defined
+            by a certain set of conditions related to the respective order in which the ring structures were first traversed and viewed. This leads to the idea of a ring stack which tracks the order in which rings 
+            first appear and which atoms are apart of those rings as they preceed. Therefore, the identification of which specific atoms are apart of which specific ring (assuming that each pair of numbers indicates
+            a unique ring and that there is a specific ring index assigned to each unique pair of ring numbers) must include the conditions of the ordered stack in which the ring numbers appears as well as the specifically
+            allowed range of parenthetical groups where the atoms of each ring may appear within. A parentheical group index is assigned to specific parenthetical gropus of the SMILES code, where the root level of
+            no parenthetical symbols is defined as index 0, the root level. Using these defenitions, it is possible to identify which atoms are apart of which ring index. However, there presents an issue with the 
+            aforementioned discussion of order and parentehtical groups of ring structures. Through repeated investigation of numerous string codes, parenthetical gropus combined with highly polycyclic structures 
+            begins to present the issue of closure ordering. In other words, from the linear perspective of the SMILES code, some structures begin to exhibit such a high order of polycyclism that standardized forms
+            of linear encapsulation begin to break down. For example, the string code EYOGEF presents the issue called the 'Undefined Ring' problem. This issue is related to the fact that a particular atom can be identified
+            as being within a ring despite that is does not fall between the two ring numbers associated with a particular ring index. The SMILES code appears as CC1(CC(=O)C2(O)C(=C1)C(O)C1OC(=O)C3(C)CCC4CC24C13)C=C. Upon
+            investigation, the polycyclic order of this structure appears as (4 or 5), and specifically the ring associated with ring number 2 is exhibited as missing an atom. The specific atom which is missed is the first
+            carbon which comes after its ring paired number has already appeared. This example presents an issue on the side of algorithm development because there is no know uniform behavior to describe this level of polycyclic order.
+            The behavior may be inclusive of the concepts such as the number of rings which close next to each other, the parenthetial groups where the rings are apart of, how many total rings are in the structure, 
+            how many rings have been already partially viewed, and so on. These behaviors may increase, change, or be exhibited differently depending on the size of the rings, the order in which they first appear
+            the order in which the cease to appear, as well as an interaction between which parenthetical groups each of those polycyclic rings is actually apart of. With all of these factors in mind, it becomes apparent
+            that the degree of algorithmic complexity and the complexity of behavioral classifcation on a string defined level significantly increases as the degree of the polycyclic order of the SMILES code increases. Luckily,
+            this level of polycyclic complexity and the high degree of variability which comes along with polycylic rings, occupying different parenthteicla grous, dependent upon the polycycli order, and the physical
+            numbering order in which the SMILES code traverses each one of these rings, can entirley be escaped by recognizing that this level of polycyclic complexity does not appear for aromatic ring structures. The benefit
+            of this observation is that the algorithm developed need only be capable of two features to derive all of the necessary information at hand: a method for distinguishing the specific atomic indices apart of an aromatic ring
+            as well as a method for identifying all of the atoms which are apart of ring structures. This capablity is allowed for the following reasons. First, the total number of rings is described by the total number of
+            ring pairs. This means that if the total number of rings are known and the total number of aromatic rings are known, then the total number of non-aromatic rings can be calculated without knowing their size nor the 
+            specific atoms which are apart of those rings. Second, the ring_type classification of verticies can be determined using a similar deduction. With a list of all atoms which appear in ring structures derived by the algorithm,
+            and the information that all aromatic atoms in SMILES codes are lowercase, then by dedution the exact atoms which are non-aromatic can be deduced. This deduction is achieved by marking the initally non-cyclic (i.e. non-lowercase)
+            atoms which appear in the list of all ring atom indices as instead non-aromatic, and leaving all of the already initialized aromatic atoms alone due to their already deduced property from the property of all lowercase atoms
+            in the SMILES code are aromatic property. Therefore, using an algorithm to generate the list of all atoms which are apart of ring structures and an algorithm which sufficientley identifes per aromatic ring index all of the atoms
+            which belong to their index, then all of the desired properties of the ring structures necessary for the total ring counts as well as the increased precision of functioanl group nomeclatures in terms of aromatic, non-aromatic
+            and non-cyclic identifications can be derived. The only caveat is that the specific polycyclic order of the molecule will remain unknown. This is due to the fact that there is an increasing complexity
+            of algorithm implementation when considereing higher order of non-aromtic polycyclism. Furthermore, the fact that aromatic rings remain apart from this complexity scaling of polycycli order indicates that only an algorithm
+            capable of identifying the specific atom indices apart of aroamtc ring indices is necessary. This specificity is necessary because an aromatic ring is only aromatic if and only if all of the atoms apart of its structure have the
+            aromatic property. Therefore, the only way to derive the specific number of aromatic rings is to associate the rings indices with a specific set of atoms that appears in the SMILES code. In this way, the algorithm generates a 
+            hash table which identifies a set of atom indices with a particular ring index, and the hash table can be scanned for valid aromatic rings, and may discard of all other non-operational rings furthermore. This means that the algorithm
+            will attempt to fill the atom indices which appear for non-aromatic rings, but these results will be interperted as null for the puroposes of this algorithm, and only the rings which posses a full set of aromatic atoms will be 
+            identified as being aromatic rings. Furthermore, these will be the only rings whose specific atomic index lists can be intereperetd as correct. Therefore, the algorithm constructs a ring index to atom index lit pairing for all rings it
+            encounters, however it will only consider the fully aromatic ring cases correctly. The concepts of parenthetical groups and ordering may be applied at a rudimentary and simplistic level to gather this necessary information, and it 
+            may also be applied to gather the information about all of the atomic indices which appear inside of ring structures in the SMILES code. These two pieces of information then lead to the deduction of the ring_type identifier
+            for all vertex objects in the molecular graph (i.e. atoms in the molecule) and also indiciate the total number of aromatic rings, which is then lead to the total number of nonaromatic rings and the total number of rings
+            Therefore, the goal of this algorithm becomes to identify all aromatic rings through specific atom index lists, and to identify all of the atoms which are apart of rings structures in the SMILES code. The concepts of 
+            parenthetical groups as well as ring ordering, and minorly simply cases of polycyclic rings at a maximum order of 2 with each other, may be implemetned in the algorithm to sufficently achieve the collection of this information. 
+            Then, this information leads to the sufficent deduction of data that is of interest to create the ring structure of the molecule. The algorithm will be discussed now.
+
+
+
+            As mentioned previously, the algorithm is aimed at two purposes: to determine the number of aromatic and non-aromatic rings, and to distinguish all atoms as either aromatic, non-aromatic,
+            or non-cyclic. To achieve this result, two data structures must be filled and analyzed afterwars: a hash table called ring_set and a list call ring_atom_indices. The ring_set
+            will associate each ring index (a unique pair of ring numbers in the SMILES code) with a particular set of atomic indices which it determines as being apart of that particular ring.
+            The ring_atom_indices will mark all atom indicies which are apart of ring structures. Using the exteriror or other auxiliary pieces of data such as the total number of rings (derivaable from the
+            total number of ring pairs) as well as the identification of aromatic atoms (using the concept of lowercase atoms in the SMILES code as being aromatic), the finalized pieces of data that the 
+            algorithm is aimed at can be computed and achieved. This therefore will round out the capability of the algorithm to perform its designated task. 
+
+            The derivation of the ring_set and ring_atom_indices will utilize a conceptual understanding of rings with respect to the linear symbols exhibited in the SMILES code called p_groups.
+            p_groups are known as parenthetical groups, and the parenthetical groups of the SMILES code can be indexed by the presence of an opening and closing pair of parenthetical symbols. Each
+            parenthetical group can be assinged an index, and this index is called the p_group_index. The p_group_index is tracked by the p_group_counter, and the root p_group is the entire SMILES code
+            which is not encapsualted in any particular parenthetical group. That is, the root level is automatically assigned a p_group value of 0, and all other parenthetical groups as they appear will be
+            given higher numbering group indices as they appear linearly. 
+
+            The behavior of p_groups with respect to ring numbers operates in the following way: A ring will be assigned a set of p_groups where the atoms of its particular ring may appear within. In other words,
+            there exists only a specific set of p_groups, which within, a particular ring_index may have its exhibited atomic indices inside of. With this in mind, that means that only a specific set of parenthetical groups
+            may contain the atoms expressed as part of a particular ring index identified by a pair of ring numbers. Using this concept, the p_groups of a ring can be determined in the following way: a ring contains
+            all unfinished p_groups which fall between its ring number pair. In other words, for every opened parenthetical group which has not yet finished that appears between two numbers, all of these parenthetical groups
+            will become valid p_groups where atoms of the ring may fall under. This indicates that the p_group where a ring is first viewed as well as the p_group where a ring is last viewed will always be in the p_group list of a
+            specific ring, and any unfinished p_group which may fall between the two will be included in the list as well. For example, a ring identified by CC1(CCC1) will have p_groups 0 and 1 in the allowable list because
+            from the linear perspective of the encapsulation of symbols between the two associated ring numbers, the ring appears on p_group 0 and p_group 1. This concept allows every ring to be assigned a particualr set of p_groups
+            and helps to indicate which atoms are apart of its ring structure. 
+
+            P_groups can be assigned continuously to all open rings, where an open ring is classified as a ring who has only seen its ring number once linearly in the string code at a particular iteration of the algorithm. 
+            Open rings will all recieved a p_group is opened, and they will all discard of a closed p_group is they are still open. This means that as long as a ring is open, it will be active in recieving and discarding of 
+            potential p_groups until its paired number is met again. Once the paired number is met again, then it becomes a clsoed ring and its p_group set cannot be futher mutated. This solidfies the p_group set for a paritcular
+            ring and allows the ring to be assigned its correct set of p_groups where atoms part of its ring structure may appear. The information about the p_groups is loaded into a hash table called the ring_info hash table, which
+            saves every ring index by key to a list of its p_groups as the value. This is utilzed during the construction of the ring_set and the ring_atom_indices data structures in the following iteration of the algorithm. 
+
+            The creation of the ring_info hash table serves as a preperation step for the execution of the main algorithm aimed at filling the ring_set and ring_atom_indices data structures
+
+            The main algorithm aimed at filling the ring_set and ring_atom_indices can proceed to utilize the ring_info hash table during its iteration over the SMILES code to fill these data structures.
+            The main algorithm fills these data structures using the following process: for the most recently viewed ring on the open ring stack, add all atoms to its atom index list in the ring_set as long as
+            the current p_group where the atom exists is within the allowable p_gropus of the most recently viewed ring. If the atom appears in a p_group which is valid in at least once of the open rings, then that
+            atom is apart of the ring_atom_indices because it must be apart of a ring. These two pieces of information are sufficient to identify where atoms appear with a fairly high degree of accuracy. Applying the 
+            unchanging aspect that every atom directly next to a ring number appears in that ring index every time is also applied. The case of polycylic aromatic rings is handeled in the following way. An aromatic ring
+            which is polycycli with another ring has a maximum or two aromatic atoms which are polycyclic with that other ring. In this way, there are only two locations where the two polycycli atoms for the polycyclic aromatic
+            ring can appear: at the beginning of the new ring and at the new of the new ring. The case of a polycyclic aromatic atom being at the beginning is handlede by the fact that all rings are initialize with the most
+            recently viewed atom when they are appended to the ring_quueue. The second case is handled by the fact that the second aromatic ring atom associated with the polycyclic aromatic ring must appear at the 
+            closing junction of the consecutively opened ring. In other words, the atom which closes an encapsulated ring between two numbers (i.e 3...4...4..3) and closes on the same parentehtical level 
+            must be polycyclic in the previous ring index. This consective case is also handled at the numeriacl level. Other than these two cases, the previous disucssion of the most recently viewed ring
+            being able to add all atoms which forthcoming appear in its allowable p_group list, combined with these two cases, is sufficient to generate the list of all atomic indices which mark aromatic rings individually.
+            In other words, this allows that in the ring_set, all truly aromatic rings will be aromatic and all other rings which are partially non-aromatic will be discarded and treated as non-aromatic. Utilizing
+            these aspects allows for the generation of both the ring_atom_indices and the ring_set. Furthermore, this allows for the deduction of the data structures of interest. 
+
+
+            With this in mind, as well as the auxiliary data going alongside the data here, the algorithm can be explained in three main steps:
+
+            Preparation     : Define per ring index which p_groups are allowable for each ring
+            Implementation  : Determine the aromatic ring indicies and find all atoms apart of a ring
+            Collection      : Identify the non-aromatic atoms and determine the number of aromatic and non-aromatic rings
+
+            These three algorithm steps will be displayed in the code and discussed in process detail as follows:
+            
+            Preparation:
+                The preparation step involved generating the ring_info hash table which links the ring index with a valid set of p_group indices. These p_group indicies
+                are determined using a p_group_counter, which increments every time a new parenthetical group is viewed (i.e. each time an open parenthesis symbol is viewed)
+                The p_group_counter is pushed onto the parenth_stack to indicate the current p_group that the SMILES code iterator is currently on. This indicates which current
+                p_group that the rings may be appearing on at a certain iteration of the SMILES code. The specific p_group_counter value is added to all open rings in the 
+                ring_info list to pre-emptevley assume that they may contain that p_group as a valid group in its set. Once the ring number locates its associated pair of numbers,
+                the ring index is popped from the ring_queue and therefore cannot be used to alter the ring_info list. In this way, only open rings may be mutating in their p_group lists.
+                The p_group_counter is not decremented upon closed parenthetical symbol because this would ruin the purpose of unique index identification for each parenthetical group. 
+                Instead, when a closing parenthetical symbol is viewed, the parenth_stack is popped from its most recent value to indicate that this p_group is now closing. Thus, for 
+                all rings still open, they should remove this p_group from their valid list of p_groups because that particular p_group failed to possess their paired ring number. 
+                This means that it was an individual parenthetical group which did not exhibit any ring atoms inside of it. These types of parenthetical groups must be skipped
+                when determining the atoms which fall into a particular ring because they indicate that no atoms indside of the parenthetical group are associated with any
+                particular ring. Therefore, no ring index in ring_info will express this particular p_group, and it can be considered invalid for any open ring at that point in the 
+                algorithm. 
+
+                Any digit symbol seen while not already in the ring_queue is considered an 'open' ring. It is placed into the hash table as the key and value paired with its ring index value. 
+                When the paired digit is seen again, it is popped off of the ring_queue to indicate that it has closed and is no longer availble for having any atoms to be added to it. In this way
+                closed rings cannot have their p_groups altered, and only open rings can have their p_groups altered. 
+
+                With this understanding in mind, the algorithm proceed to iterate over every symbol of the SMILES code except for the first because it is an atom, while applying the following
+                symbol dependent operations each time the symbol regex is matched:
+
+                When a parenthetical symbol is viewed, the following is performed:
+                    If the parenthesis is an open parenthesis, the p_group counter is incremented, the new value is pushed onto the parenth_stack as the 'current' p_group of 
+                    the iteration, and all 'open' rings pre-emptively recieve the incremented p_group value in their ring_info hash table lists
+
+                    If the parenthesis is a closed parenthesis, the parenth_stack is popped from, and the popped p_group value is removed from every open ring hash table list stored
+                    inside of ring_info
+
+                When a digit symbol is viewed, the following is performed:
+                    If the digit is in the ring_queue, its value is popped from the ring queue to indicate the ring has closed. 
+                    If the digit is not in the ring_queue, its value is added to the ring queue and paired with its particular ring_index. Furthermore, its ring_info slot is initialized
+                    with the value of the current p_group that the iteration is on. Then, the ring_index is incremented to set up for the next new ring observed in the SMILES code. 
+
+
+                Note that the hash table values of the ring_queue indicate the open rings, and the key of the ring_queue indiciates the SMILES level identification of the ring to assist with
+                labeleing unseen rings as appearing the string, as well as finding the numerical pair which closes the ring to end the open ring status of that particular ring. 
+
+
+            Implementation:
+                The algorithm implementation is the main process of identifiying the atomic indicies of specifc aromatic rings as well as the identification of all ring atoms in the SMILES
+                code. This process leverages the ring_info hash table described in the preperation step to perform this identification. The goal is to fill the ring_atom_indices with all of the
+                atomic indicies which are apart of any ring structure in the SMILES code, and to fill the ring_set sufficiently to identify fully aromatic rings by a set of all aromatic atoms inside
+                of its list. 
+
+                This algorithm uses a ring_queue hash table to identify open rings and associate them with their ring_index value pair. Furthermore, an atom_index, p_group_counter and ring_index counters
+                are all used to increment the state of the atom index, p_group and ring index as the SMILES code is iterated over. As mentioned previously, the behavior of rings sufficient for 
+                aromatic rings which do not exhibit high degrees of polycyclic order allows for the following generalized defeniton: while a ring is the most recently viewed or opened ring (i.e. its ring
+                number is the most recent to be added to the ring_queue), then all of the atoms forthcoming which belong to the valid p_groups for that most recently viewed ring can be identified as being
+                apart of that ring's strucutre. In other words, for the most recently viewed ring, as long as the atoms which appear afterwards are within the valid p_groups for that most recently viewed ring,
+                then that atom index is within the most recently viewed ring structure. This feature allows for rings to skip over their undesired p_groups and only add atoms which appear on the valid 
+                p_group indices. Therefore, when an atom is viewed, the current p_gruop that the atom is within (i.e. parenth_stack[-1]) will be checke for being inside of the most recently opened ring
+                The most recently opened ring can be feteched from a ring_stack which lists the order in which rings opened. This can be gathered by taking the list of hash table values from the ring_queue,
+                which lists the open rings in order. Furthermore, when an atom is viewed, there are numerous polycyclic peculiarityies which appear in relation to previously opened rings closing first
+                and rings which appear on differnet parenthetical groups. And as mentioned previously all of these can be ignored for invalid non-aromatic rings. The application of the p_groups to capture
+                all atoms which appear in rings is to take all of the open ring p_groups to form a set of all open ring p_groups, and then to check whether or not the current p_group belongs to at least
+                one of these rings. In this way, instead of being exactly precise about the polycyclic complexities of non-aromatic rings, only the presence of knowing that an atom is apart of some highly 
+                polycyclic structure is necessary. And this is achieved through checking if the atom that is viewed in a particular parenthetical group is an atom which should be apart of a ring structure
+                via a comparison with all of the open ring p_groups. Using this feature, the p_groups set indicates the set of all atoms which appear in rings, and this list is collected alongside the
+                identification to match specific atom indices to specific ring indices, which only comes out to be valid for aromatic rings. For the remaining symbols, the parenthetical symbol need only
+                keep track of the parenth_stack and the p_group counter to work in tandem with the atomic symbol case, and the digit case need only open new rings for the ring_queue and close rings in the ring_queue.
+                Opening ring in the ring_queue involved initializing the ring_set for a particular ring to save the fact that the first atom which appears to the left of a newly seen ring will always be apart
+                of the ring that is associated with the particular ring number. It futhermore appends to the ring_queue hash table by assigning the key of the ring number to the value of the ring index
+                so that the open ring indices can be tracked and so that the ring number is saved as being open with respect to the linear SMILES symbols. Upon vieweing a new digit, both the ring_stack
+                (i.e the ring index order in which ring opened) and the total open ring p_groups allows (i.e. the set of all p_groups for all open rings at that point in the iteration) will be updated.
+                
+                There exists only a single caveat case in the closure of of rings which deals with the case of a polycyclic aromatic ring that has a polycyclic atom appear as the final atom of an 
+                encapsualted ring. This appears as an atom which closes a previously viewed ring, but which is nonetheless apart of the ring which came directly before it. The requirement for this case is that
+                the closing ring must end on the same parenthetical group as its consecutive (or previous) ring. An example of this would be CC1CCccc2ccc2C1, where the final little c next to the final 2 will saitify
+                this case. This is required for aromatic rings and signifies the highest level of algorithmic complxity required to capture this degree of polycyclism that is exhibited in the SMILES code for the puporses
+                of aromatic ring identification. All other higher order of polycyclism may result in much more complicated algorithmic implementations, however these are disregarded and not included as part of this 
+                algorithm as previoulsy stated. 
+
+                With this discussion in mind, the implementation of the main filling algorithm utilized an iteration over every SMILES code symbol except for the first which is always an atom and
+                applies the following symbol specific operations to each symbol viewed during the iterations:
+
+                When a parenthetical symbol is viewed, the following is performed:
+                    If the parenthesis is an open parenthesis, the p_group counter is incremented, the new value is pushed onto the parenth_stack as the 'current' p_group of 
+                    the iteration
+
+                    If the parenthesis is a closed parenthesis, the parenth_stack is popped from
+
+
+                When a digit symbol is viewed, the following is performed:
+                    If the digit is in the ring_queue, its value is popped from the ring queue to indicate the ring has closed, and its ring index is retrieved.
+                        If the ring_queue still has items in it, then the polycyclic encapsualtion case is checked for. This is performed by locating the consecutive 
+                        ring index which may posses the special polycylic atom that is appearing at the end of another ring. The final p_group of the closing ring
+                        is checked as being in the consecutive rings p_group, and if this is true, then the atom index belong to the consectuive ring as well as
+                        the closing ring. 
+                        If the atom index is not already in the closing index ring_set list, then it is added to that list set.
+
+                    If the digit is not in the ring_queue, then its value is saved in the hash table and associated with its particular ring_index, and the ring_set
+                    is initilazed with the atom index of the most recently viewed atom. the ring index is incremented.
+
+                    Regardless of ring_queue status, the ring_stack is updated with all of the values seen in the hash table (which naturally come in the order they were
+                    placed in the hash table), and the p_groups of all open rings is updated 
+
+                
+                When an atom symbol is viewed, the following is performed:
+                    the atom index is incremented.
+
+                    If the ring_queue is non-empty, then the atom index will be tested as being in proper p_groups.
+                        
+                        If the current p_group is within the open ring p_groups, then it is added to the total list of atom indices which are apart of rings
+
+                        If the current p_group is within the allowed p_gropus of the most recently viewed ring (i.e. the ring_info value list of ring_stack[-1]), then
+                        the atom index is appended to the ring_set of the most recently viewed ring
+
+                After applying each of these steps, the algorithm will have gerneated a ring_set correctly identifying all aromatic rings by their specifc list of atomic
+                indices, and it will have generated the list of all atoms which belong to rings in the strucutre. This will conclude the main ring algorithm and will lead
+                into the collection phase, where the data is applied to retieve the ring counts and applied to all atoms as necessary. 
+                As a validity check, it is asserted that the ring_queue is empty so that all possible rings have been processed, and that the parenth_stack has returend
+                to its root index level at root index 0
+
+            Collection:
+                The final step of the createRing() algorithm is the collection step. In this step, the aromatic and non-aromatic ring counts are derived from the ring_set as well
+                as the total count of rings observed in the SMILES code. Furthermore, the identificaiton of atoms as either aromatic, non-aromatic, or non-cyclic is determied.
+
+                To perform the identification of rings as aromatic or non-aromatic, the ring_set list is iterated over ring by ring. If the full set of atoms associated with a
+                particular ring appear to be aromatic, then the ring must be aromatic, and the total number of aromatic rings is incremented. If the full set of atoms associated
+                with a particular ring contain at least one non-aromatic atom, then the ring must be non-aromatic, and the ring is counted as non-aromtic. This then yields
+                both the aromatic and non-aromatic ring counts, and by deduction, the total number of rings in the molecule. 
+
+                To perform the identification of atoms as either aromatic, non-aromtic or non-cyclic, the total ring atoms indices list is iterated over. The vertex object of
+                each of the atom indices is checked as being non-cyclic in nature. If they are non-cyclic, that means they were identified as being in a ring through the algorithm
+                and were given the default value of non-cyclic instead of aromatic (i.e. they were an uppercase atom). This deduces that the atom which appears in this ring list
+                must be non-aromatic. All aromatic atoms which appear in this list are unaltered because they were already determiend to be aromtic through the identifcaiton of
+                atoms as either upper case or lower case.
+
+                With both of these iterations, the full data about the number of aromatic and non-aromatic rings is collected, and all atoms are properly labeled as aromatic,
+                non-aromatic or non-cyclic. These pieces of information are both saved in the vertices of the molecular graph, and will be used during the implementation of the
+                functional group identificaiton algorhtm. and they yield the correct number of rings which appear in the SMILES code. The total ring atom indices is returend to 
+                identify how many ring atoms there are for testing purposes, and the total aromatic and non-aromatic ring counts is also returned in a hash table that is keyed by the
+                string 'aromatic' and 'non-aromatic'. As a final assertion, the total number of keys in the ring_info set (i.e. the total number of rings) should be equal to the
+                total number of aromatic and non-aromatic rings combined.
+
+            This concludes the createRings() algorithm to extract the desirecd ring data from the SMILES code effectivley. 
+    ...
+
+
+    Molecule attribute notes:
+        smiles is a symbol list of every smiles symbol minus hydrogen symbols
+        atoms is a symbol list of every atom symbol including double letter atoms in the smiles
+        name is the name of the molecule of interest
+        verticies are the vertex objects in the graph containing atomic data
+        order is the number of verticies in the graph (i.e. the number of atoms in the molecule)
+        edges are the vertex to vertex connection in the graph (i.e. the undirected lines connecting verticies)
+        size are the number of edges in the graph
+        ring_atoms are the set of atom indices which belong to rings
+        ring_counts is the total number of aromatic and non-aromtic rings in the molecule
+        total_rings is the combined number of total rings (aromatic and non-aromtic)
+        total_ring_atoms is the number of atoms which are apart of a ring
+        total_aromatic_atoms are the total number of aromatic atoms
+        total_non_aromatic_atoms are the total number of non_aromatic_atoms
+        atom_counts are the total number of each type of atom, double letter atom inclusive
+        amino_acid is whether or not an amino acid is present in the molecule
+
+
+    Algorithm Notes:
+
+        Ring Contruction Notes:
+        Due to the complexity of non-aromatic ring polycyclism described in the SMILES code,
+        the algorithm cannot identify the exact atoms of each ring index individually for non-aromatic atoms
+        Instead, it is only capable of identifying the specific atoms of aromtic rings individually,
+        and can only identify that atoms are within a non-aromtic ring rather than the exact ring index
+        they are apart of.
+        This is due to the highly complex expression of polycyclism inside the SMILES code,
+        and reaches outside of the bounds of the necessary implementation of the algorithm.
+        (i.e all information is still derivable despite this level of accuracy not being achieved in the algorithm)
+
+
+
+    Molecule Class Notes:
+        -Single core atom FGs will be identifiable in IFG
+        -Vertex ring_type attribute will identify ring_types of FGs
+        -ring_counts and ring_type attributes identified using createRings() algorithm
+        -Edges description of software molecule graph refine IFG graph search algorithm to properly identify all FGs (replaces bondData for more refined understanding and conceptual foundation)
+        -SMILES code list of symbols minus explict hydrogens and support Double lettered atoms with usage of ATOM_REGEX and SMILES_REGEX 
+
+
+
+
+"""
