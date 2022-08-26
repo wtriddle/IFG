@@ -1,10 +1,12 @@
-
-from collections import Counter
+#! 3.10.1
+from collections import Counter, defaultdict
+from copy import copy
 import itertools
 from typing import Literal
 from Vertex import Vertex
 from Edge import Edge
-from constants import ATOM_REGEX, BOND_REGEX, DIGIT_REGEX, PARENTH_REGEX, AMINO_ACID_REGEX, SMILES_REGEX
+from config import FGSPATH
+from constants import ATOM_REGEX, BOND_REGEX, CHARGE_REGEX, DIGIT_REGEX, PARENTH_REGEX, AMINO_ACID_REGEX, SMILES_REGEX, VALENCE_COUNTS, ELECTRON_BOND_COUNTS
 
 
 
@@ -13,54 +15,94 @@ class Molecule():
         through creation of a Simple Undirected Connected Molecular Graph and an identification of ring atoms
     """
 
-    def __init__(self, smiles: str, name: str):
+    def __init__(self, smiles: str, name: str, type: Literal["mol", "fg"]):
         """ Initialize a molecule obejct from smiles with software molecular graph and identified rings"""
 
         ##### Input Data #####
-        self.smiles: list[str] = [symbol for symbol in SMILES_REGEX.findall(smiles) if 'H' not in symbol] # remove all hydrogens
-        self.atoms: list[str] = ATOM_REGEX.findall(''.join(self.smiles))
+        self.smiles: list[str] = [symbol for symbol in SMILES_REGEX.findall(smiles)]
+        self.atoms: list[str] = ATOM_REGEX.findall(smiles)
         self.name: str = name
-        assert ['+', '-', '[', ']', 'H'] not in self.atoms
+        assert ['[', ']'] not in self.atoms
 
         ##### Software Molecule Graph (Graph Theory) #####
-        self.verticies: "list[Vertex]" = [Vertex(index, symbol.upper(), symbol.islower()) for index, symbol in enumerate(self.atoms)]
+        self.verticies: "list[Vertex]" = self.createVertices()
         self.order: int = len(self.verticies)
         self.edges: "list[Edge]" = self.createEdges() 
         self.size: int = len(self.edges)
         assert self.order == len(self.atoms)
 
         ##### Ring Data #####
-        self.ring_atoms, self.ring_counts = self.createRings()
-        self.total_rings = self.ring_counts["aromatic"] + self.ring_counts["non-aromatic"]
-        self.total_ring_atoms = len(self.ring_atoms)
-        self.total_aromatic_atoms = len([symbol for symbol in self.atoms if symbol.islower()])
-        self.total_non_aromatic_atoms = self.total_ring_atoms-self.total_aromatic_atoms
+        self.ring_atoms, self.aromatic_ring_count, self.non_aromatic_ring_count = self.createRings()
+        self.total_rings: int = self.aromatic_ring_count + self.non_aromatic_ring_count
+        self.total_ring_atoms: int = len(self.ring_atoms)
+        self.total_aromatic_atoms: int = len([symbol for symbol in self.atoms if symbol.islower()])
+        self.total_non_aromatic_atoms: int = self.total_ring_atoms-self.total_aromatic_atoms
     
         ##### Atom Counts #####
         self.atom_counts: dict[str, int] = Counter([v.symbol for v in self.verticies])
     
         ##### Miscellaneous Molecular Data #####
         self.amino_acid: bool = len(AMINO_ACID_REGEX.findall(smiles)) != 0 
+
+        ##### Functional Groups #####
+        self.functional_groups_all, self.functional_groups_exact = self.createFunctionalGroups() if type == "mol" else ({}, {})
+
+
+    def createVertices(self) -> "list[Vertex]":
+        """Create the vertices of the software molecule graph using the SMILES code"""
+
+        ##### Vertex List and Objects #####
+        vertices: list[Vertex] = []
+        vertex: Vertex = Vertex()
+        charge: str = ""
+
+        ##### Atom Symbols Loop #####
+        for index, symbol in enumerate(self.atoms):
+
+            ##### Charge Symbol Case #####
+            if CHARGE_REGEX.search(symbol):
+                charge = CHARGE_REGEX.search(symbol).group()               # type: ignore
+                symbol = ''.join([char for char in symbol if charge != char])
+
+            ##### Vertex Object Construction #####
+            vertex = Vertex(
+                index=index, 
+                symbol=symbol.upper() + charge, 
+                isAromatic=symbol.islower(), 
+                valenceElectronsRequired=VALENCE_COUNTS[symbol.upper()],
+                charge=charge
+            )
+
+            ##### Reset Charge #####
+            charge = ""
+
+            ##### Append Vertex Object #####
+            vertices.append(vertex)
+
+        ##### Return Verticies #####
+        return vertices
             
     def createEdges(self) -> "list[Edge]":
-        """Create the edges of the software molecule graph using the SMILES code"""
+        """Create the edges and the vertex degrees of the software molecule graph using the SMILES code"""
 
         ##### Algorithm Variables #####
         atom_index: int = 0
         match_index: int = 0
+        edge_index: int = 0 
         ring_queue: "dict[str, int]" = {}
         parenth_stack: list[int] = []
         bond: Literal["", "=", "#"] = ""
         edges: "list[Edge]" = []
         
         ##### Algorithm Implementation #####
-        for symbol in self.smiles[1:]:
+        for i,symbol in enumerate(self.smiles[1:]):
 
             ##### Atom Symbol Case #####
             if ATOM_REGEX.match(symbol):
                 atom_index+=1
                 edge_atoms = [self.verticies[match_index], self.verticies[atom_index]]
-                new_edge = Edge(edge_atoms, bond)
+                new_edge = Edge(edge_atoms, bond, edge_index)
+                edge_index+=1
                 edges.append(new_edge)
                 match_index = atom_index
                 bond = ""
@@ -74,21 +116,46 @@ class Molecule():
                 if symbol in ring_queue:
                     ring_atom_index = ring_queue.pop(symbol)
                     edge_atoms = [self.verticies[ring_atom_index], self.verticies[atom_index]]
-                    new_edge = Edge(edge_atoms, "")
+                    new_edge = Edge(edge_atoms, "", edge_index)
+                    edge_index+=1
                     edges.append(new_edge)
                 else:
                     ring_queue[symbol] = atom_index 
 
             ##### Parenthesis Symbol Case #####
             if PARENTH_REGEX.match(symbol):
-                if symbol == '(':
-                    parenth_stack.append(atom_index)
+                if symbol == '(':    
+                    # double parenthetical groups will re-append the match index
+                    if self.smiles[1:][i-1] == ')':
+                        parenth_stack.append(match_index)
+                    else:
+                        parenth_stack.append(atom_index)
                 else:
                     match_index = parenth_stack.pop()
+
         
         ##### Algorithm Check #####
         assert not parenth_stack
         assert not ring_queue
+
+
+        ##### Set Vertex Degrees #####
+        for vertex in self.verticies:
+
+            ##### R Vertex Degree #####
+            if vertex.symbol == 'R':
+                vertex.implicit_degree = 0
+                vertex.explicit_degree = 1
+                vertex.total_degree = 1
+                continue
+
+            ##### Core Vertex Degree #####
+            total_edges = [edge for edge in edges if vertex.index in edge.indices]
+            explicit_valence_electrons = sum([ELECTRON_BOND_COUNTS[edge.bond_type] for edge in total_edges])        
+            implicit_valence_electrons = vertex.valence_electrons_required - explicit_valence_electrons            # number of hydrogens
+            vertex.explicit_degree = len(total_edges)
+            vertex.implicit_degree = implicit_valence_electrons
+            vertex.total_degree = vertex.implicit_degree + vertex.explicit_degree
 
         ##### Algorithm Results #####
         return edges
@@ -232,11 +299,9 @@ class Molecule():
                 non_aromatic_ring_count+=1
 
         ##### Collection 2: Atom Ring Types #####
-        for (ring_idx, atom_indices) in ring_set.items():
-
-            for atom_index in atom_indices:
-                if self.verticies[atom_index].ring_type == "non-cyclic":
-                    self.verticies[atom_index].ring_type = "non-aromatic"
+        for atom_index in ring_atom_indices:
+            if self.verticies[atom_index].ring_type == "non-cyclic":
+                self.verticies[atom_index].ring_type = "non-aromatic"
 
         ##### Collection Check #####
         assert len(ring_info.keys()) == (aromatic_ring_count + non_aromatic_ring_count)
@@ -244,17 +309,177 @@ class Molecule():
         ##### Collection Results #####
         return (
             set(ring_atom_indices),  
-            {
-                "aromatic": aromatic_ring_count, 
-                "non-aromatic": non_aromatic_ring_count
-            }
+            aromatic_ring_count,
+            non_aromatic_ring_count,
         )
 
+
+    def createFunctionalGroups(self):
+        """Wrapper for DFS"""
+
+        all_fgs: list[Molecule] = []
+        for (fg_smiles, fg_name) in [                                               
+            [y.strip() for y in x.split(' ')]                                       
+            for x                                                                   
+            in open(FGSPATH.resolve(), "r+").readlines()                            
+        ]:
+
+            fg = Molecule(fg_smiles, fg_name, "fg")
+            fg_matches = []   
+
+            matched_core_fg_atoms = {
+                fg_vertex.index: [
+                    mol_vertex for mol_vertex in self.verticies 
+                    if mol_vertex.symbol == fg_vertex.symbol and 
+                    mol_vertex.total_degree == fg_vertex.total_degree
+                ]
+                for fg_vertex in fg.verticies if fg_vertex.symbol != 'R'
+            }
+
+            for fg_vertex_index, matched_mol_vertices in matched_core_fg_atoms.items():
+                fg_vertex = fg.verticies[fg_vertex_index]
+                for mol_vertex in matched_mol_vertices:
+                    fg_matched_atoms, _, _, _ = self.DFS(fg, fg_vertex, mol_vertex, [], [], True)
+                    # if all core atoms in the fg have been given an exact 1:1 pair with a corresponding organic molecule atom
+                    # then an fg match by the DFS algorithm has been made
+                    if len(fg_matched_atoms) == len([vertex for vertex in fg.verticies if vertex.symbol != 'R']):
+                        fg_match = Molecule(fg_smiles, fg_name, "fg")
+                        for (fg_atom_index, om_atom_index) in fg_matched_atoms.items():
+                            fg_match.verticies[fg_atom_index].index = self.verticies[om_atom_index].index
+                            fg_match.verticies[fg_atom_index].ring_type = self.verticies[om_atom_index].ring_type
+                        aromatic_tally, non_aromatic_tally = 0,0
+                        for vertex in [fg_vertex for fg_vertex in fg_match.verticies if fg_vertex.symbol != 'R']:
+                            if vertex.ring_type == "aromatic":
+                                aromatic_tally+=1
+                            elif vertex.ring_type == "non-aromatic":
+                                non_aromatic_tally+=1
+                        if aromatic_tally != 0 or non_aromatic_tally != 0:
+                            nomenclature = "Aromatic" if aromatic_tally >= non_aromatic_tally else "Cyclic"
+                            fg_match.name = nomenclature + fg_match.name
+                        fg_matches.append(fg_match)
+
+            repeat_filtered_fg_matches = self.repetitionFilter(fg_matches)
+
+            for fg in repeat_filtered_fg_matches:
+                all_fgs.append(fg)  
+
+
+        all_fgs = self.heirarchyFlter(all_fgs)
+        exact_fgs = self.overlapFilter(all_fgs)
+
+        all_fgs_dict = defaultdict(int)
+        for fg in all_fgs:
+            all_fgs_dict[fg.name] += 1
+        exact_fgs_dict = defaultdict(int)
+        for fg in exact_fgs:
+            exact_fgs_dict[fg.name] += 1
+
+        return (all_fgs_dict, exact_fgs_dict)
+
+            
+
+    def DFS(self, fg, fg_vertex: Vertex, mol_vertex: Vertex, used_mol_edges: "list[int]", used_fg_edges: "list[int]", is_valid: bool):
+
+        matched_indices = {fg_vertex.index: mol_vertex.index}
+        fg_core_edges = [edge for edge in fg.edges if fg_vertex.index in edge.indices and not edge.index in used_fg_edges and not 'R' in edge.symbols]
+        om_edges = [edge for edge in self.edges if mol_vertex.index in edge.indices and not edge.index in used_mol_edges]
+
+        if fg_vertex.implicit_degree != 0 and mol_vertex.implicit_degree < fg_vertex.implicit_degree:
+            return (matched_indices, used_mol_edges, used_fg_edges, False)
+
+        if not fg_core_edges:
+            return ({fg_vertex.index: mol_vertex.index}, used_mol_edges, used_fg_edges, True)
+
+        for fg_edge in fg_core_edges:
+            fg_complement_vertex = fg_edge.complement_vertex(fg_vertex.index)
+            for om_edge in om_edges:
+                if om_edge.index not in used_mol_edges:
+                    om_corresponding_vertex = om_edge.complement_vertex(mol_vertex.index)
+                    if (
+                        om_edge == fg_edge 
+                        and 
+                        om_corresponding_vertex.total_degree == fg_complement_vertex.total_degree
+                    ):
+                        path = self.DFS(fg, fg_complement_vertex, om_corresponding_vertex, used_mol_edges + [om_edge.index], used_fg_edges + [fg_edge.index], is_valid)
+                        if path[3]:
+                            matched_path_atoms, matched_mol_path_edges, matched_fg_path_edges, _ = path
+                            for matched_fg_atom, matched_mol_atom in matched_path_atoms.items():
+                                matched_indices[matched_fg_atom] = matched_mol_atom
+                            
+                            for om_edge_index in matched_mol_path_edges:
+                                used_mol_edges.append(om_edge_index)
+                            
+                            for fg_edge_index in matched_fg_path_edges:
+                                used_fg_edges.append(fg_edge_index)
+                            # path_items = [matched_atoms_from_path, mol_edges_used_during_path, fg_edges_used_during_path]
+                            # if no path exists, no updates are made and edges are stil available in mol for next fg edge test
+                            # for matched_fg_atom, matched_mol_atom in path.items():
+                            #     matched_indices[matched_fg_atom] = matched_mol_atom
+                            break
+            else:
+                return (matched_indices, used_mol_edges, used_fg_edges, False)
+
+        return (matched_indices, used_mol_edges, used_fg_edges, True)
+
+
+    def heirarchyFlter(self, all_fgs):
+
+        eval_indices: set[int] = set()                              # list of fgs already added to be evaluated
+
+        for i, fg in enumerate(all_fgs):
+            for j, fg_compare in enumerate(all_fgs):
+                if i == j:
+                    continue
+                if (
+                    set([edge for edge in fg.edges if edge.core_type]) == set([edge for edge in fg_compare.edges if edge.core_type]) 
+                    and 
+                    set([fg_vertex.index for fg_vertex in fg.verticies if 'R' not in fg_vertex.symbol]) == set([fg_vertex.index for fg_vertex in fg_compare.verticies if 'R' not in fg_vertex.symbol])
+                ):
+                    eval_indices.add(i)
+                    eval_indices.add(j)
+        
+        skip_indices: set[int] = set()
+
+        for i in eval_indices:
+            fg: Molecule = all_fgs[i]
+            for core_atom in [fg_vertex for fg_vertex in fg.verticies if fg_vertex.symbol != 'R']:
+                if (
+                    core_atom.explicit_degree == self.verticies[core_atom.index].explicit_degree 
+                    and 
+                    core_atom.implicit_degree == self.verticies[core_atom.index].implicit_degree
+                ):
+                    continue
+                else:
+                    skip_indices.add(i)          # type: ignore
+                    break
+
+        return [fg for i, fg in enumerate(all_fgs) if not i in skip_indices]
+        
+
+    def overlapFilter(self, all_fgs):
+        skip_indices: set[int] = set()
+        for i, fg in enumerate(all_fgs):
+            for fg_compare in all_fgs:
+                if (
+                    len([fg_vertex for fg_vertex in fg.verticies if fg_vertex.symbol != 'R']) < 
+                    len([fg_vertex for fg_vertex in fg_compare.verticies if fg_vertex.symbol != 'R'])
+                ):
+                    if set([fg_vertex.index for fg_vertex in fg.verticies if fg_vertex.symbol != 'R']).issubset(set([fg_vertex.index for fg_vertex in fg_compare.verticies if fg_vertex.symbol != 'R'])):
+                        skip_indices.add(i)
+        return [fg for i, fg in enumerate(all_fgs) if not i in skip_indices]
+
+    def repetitionFilter(self, fg_matches):
+        repeat_filtered_fg_matches: list[Molecule] = []
+        for fg in fg_matches:
+            for already_appeared_fg in repeat_filtered_fg_matches:
+                if set([fg_vertex.index for fg_vertex in fg.verticies if not 'R' in fg_vertex.symbol]) == set([fg_vertex.index for fg_vertex in already_appeared_fg.verticies if not 'R' in fg_vertex.symbol]):
+                    break
+            else:
+                repeat_filtered_fg_matches.append(fg)
+        return repeat_filtered_fg_matches
 
     def __str__(self):
         return self.name + " : " + ''.join(self.smiles)
 
     def __repr__(self):
         return self.name + " : " + ''.join(self.smiles)
-
-
