@@ -6,15 +6,15 @@ O=C1[NH][CH]2[CH](N([CH2]N2N(=O)=O)N(=O)=O)N1N(=O)=O  O=C1NC2C(N(CN2N(=O)=O)N(=O
 [CH3]C(=O)[NH]c1[cH][cH]c([CH3])[cH][cH]1  CC(=O)Nc1ccc(C)cc1  ACTOLD07
 [OH][CH2][CH]1O[CH]([OH])[CH]([OH])[CH]([OH])[CH]1[OH]  OCC1OC(O)C(O)C(O)C1O  ADGALA03
 [CH3]OC(=O)c1n[cH][cH]nc1[NH2]  COC(=O)c1nccnc1N  ADUWUS01
-[NH3+][CH]1[CH2][CH2][CH]2[CH2][CH2][CH](N2C1=O)C(=O)[O-]  [NH3+]C1CCC2CCC(N2C1=O)C(=O)[O-]  AFAFAP
+[NH3+][CH]1[CH2][CH2][CH]2[CH2][CH2][CH](N2C1=O)C(=O)[O-]  [N+]C1CCC2CCC(N2C1=O)C(=O)[O-]  AFAFAP
 [CH3]C1([CH3])O[CH]([CH2]C(=O)[OH])C(=O)O1  CC1(C)OC(CC(O)=O)C(=O)O1  AFEREJ
 [CH3]C1([CH2][CH]2[CH2][CH2][CH2][CH2]N2O1)C#N  CC1(CC2CCCCN2O1)C#N  AHETOX
 [CH3][CH]([CH3])C(=O)[NH][CH2]c1[cH][cH][cH][cH][cH]1  CC(C)C(=O)NCc1ccccc1  AHEYOC
 N#Cc1[cH][cH][cH]c(Oc2[cH][cH][cH]n[cH]2)c1C#N  N#Cc1cccc(Oc2cccnc2)c1C#N  AHITUH
 [CH3]C([CH3])([CH3])c1[cH][cH]c([OH])c([CH2]N2[CH2][CH2]N([CH2][CH2]2)[CH2]c2[cH]c([cH][cH]c2[OH])C([CH3])([CH3])[CH3])[cH]1  CC(C)(C)c1ccc(O)c(CN2CCN(CC2)Cc2cc(ccc2O)C(C)(C)C)c1  AHOPOD
-[NH3+][CH]([CH3])C(=O)[O-]  [NH3+]C(C)C(=O)[O-]  ALUCAL05
+[NH3+][CH]([CH3])C(=O)[O-]  [N+]C(C)C(=O)[O-]  ALUCAL05
 O=C([NH]c1[cH][cH][cH]c2[cH][cH][cH][cH]c12)[NH]c1[cH][cH][cH]c2[cH][cH][cH][cH]c12  O=C(Nc1cccc2ccccc12)Nc1cccc2ccccc12  AMAFEZ01
-[NH3+][CH2][CH2][CH2][CH2][CH2]C(=O)[O-]  [NH3+]CCCCCC(=O)[O-]  AMCAPR11
+[NH3+][CH2][CH2][CH2][CH2][CH2]C(=O)[O-]  [N+]CCCCCC(=O)[O-]  AMCAPR11 
 [CH3]C1([CH3])O[N+](=C2[CH2][CH2][CH2][CH2]C2=[CH]1)[O-]  CC1(C)O[N+](=C2CCCCC2=C1)[O-]  ANAXOD
 [CH3]Oc1[cH][cH]c([cH][cH]1)C(=O)[OH]  COc1ccc(cc1)C(O)=O  ANISIC04
 [CH3]C1([CH2]Oc2[cH]c([cH][cH]c12)C(=O)N1[CH2][CH2][CH2][CH2][CH2]1)[CH2]c1[cH][cH][cH][cH][cH]1  CC1(COc2cc(ccc12)C(=O)N1CCCCC1)Cc1ccccc1  ANIVID
@@ -38,7 +38,7 @@ O=C1O[CH]2[CH]3[CH2][CH]([CH]=[CH]3)[CH]2[CH]1[NH]c1[cH][cH]c([cH]c1N(=O)=O)N(=O
 [CH2]1[CH2][CH2]c2c([CH2]1)nc([NH]c1[cH][cH][cH][cH][cH]1)n2c1[cH][cH][cH][cH][cH]1  C1CCC2=C(C1)N=C(Nc1ccccc1)N2c1ccccc1  AYATEA
 [CH3][CH2]OC(=O)C(=[CH]c1[cH][cH][cH]n1[CH3])C#N  CCOC(=O)C(=CC1=CC=CN1C)C#N  AYUGEH
 [CH3][CH2]OC(=O)c1c(onc1[CH3])C(=NN=C([CH3])c1c(C(=O)O[CH2][CH3])c(no1)[CH3])[CH3]  CCOC(=O)C1=C(ON=C1C)C(C)=NN=C(C)C1=C(C(=O)OCC)C(=NO1)C  AYUGIL
-[OH]C(=O)[CH]([CH2]c1[cH][nH]c2[cH][cH][cH][cH]c12)[NH+]=[CH]c1[cH][cH][cH]c([OH])c1[O-]  OC(=O)C(CC1=CNc2ccccc12)[NH+]=Cc1cccc(O)c1[O-]  AYUVOG
+[OH]C(=O)[CH]([CH2]c1[cH][nH]c2[cH][cH][cH][cH]c12)[NH+]=[CH]c1[cH][cH][cH]c([OH])c1[O-]  OC(=O)C(CC1=CNc2ccccc12)[N+]=Cc1cccc(O)c1[O-]  AYUVOG
 O=c1[nH]c2c([CH2][CH2]c3[cH][cH][cH][cH]c23)c(c1C#N)c1[cH][cH][cH][cH][cH]1  O=C1NC2=C(CCc3ccccc23)C(=C1C#N)c1ccccc1  AZAMOE
 [CH2]1[CH2][CH]2[CH2][CH]1[CH2][CH]2[CH]1[CH2][CH]2[CH2][CH2][CH]1[CH2]2  C1CC2CC1CC2C1CC2CCC1C2  AZIBEQ
 [CH3]c1c(n[cH]n1c1[cH][cH][cH][cH][cH]1)N(=O)=O  CC1=C(N=CN1c1ccccc1)N(=O)=O  AZIQIJ
@@ -48,7 +48,7 @@ O=c1[nH]c2c([CH2][CH2]c3[cH][cH][cH][cH]c23)c(c1C#N)c1[cH][cH][cH][cH][cH]1  O=C
 [CH3]C(=O)O[CH2][CH]1O[CH]([CH]=[CH][CH]1OC(=O)[CH3])c1[cH]n(nn1)c1[cH][cH][cH][cH][cH]1  CC(=O)OCC1OC(C=CC1OC(C)=O)C1=CN(N=N1)c1ccccc1  AZUYEA
 [CH3]n1n(c2[cH][cH][cH][cH][cH]2)c(=O)c(c1[CH3])c1nc2[cH][cH][cH][cH]c2[nH]1  CN1N(c2ccccc2)C(=O)C(=C1C)C1=Nc2ccccc2N1  BABBOX
 [CH3]C12[CH2][CH]([CH2]OC(=O)c3[cH][cH][cH][cH][cH]3)C1([OH])[CH2]C(=O)[CH2]2  CC12CC(COC(=O)c3ccccc3)C1(O)CC(=O)C2  BABYOU
-[CH3]OC(=O)c1[cH]c(c([nH+]n1)[CH]=C([O-])c1[cH][cH][cH][cH][cH]1)c1[cH][cH][cH][cH][cH]1  COC(=O)c1cc(c([nH+]n1)C=C([O-])c1ccccc1)c1ccccc1  BAFDIX
+[CH3]OC(=O)c1[cH]c(c([nH+]n1)[CH]=C([O-])c1[cH][cH][cH][cH][cH]1)c1[cH][cH][cH][cH][cH]1  COC(=O)c1cc(c([n+]n1)C=C([O-])c1ccccc1)c1ccccc1  BAFDIX
 O=c1n(c(=O)c2[cH][cH][cH]c3[cH][cH][cH]c1c23)c1[cH][cH][cH][cH]c1O[CH2]C#[CH]  O=C1N(C(=O)c2cccc3cccc1c23)c1ccccc1OCC#C  BAFPEF
 O=C([CH]=C1[CH2][CH]([NH]c2n[cH][cH][cH]c2[NH]1)c1[cH][cH][cH][cH][cH]1)c1[cH][cH][cH][cH][cH]1  O=C(C=C1CC(Nc2ncccc2N1)c1ccccc1)c1ccccc1  BAJYOB
 [CH3][CH]([CH3])[CH2]C1=C(C(=O)[NH]C1=O)c1[cH][cH]c(O[CH2][CH]=C([CH3])[CH3])[cH][cH]1  CC(C)CC1=C(C(=O)NC1=O)c1ccc(OCC=C(C)C)cc1  BELWUL
@@ -57,7 +57,7 @@ O=C([CH]=C1[CH2][CH]([NH]c2n[cH][cH][cH]c2[NH]1)c1[cH][cH][cH][cH][cH]1)c1[cH][c
 O=C1[NH]C2([CH2][CH2][CH]1C(=O)[NH]2)c1[cH][cH][cH][cH][cH]1  O=C1NC2(CCC1C(=O)N2)c1ccccc1  BEXMUN
 O=C1[CH2][CH2]C2=C(C#N)c3[cH]c4O[CH2]Oc4[cH]c3[CH2][CH2]N12  O=C1CCC2=C(C#N)c3cc4OCOc4cc3CCN12  BEXXUY
 [CH3][CH]1OC(=O)[CH]([CH3])OC1=O  CC1OC(=O)C(C)OC1=O  BEYDEO01
-[OH][CH2][CH2][NH+]([CH2][CH2][OH])[CH2]C(=O)[O-]  OCC[NH+](CCO)CC(=O)[O-]  BICINE01
+[OH][CH2][CH2][NH+]([CH2][CH2][OH])[CH2]C(=O)[O-]  OCC[N+](CCO)CC(=O)[O-]  BICINE01
 [CH3][CH]1OC(=O)[CH]([CH3])OC1=O  CC1OC(=O)C(C)OC1=O  BICVIS02
 [CH3]C([CH3])([CH3])OC(=O)[NH2]  CC(C)(C)OC(N)=O  BIFPEL01
 [CH3]Oc1[cH][cH]c([cH][cH]1)[CH]1[CH2]C(=O)[CH2]C(=C([CH3])[CH3])C(=C([CH3])[CH3])[CH2]1  COc1ccc(cc1)C1CC(=O)CC(=C(C)C)C(C1)=C(C)C  BIJYID
@@ -126,7 +126,7 @@ O=N(=O)c1nn([CH2]C#N)nn1  O=N(=O)C1=NN(CC#N)N=N1  COXXOD
 [CH3][CH]([CH3])[NH]C(=C(C#N)C(=O)[NH2])[OH]  CC(C)NC(O)=C(C#N)C(N)=O  DIJHIO
 [OH]C1(c2[cH][cH][cH][cH][cH]2)c2[cH][cH][cH][cH]c2C([OH])(c2[cH][cH][cH][cH][cH]2)c2[cH][cH][cH][cH]c12  OC1(c2ccccc2)c2ccccc2C(O)(c2ccccc2)c2ccccc12  DIKCOP01
 [OH]c1[cH][cH][cH][cH]c1[CH]=N[CH2][CH2][CH2][CH2][CH2]N=[CH]c1[cH][cH][cH][cH]c1[OH]  Oc1ccccc1C=NCCCCCN=Cc1ccccc1O  DIKXAX
-[OH]C(=O)c1[cH][nH+][cH]c([cH]1)C(=O)[O-]  OC(=O)c1c[nH+]cc(c1)C(=O)[O-]  DINICA11
+[OH]C(=O)c1[cH][nH+][cH]c([cH]1)C(=O)[O-]  OC(=O)c1c[n+]cc(c1)C(=O)[O-]  DINICA11
 [CH3]n1nnc2c(n[cH]n2c1=O)C(=O)[NH2]  CN1N=NC2=C(N=CN2C1=O)C(N)=O  DIPGIS12
 [CH3]c1[cH][cH][cH]c([NH]C(=O)[CH2]Oc2[cH][cH]c3[cH][cH]c([OH])[cH]c3[cH]2)n1  Cc1cccc(NC(=O)COc2ccc3ccc(O)cc3c2)n1  DIWPUV
 [CH3]C1([CH3])[CH2]C(=N[OH])C([CH3])([CH3])C(=N[OH])[CH2]1  CC1(C)CC(=NO)C(C)(C)C(C1)=NO  DIXLIF
@@ -199,7 +199,7 @@ O=N(=O)c1[cH][cH]c([cH][cH]1)[N]#[C]  O=N(=O)c1ccc(cc1)N#[C]  EVOSAJ
 [OH]C(=O)[CH]1[CH2]C21[CH2]C12[CH2]C21[CH2][CH2]2  OC(=O)C1CC21CC12CC21CC2  FAFDEW
 [OH][CH]1[CH]([CH2][CH2][CH2]C1=[CH]c1[cH][cH][cH][cH][cH]1)[CH2]N1[CH2][CH2]O[CH2][CH2]1  OC1C(CCCC1=Cc1ccccc1)CN1CCOCC1  FALSAN
 O=C1[CH2][CH2]C23[CH2][CH2][CH2]N2C(=O)[CH2][CH2][CH2][CH]3[CH2]1  O=C1CCC23CCCN2C(=O)CCCC3C1  FARJAK
-[NH3+][CH]([CH2]c1[cH][cH]c([OH])[cH][cH]1)C(=O)[O-]  [NH3+]C(Cc1ccc(O)cc1)C(=O)[O-]  FAZHET01
+[NH3+][CH]([CH2]c1[cH][cH]c([OH])[cH][cH]1)C(=O)[O-]  [N+]C(Cc1ccc(O)cc1)C(=O)[O-]  FAZHET01
 [CH3][CH]1[CH2][CH]2[CH]([CH]3[CH]=[CH][CH2][CH]4[CH2][CH2][CH]([OH])C14C3=O)C2([CH3])[CH3]  CC1CC2C(C3C=CCC4CCC(O)C14C3=O)C2(C)C  FEJCIH
 [CH3]Oc1[cH][cH]c([NH][CH]=O)[cH][cH]1  COc1ccc(NC=O)cc1  FELVIC01
 [CH3]Oc1c(n[cH]n1[CH3])N(=O)=O  COC1=C(N=CN1C)N(=O)=O  FICDOK01
@@ -238,8 +238,8 @@ O=C1O[CH2][CH2][CH2]OC(=O)c2[cH][cH]c([cH][cH]2)C(=O)O[CH2][CH2][CH2]OC(=O)c2[cH
 [NH2]c1[cH][cH]c([cH]n1)C#Cc1[cH][cH][cH]n[cH]1  Nc1ccc(cn1)C#Cc1cccnc1  GIRPED
 O=C([NH]c1[cH][cH][cH][cH][cH]1)Oc1[cH][cH]c([cH][cH]1)N(=O)=O  O=C(Nc1ccccc1)Oc1ccc(cc1)N(=O)=O  GISTAE
 [OH][CH2][CH]1O[CH]([OH])[CH]([OH])[CH]([OH])[CH]1[OH]  OCC1OC(O)C(O)C(O)C1O  GLUCSE02
-[NH3+][CH2]C(=O)[O-]  [NH3+]CC(=O)[O-]  GLYCIN69
-[NH3+][CH2]C(=O)[NH][CH2]C(=O)[O-]  [NH3+]CC(=O)NCC(=O)[O-]  GLYGLY19
+[NH3+][CH2]C(=O)[O-]  [N+]CC(=O)[O-]  GLYCIN69
+[NH3+][CH2]C(=O)[NH][CH2]C(=O)[O-]  [N+]CC(=O)NCC(=O)[O-]  GLYGLY19
 [CH3]c1[cH][cH]c(Oc2[cH]nc3[cH][cH][cH][cH]c3n2)[cH][cH]1  Cc1ccc(Oc2cnc3ccccc3n2)cc1  GOFVON
 [N-]=[N+]=Nc1[cH][cH][cH][cH]c1c1[cH][cH][cH][cH][cH]1  [N-]=[N+]=Nc1ccccc1c1ccccc1  GOVZUM01
 [CH3]Oc1[cH][cH][cH]c2[CH]([OH])[CH2]C(=[CH2])c12  COc1cccc2C(O)CC(=C)c12  GUCJUK
@@ -301,7 +301,7 @@ O=C1[CH]2[CH2][CH2]N([CH2][CH2]2)C1=[CH]c1[cH]n([CH2]c2[cH][cH]c([cH][cH]2)C#N)c
 [OH]C(=O)[CH2]c1[cH][nH]c2[cH][cH][cH][cH]c12  OC(=O)CC1=CNc2ccccc12  INACET04
 [CH3]c1c(c([OH])[cH]c2C(=O)c3[cH][cH][cH]c([OH])c3C(=O)c12)C(=O)OC([CH3])([CH3])[CH3]  Cc1c(c(O)cc2C(=O)c3cccc(O)c3C(=O)c12)C(=O)OC(C)(C)C  IPOKAA
 [CH3][CH]([CH3])c1[cH][cH]c([OH])[cH][cH]1  CC(C)c1ccc(O)cc1  IPRPOL01
-[NH3+][CH2][CH]([OH])C(=O)[O-]  [NH3+]CC(O)C(=O)[O-]  IPUMUC
+[NH3+][CH2][CH]([OH])C(=O)[O-]  [N+]CC(O)C(=O)[O-]  IPUMUC
 [CH2]([CH2][CH2]n1n[cH]nn1)[CH2]n1n[cH]nn1  C(CCN1N=CN=N1)CN1N=CN=N1  IQEJAP
 [CH3][CH2]OC(=O)c1[cH][cH]nc([cH]1)c1[cH]c([cH][cH]n1)C(=O)O[CH2][CH3]  CCOC(=O)c1ccnc(c1)c1cc(ccn1)C(=O)OCC  IQOWUG
 [CH3]Oc1[cH][cH]c(C(=O)[OH])c(O[CH3])[cH]1  COc1ccc(C(O)=O)c(OC)c1  ISUQUI
@@ -370,8 +370,8 @@ O=C([CH2]n1[cH][cH]nc1N(=O)=O)[NH][CH2]c1[cH][cH][cH][cH][cH]1  O=C(CN1C=CN=C1N(
 [CH3]C(=O)c1[cH]c([cH][cH]c1[OH])C#N  CC(=O)c1cc(ccc1O)C#N  LIWFUT
 O=N(=O)c1[cH]c2[CH2]c3[cH][cH]c4[cH][cH][cH][cH]c4c3c2c2[cH][cH][cH][cH]c12  O=N(=O)c1cc2Cc3ccc4ccccc4c3c2c2ccccc12  LIZBUS
 [CH3]C(=O)c1[cH][cH][cH][cH]c1[NH][CH2][CH2]C(=O)[OH]  CC(=O)c1ccccc1NCCC(O)=O  LOHTAE
-[NH3+][CH]([CH2][OH])C(=O)[O-]  [NH3+]C(CO)C(=O)[O-]  LSERIN20
-[NH3+][CH]([CH]([CH3])[OH])C(=O)[O-]  [NH3+]C(C(C)O)C(=O)[O-]  LTHREO03
+[NH3+][CH]([CH2][OH])C(=O)[O-]  [N+]C(CO)C(=O)[O-]  LSERIN20
+[NH3+][CH]([CH]([CH3])[OH])C(=O)[O-]  [N+]C(C(C)O)C(=O)[O-]  LTHREO03
 [CH3][CH]([CH3])OC12[CH]=NOc3[cH][cH][cH]c([CH]=[CH]C1=O)c23  CC(C)OC12C=NOc3cccc(C=CC1=O)c23  LUDJOK
 [CH3]OC(=O)C([CH3])([CH2][CH]=[CH2])[CH](OC(=O)c1[cH][cH]c([cH][cH]1)N(=O)=O)[CH]([CH3])[CH3]  COC(=O)C(C)(CC=C)C(OC(=O)c1ccc(cc1)N(=O)=O)C(C)C  LUDMAZ
 [cH]1[cH][cH]c2c([cH]1)c1[cH]c3c4[cH][cH][cH][cH]c4c4[cH]c2c2[cH]c4c4[cH][cH][cH][cH]c4c3[cH]c1c1[cH][cH][cH][cH]c21  c1ccc2c(c1)c1cc3c4ccccc4c4cc2c2cc4c4ccccc4c3cc1c1ccccc21  LUGJEC
@@ -576,7 +576,7 @@ O=C1[CH2][CH]2O[CH2]O[CH2][CH]3[CH2][CH]1[CH]23  O=C1CC2OCOCC3CC1C23  QUDREN
 [CH3][CH2][CH2][CH2]n1c2[cH][cH][cH][cH]c2c2[cH][cH]c3[cH]c(O[CH3])[cH][cH]c3c12  CCCCN1c2ccccc2c2ccc3cc(OC)ccc3c12  QUYXAK
 [CH3][CH2]Oc1[cH][cH]c2nc([CH2][CH2][CH2][CH2]O[OH])c3[CH2][CH2][CH2]c3c2[cH]1  CCOc1ccc2nc(CCCCOO)c3CCCc3c2c1  QUZCIY
 [CH3][CH2][CH2][CH2][CH2][CH2][CH2][CH2][CH2]C(=O)[NH][CH2][CH2][N]([CH3])([CH3])[O]  CCCCCCCCCC(=O)NCCN(C)(C)[O]  QUZQUY
-[NH3+][CH2][CH2][CH]([OH])C(=O)[O-]  [NH3+]CCC(O)C(=O)[O-]  RABTUL
+[NH3+][CH2][CH2][CH]([OH])C(=O)[O-]  [N+]CCC(O)C(=O)[O-]  RABTUL
 [CH3]C1=[CH]OC([CH3])([CH2][CH2]1)C(=O)[OH]  CC1=COC(C)(CC1)C(O)=O  RAGMUJ
 [CH3][CH2][CH2][CH2]N1C(=O)[NH]C2([CH2]C3([CH2]C(=NO3)C(=O)c3[cH][cH][cH][cH][cH]3)[CH2]2)C1=O  CCCCN1C(=O)NC2(CC3(CC(=NO3)C(=O)c3ccccc3)C2)C1=O  RAHJAL
 [CH3]n1[cH][cH][cH][cH]c1=NN(=O)=O  CN1C=CC=CC1=NN(=O)=O  RANWUY
@@ -599,7 +599,7 @@ N#C[CH2][CH2]N([CH2][CH2][CH2][CH2]N([CH2][CH2]C#N)[CH2][CH2]C#N)[CH2][CH2]C#N  
 [CH3]C([CH3])([CH3])c1[cH]c2c(N=c3c(c4c5[cH]c([cH]c(c5N=c4c(c23)c2[cH][cH][cH][cH][cH]2)C([CH3])([CH3])[CH3])C([CH3])([CH3])[CH3])c2[cH][cH][cH][cH][cH]2)c([cH]1)C([CH3])([CH3])[CH3]  CC(C)(C)c1cc2c(N=C3C(=C4c5cc(cc(c5N=C4C(=C23)c2ccccc2)C(C)(C)C)C(C)(C)C)c2ccccc2)c(c1)C(C)(C)C  ROCLUR
 [CH3]n1nc(c(c1N(=O)=O)[CH3])N(=O)=O  CN1N=C(C(=C1N(=O)=O)C)N(=O)=O  RODLOM
 [CH3]C([CH3])([CH3])OC(=O)N1[CH2][CH]2[CH2][CH]1C(=O)O2  CC(C)(C)OC(=O)N1CC2CC1C(=O)O2  ROGGEA
-[NH2]c1[nH+][cH][cH][cH]c1C(=O)[O-]  Nc1[nH+]cccc1C(=O)[O-]  ROGXIU01
+[NH2]c1[nH+][cH][cH][cH]c1C(=O)[O-]  Nc1[n+]cccc1C(=O)[O-]  ROGXIU01
 [CH3]OC(=O)c1[cH][cH]c([cH][cH]1)N(=O)=O  COC(=O)c1ccc(cc1)N(=O)=O  RUGNIR
 [CH3]c1[cH][cH]c([cH][cH]1)n1[cH]c(C(=O)c2[cH][cH]c([CH3])[cH][cH]2)c(n1)c1[cH][cH]c(o1)N(=O)=O  Cc1ccc(cc1)N1C=C(C(=O)c2ccc(C)cc2)C(=N1)C1=CC=C(O1)N(=O)=O  RUGPAL
 [CH3]C1([CH3])[CH2][CH]([OH])[CH2]C([CH3])([CH3])N1N=O  CC1(C)CC(O)CC(C)(C)N1N=O  RUPFEO
@@ -720,12 +720,12 @@ O=C(ON=[CH]c1[cH]c2O[CH2]Oc2[cH]c1c1[cH][cH][cH][cH][cH]1)Oc1[cH][cH][cH][cH][cH
 [CH3]C([CH3])([CH3])c1[cH][cH]c([cH][cH]1)c1c2c(=O)[nH]c(c2c(=O)[nH]1)c1[cH][cH][cH][cH][cH]1  CC(C)(C)c1ccc(cc1)C1=C2C(=O)NC(=C2C(=O)N1)c1ccccc1  VAGPEZ
 [OH]c1[cH][cH]c([cH][cH]1)C1=N[CH]1c1[cH][cH][cH][cH][cH]1  Oc1ccc(cc1)C1=NC1c1ccccc1  VAGVEG
 O=c1oc(=O)c2[cH][cH][cH][cH]c2c2[cH][cH][cH][cH]c12  O=C1OC(=O)c2ccccc2c2ccccc12  VAHVUX
-[NH3+][CH]([CH]([CH3])[CH3])C(=O)[O-]  [NH3+]C(C(C)C)C(=O)[O-]  VALIDL03
+[NH3+][CH]([CH]([CH3])[CH3])C(=O)[O-]  [N+]C(C(C)C)C(=O)[O-]  VALIDL03
 [CH3][CH]1[CH2][CH]2[CH]3[CH2][CH]=C4[CH2][CH]([OH])[CH2][CH2]C4([CH3])[CH]3[CH2][CH2]C2([CH3])[CH]1C(=O)[CH3]  CC1CC2C3CC=C4CC(O)CCC4(C)C3CCC2(C)C1C(C)=O  VARWUG01
 O=c1[nH]c(c2c(=O)[nH]c(c12)c1[cH][cH][cH]n[cH]1)c1[cH][cH][cH]n[cH]1  O=C1NC(=C2C(=O)NC(=C12)c1cccnc1)c1cccnc1  VAZPAO
-[OH]c1[cH][cH]c([O-])c([CH]=[NH+]c2[cH][cH][cH][cH]c2N=[CH]c2[cH]c([OH])[cH][cH]c2[OH])[cH]1  Oc1ccc([O-])c(C=[NH+]c2ccccc2N=Cc2cc(O)ccc2O)c1  VEFTEG
+[OH]c1[cH][cH]c([O-])c([CH]=[NH+]c2[cH][cH][cH][cH]c2N=[CH]c2[cH]c([OH])[cH][cH]c2[OH])[cH]1  Oc1ccc([O-])c(C=[N+]c2ccccc2N=Cc2cc(O)ccc2O)c1  VEFTEG
 [CH2]=N[NH]c1[cH][cH]c([cH]c1N(=O)=O)N(=O)=O  C=NNc1ccc(cc1N(=O)=O)N(=O)=O  VETLIQ
-[NH3+][CH]([CH2]C(=O)[NH2])C(=O)[O-]  [NH3+]C(CC(N)=O)C(=O)[O-]  VIKKEG
+[NH3+][CH]([CH2]C(=O)[NH2])C(=O)[O-]  [N+]C(CC(N)=O)C(=O)[O-]  VIKKEG
 [OH]C12[CH2][CH2]O[CH]1[CH2]C(=O)[CH]1O[CH]21  OC12CCOC1CC(=O)C1OC21  VISDIL
 O=N(=O)N=c1[nH]nn[nH]1  O=N(=O)N=C1NN=NN1  VIWRAV
 [CH3][CH2]OC(=NC#N)[NH2]  CCOC(N)=NC#N  VODJEE
@@ -748,7 +748,7 @@ N#Cc1[cH][cH]c([CH]=[CH]c2[cH][cH]c([cH][cH]2)C#N)[cH][cH]1  N#Cc1ccc(C=Cc2ccc(c
 [CH3]c1[cH][cH]c([cH][cH]1)C(=[CH][CH]=[CH][CH]=C([NH2])c1[cH][cH]c([CH3])[cH][cH]1)[NH2]  Cc1ccc(cc1)C(N)=CC=CC=C(N)c1ccc(C)cc1  WELZAO
 [OH][CH2][CH2][CH2][CH2][CH2][CH2][CH2][CH2][CH2][CH2][OH]  OCCCCCCCCCCO  WESTIX
 [OH]c1[cH][cH]c([cH][cH]1)C1([CH2][CH2][CH2][CH2][CH2]1)c1[cH][cH]c([OH])[cH][cH]1  Oc1ccc(cc1)C1(CCCCC1)c1ccc(O)cc1  WETFAD01
-[NH2]C(=[NH2+])C(=O)[O-]  NC(=[NH2+])C(=O)[O-]  WETGAE
+[NH2]C(=[NH2+])C(=O)[O-]  NC(=[N+])C(=O)[O-]  WETGAE
 [CH3][CH2]N([CH2][CH3])C(=O)c1[cH][cH][cH]c(n1)c1nn([CH2]c2[cH][cH]c([CH2]n3[cH][cH]c(n3)c3[cH][cH][cH]c(n3)C(=O)N([CH2][CH3])[CH2][CH3])[cH][cH]2)[cH][cH]1  CCN(CC)C(=O)c1cccc(n1)C1=NN(Cc2ccc(CN3C=CC(=N3)c3cccc(n3)C(=O)N(CC)CC)cc2)C=C1  WEZJIV
 [CH3]Oc1[cH][cH]c([cH][cH]1)[CH]([CH3])N1[CH]([CH2][CH2][CH]1C#[CH])C#[CH]  COc1ccc(cc1)C(C)N1C(CCC1C#C)C#C  WIDSOS
 [CH3]c1[cH]c(=O)oc2[cH]c([NH2])[cH][cH]c12  CC1=CC(=O)Oc2cc(N)ccc12  WIKDEZ01
@@ -761,7 +761,7 @@ O=C1[CH]2[CH2][CH2][CH2][CH]1[CH2][CH2][CH2]2  O=C1C2CCCC1CCC2  WIQCUU
 [NH2]c1n[cH]nc2n([CH2]C#[CH])[cH]nc12  Nc1ncnc2N(CC#C)C=Nc12  WUSGOH
 [CH2](n1[cH][cH]n[cH]1)c1c2[cH][cH][cH][cH]c2c([CH2]n2[cH][cH]n[cH]2)c2[cH][cH][cH][cH]c12  C(N1C=CN=C1)c1c2ccccc2c(CN2C=CN=C2)c2ccccc12  WUTGUO
 O=C1O[CH2][CH]([CH2][CH]2[CH2]C12N(=O)=O)N1C(=O)c2[cH][cH][cH][cH]c2C1=O  O=C1OCC(CC2CC12N(=O)=O)N1C(=O)c2ccccc2C1=O  WUWHIG
-O=N(=O)c1[cH][cH]c([O-])c([CH]=[NH+][CH]2[CH2][CH2][CH2][CH2][CH2]2)[cH]1  O=N(=O)c1ccc([O-])c(C=[NH+]C2CCCCC2)c1  XABCUZ
+O=N(=O)c1[cH][cH]c([O-])c([CH]=[NH+][CH]2[CH2][CH2][CH2][CH2][CH2]2)[cH]1  O=N(=O)c1ccc([O-])c(C=[N+]C2CCCCC2)c1  XABCUZ
 O=C1[CH]2[CH2][CH2][CH2][CH2][CH]([CH2]2)C(=O)N1c1[cH][cH]c2O[CH2]Oc2[cH]1  O=C1C2CCCCC(C2)C(=O)N1c1ccc2OCOc2c1  XACNIA
 O=N(=O)c1[cH][cH]c([cH][cH]1)C(=[CH]c1[cH][cH][cH][cH][cH]1)C#N  O=N(=O)c1ccc(cc1)C(=Cc1ccccc1)C#N  XACQEZ
 [CH3]On1nn[nH]c1=NN(=O)=O  CON1N=NNC1=NN(=O)=O  XAJHEX
@@ -769,7 +769,7 @@ O=N(=O)c1[cH][cH]c([cH][cH]1)C(=[CH]c1[cH][cH][cH][cH][cH]1)C#N  O=N(=O)c1ccc(cc
 O1[CH]2[CH]1[CH]1[CH]3[CH]4O[CH]4[CH]2[CH]2O[CH]2[CH]13  O1C2C1C1C3C4OC4C2C2OC2C13  XAMZIV
 [CH3]c1[cH][cH]nc([cH]1)c1[cH]c([cH][cH]n1)C(=O)[NH][CH2][CH2][NH]C(=O)OC([CH3])([CH3])[CH3]  Cc1ccnc(c1)c1cc(ccn1)C(=O)NCCNC(=O)OC(C)(C)C  XAPLOQ
 [NH2]C(=O)[CH2]N=[N+]=[N-]  NC(=O)CN=[N+]=[N-]  XAVZUP
-[CH3]N([CH3])c1[cH][cH][cH]c2c([NH+]=[CH]c3[cH]c([cH][cH]c3[O-])N(=O)=O)[cH][cH]c(N([CH3])[CH3])c12  CN(C)c1cccc2c([NH+]=Cc3cc(ccc3[O-])N(=O)=O)ccc(N(C)C)c12  XEBRIG
+[CH3]N([CH3])c1[cH][cH][cH]c2c([NH+]=[CH]c3[cH]c([cH][cH]c3[O-])N(=O)=O)[cH][cH]c(N([CH3])[CH3])c12  CN(C)c1cccc2c([N+]=Cc3cc(ccc3[O-])N(=O)=O)ccc(N(C)C)c12  XEBRIG
 [CH3]OC(=O)c1[cH]c(nc([CH]=[CH]c2[cH][cH]c([CH3])[cH][cH]2)c1C(=O)O[CH3])N([CH3])[CH3]  COC(=O)c1cc(nc(C=Cc2ccc(C)cc2)c1C(=O)OC)N(C)C  XEJBIY
 [CH3]C(=C(OC(=O)c1[cH][cH]c([cH][cH]1)N(=O)=O)C#CC(=C([CH3])[CH3])OC(=O)c1[cH][cH]c([cH][cH]1)N(=O)=O)[CH3]  CC(C)=C(OC(=O)c1ccc(cc1)N(=O)=O)C#CC(OC(=O)c1ccc(cc1)N(=O)=O)=C(C)C  XEKMAC
 [CH3]Oc1[cH]c([cH]c(O[CH3])c1O[CH3])C#Cc1c2[cH][cH][cH][cH]c2c(C#Cc2[cH]c(O[CH3])c(O[CH3])c(O[CH3])[cH]2)c2[cH][cH][cH][cH]c12  COc1cc(cc(OC)c1OC)C#Cc1c2ccccc2c(C#Cc2cc(OC)c(OC)c(OC)c2)c2ccccc12  XEPYAT
