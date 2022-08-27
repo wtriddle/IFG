@@ -361,7 +361,7 @@ class Molecule():
                 for mol_vertex in matched_mol_vertices:
 
                     ##### Functional Group DFS Match Algorithm #####
-                    fg_matched_atoms, _, _, _ = self.DFS(fg, fg_vertex, mol_vertex, [], [], True)
+                    fg_matched_atoms, _, _ = self.DFS(fg, fg_vertex, mol_vertex, [], [])
 
                     ##### Functional Group Match Case #####
                     if len(fg_matched_atoms) == len([vertex for vertex in fg.vertices if vertex.symbol != 'R']):
@@ -408,7 +408,7 @@ class Molecule():
         ##### Algorithm Results #####
         return (all_fgs_dict, exact_fgs_dict)
 
-    def DFS(self, fg: "Molecule", fg_vertex: Vertex, mol_vertex: Vertex, used_mol_edges: "list[int]", used_fg_edges: "list[int]", is_valid: bool):
+    def DFS(self, fg: "Molecule", fg_vertex: Vertex, mol_vertex: Vertex, used_mol_edges: "list[int]", used_fg_edges: "list[int]"):
         """Searches the software molecule graph for a given functional group in a depth first search (DFS) manner and applies backtracking to match core atoms together"""
 
         ##### New Atom-Pair Backtrack Variable #####
@@ -420,11 +420,11 @@ class Molecule():
 
         ##### Implicit Degree Validation #####
         if fg_vertex.implicit_degree != 0 and mol_vertex.implicit_degree < fg_vertex.implicit_degree:
-            return (matched_indices, used_mol_edges, used_fg_edges, False)
+            return ({}, [], [])
 
         ##### Functional Group End Graph Boundary Case #####
         if not fg_core_edges:
-            return ({fg_vertex.index: mol_vertex.index}, used_mol_edges, used_fg_edges, True)
+            return ({fg_vertex.index: mol_vertex.index}, used_mol_edges, used_fg_edges)
 
         ##### Functional Group Core Edge Set Searching #####
         for fg_edge in fg_core_edges:
@@ -449,13 +449,13 @@ class Molecule():
                     ):
 
                         ##### DFS Recursion #####
-                        path = self.DFS(fg, fg_complement_vertex, om_corresponding_vertex, used_mol_edges + [om_edge.index], used_fg_edges + [fg_edge.index], is_valid)
+                        path = self.DFS(fg, fg_complement_vertex, om_corresponding_vertex, used_mol_edges + [om_edge.index], used_fg_edges + [fg_edge.index])
 
                         ##### Backtrack Collection #####
-                        if path[3]:
+                        if all(path):
 
                             ##### Backtrack Unpacking #####
-                            matched_path_atoms, matched_mol_path_edges, matched_fg_path_edges, _ = path
+                            matched_path_atoms, matched_mol_path_edges, matched_fg_path_edges = path
 
                             ##### Atom Unpacking #####
                             for matched_fg_atom, matched_mol_atom in matched_path_atoms.items():
@@ -474,10 +474,10 @@ class Molecule():
 
             ##### Unsatisfied Functional Group Edge #####
             else:
-                return (matched_indices, used_mol_edges, used_fg_edges, False)
+                return ({}, [], [])
 
         ##### All Functional Group Core Edges Satisfied #####
-        return (matched_indices, used_mol_edges, used_fg_edges, True)
+        return (matched_indices, used_mol_edges, used_fg_edges)
 
     def hierarchyFilter(self, all_fgs) -> "list[Molecule]":
         """Identifies hierarchically related functional groups and filters for most accurate functional group"""
