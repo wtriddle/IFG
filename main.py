@@ -1,10 +1,10 @@
-"""Functional group excel data sheet creation given a target smiles code set from a text file"""
+"""Creates functional group excel data sheet given a target smiles code set from a text file"""
 
 import pandas
 from tqdm import tqdm
 from molecule import Molecule
 from datetime import datetime
-from config import SMILES_PATH, OUTPUT_PATH
+from config import SMILES_PATH, FUNCTIONAL_GROUPS_OUTPUT_PATH
 
 def main():
     """Creates a chemical data excel sheet from a set of SMILES according to the data extracted from the Molecule class"""
@@ -31,9 +31,9 @@ def main():
             ##### All Functional Group Format Data #####
             all_data.append({
                 "Refcode": mol.name,
-                "aromaticRingCount": mol.aromatic_ring_count,
-                "nonAromaticRingCount": mol.non_aromatic_ring_count,
-                "ringCount": mol.total_ring_count,
+                "Aromatic Rings": mol.aromatic_ring_count,
+                "Non Aromatic Rings": mol.non_aromatic_ring_count,
+                "Rings": mol.total_ring_count,
                 "AminoAcid": "Yes" if mol.amino_acid else "No",
                 **mol.functional_groups_all,
             })
@@ -41,9 +41,9 @@ def main():
             ##### Exact Functional Group Format Data #####
             exact_data.append({
                 "Refcode": mol.name,
-                "aromaticRingCount": mol.aromatic_ring_count,
-                "nonAromaticRingCount": mol.non_aromatic_ring_count,
-                "ringCount": mol.total_ring_count,
+                "Aromatic Rings": mol.aromatic_ring_count,
+                "Non Aromatic Rings": mol.non_aromatic_ring_count,
+                "Rings": mol.total_ring_count,
                 "AminoAcid": "Yes" if mol.amino_acid else "No",
                 **mol.functional_groups_exact,
             })
@@ -60,7 +60,7 @@ def main():
     df_exact = pandas.DataFrame(exact_data).fillna(0).set_index("Refcode")
 
     ##### Excel Exporter #####
-    writer = pandas.ExcelWriter(OUTPUT_PATH, engine="xlsxwriter")
+    writer = pandas.ExcelWriter(FUNCTIONAL_GROUPS_OUTPUT_PATH, engine="xlsxwriter")
 
     ##### All Functional Groups Data Sheet Export #####
     df_all.to_excel(writer, sheet_name="all_data", freeze_panes=(1, 1))
