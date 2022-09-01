@@ -1,6 +1,4 @@
-""" Use this file to test the SMILES decoder on a test SMILES code to create the software molecule object
-    See its decoded data placed into data structures
-"""
+"""Use this file to test modules of the program. For example, test modules of src files and perform data comparisons in this file"""
 
 from pandas import read_excel
 from molecule import Molecule
