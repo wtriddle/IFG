@@ -9,5 +9,6 @@ SMILES_PATH = Path("resources") / 'smiles.txt'
 FUNCTIONAL_GROUPS_PATH = Path("resources") / 'FGlist.txt'
 
 ##### Target Output Excel Sheet #####
-OUTPUT_PATH = 'output/FunctionalGroups.xlsx'
+FUNCTIONAL_GROUPS_OUTPUT_PATH = 'output/output.xlsx'
+STATS_OUTPUT_PATH = 'output/stats.xlsx'
 
