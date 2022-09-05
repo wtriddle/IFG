@@ -3,3 +3,6 @@ _build
 _source
 *.xlsx
 *.json
+docs/build
+docs/Makefile
+docs/make.bat
