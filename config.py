@@ -2,13 +2,17 @@
 
 from pathlib import Path
 
-##### Target SMILES Codes #####
-SMILES_PATH = Path("resources") / 'smiles.txt'
+##### Target Molecular SMILES Codes #####
+STRUCTURES_PATH = Path("resources") / 'smiles.txt'
 
 ##### Target Functional Groups #####
 FUNCTIONAL_GROUPS_PATH = Path("resources") / 'FGlist.txt'
 
-##### Target Output Excel Sheet #####
-FUNCTIONAL_GROUPS_OUTPUT_PATH = 'output/output.xlsx'
-STATS_OUTPUT_PATH = 'output/stats.xlsx'
+##### Target Main Output Excel Sheet #####
+MAIN_OUTPUT_PATH = Path("output") / 'output.xlsx'
 
+##### Target Analysis Output Excel Sheet #####
+ANALYSIS_OUTPUT_PATH = Path("output") / 'stats.xlsx'
+
+##### Target Structure Bandgaps Input Excel Sheet #####
+BANDGAPS_PATH = Path("resources") / 'CrystalData.xlsx'

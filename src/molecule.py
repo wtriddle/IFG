@@ -375,7 +375,7 @@ class Molecule():
                         aromatic_tally: int = len([fg_vertex for fg_vertex in fg_match.vertices if fg_vertex.symbol != 'R' and fg_vertex.ring_type == "aromatic"])
                         non_aromatic_tally: int = len([fg_vertex for fg_vertex in fg_match.vertices if fg_vertex.symbol != 'R' and fg_vertex.ring_type == "non-aromatic"])
                         if aromatic_tally != 0 or non_aromatic_tally != 0:
-                            nomenclature: str = "Aromatic" if aromatic_tally >= non_aromatic_tally else "Cyclic"
+                            nomenclature: str = "Aromatic " if aromatic_tally >= non_aromatic_tally else "Non Aromatic "
                             fg_match.name = nomenclature + fg_match.name
 
                         ##### Match Add #####                        

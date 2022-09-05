@@ -4,7 +4,7 @@ import pandas
 from tqdm import tqdm
 from molecule import Molecule
 from datetime import datetime
-from config import SMILES_PATH, FUNCTIONAL_GROUPS_OUTPUT_PATH
+from config import STRUCTURES_PATH, MAIN_OUTPUT_PATH
 
 def main():
     """Creates a chemical data excel sheet from a set of SMILES according to the data extracted from the Molecule class"""
@@ -17,7 +17,7 @@ def main():
     exact_data: list[dict] = []
 
     ##### Input Structure Data Load #####
-    STRUCTURES = open(SMILES_PATH.resolve(), "r+").readlines()
+    STRUCTURES = open(str(STRUCTURES_PATH.resolve()), "r+").readlines()
 
     ##### Structure Bar Status #####
     with tqdm(total=len(STRUCTURES)) as bar:
@@ -60,7 +60,7 @@ def main():
     df_exact = pandas.DataFrame(exact_data).fillna(0).set_index("Refcode")
 
     ##### Excel Exporter #####
-    writer = pandas.ExcelWriter(FUNCTIONAL_GROUPS_OUTPUT_PATH, engine="xlsxwriter")
+    writer = pandas.ExcelWriter(str(MAIN_OUTPUT_PATH.resolve()), engine="xlsxwriter")
 
     ##### All Functional Groups Data Sheet Export #####
     df_all.to_excel(writer, sheet_name="all_data", freeze_panes=(1, 1))

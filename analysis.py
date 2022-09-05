@@ -3,7 +3,7 @@
 import pandas
 import math
 import numpy
-from config import STATS_OUTPUT_PATH
+from config import ANALYSIS_OUTPUT_PATH, BANDGAPS_PATH, MAIN_OUTPUT_PATH
 from itertools import chain, combinations
 from datetime import datetime
 
@@ -34,7 +34,7 @@ COLORS = [
 ]
 
 ##### Excel Sheet Target Output File With Writer Engine #####
-writer = pandas.ExcelWriter(STATS_OUTPUT_PATH, engine="xlsxwriter")
+writer = pandas.ExcelWriter(str(ANALYSIS_OUTPUT_PATH.resolve()), engine="xlsxwriter")
 
 ##### Powerset Function #####
 def powerset(iterable):
@@ -72,8 +72,8 @@ def main():
     now = datetime.now()
 
     ##### Data Load #####
-    bandgap_data: pandas.Series = pandas.read_excel("CrystalData.xlsx", sheet_name="All")["bandgap"]
-    fg_data: pandas.DataFrame = pandas.read_excel("output/output.xlsx", sheet_name="exact_data").drop("AminoAcid", axis=1)
+    bandgap_data: pandas.Series = pandas.read_excel(str(BANDGAPS_PATH.resolve()), sheet_name="All")["bandgap"]
+    fg_data: pandas.DataFrame = pandas.read_excel(str(MAIN_OUTPUT_PATH.resolve()), sheet_name="exact_data").drop("AminoAcid", axis=1)
     bandgap_fg_data: pandas.DataFrame = pandas.concat([fg_data, bandgap_data], axis=1).set_index("Refcode")
 
     ##### Bandgap Bins #####
@@ -226,7 +226,7 @@ def main():
 
     ##### Execution Time Evaluation #####
     print("execution time = ", datetime.now() - now, "s")
-    print(STATS_OUTPUT_PATH, "file created")
+    print(ANALYSIS_OUTPUT_PATH, "file created")
 
 
 
