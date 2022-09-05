@@ -6,3 +6,4 @@ _source
 docs/build
 docs/Makefile
 docs/make.bat
+poetry.lock
