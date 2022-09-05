@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "ifg"
+version = "0.1.0"
+description = "A library to identify functional groups from SMILES codes"
+authors = ["William Riddle <wtriddle31@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^1.4.4"
+tqdm = "^4.64.1"
+XlsxWriter = "^3.0.3"
+openpyxl = "^3.0.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
