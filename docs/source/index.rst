@@ -14,6 +14,13 @@ Learn about the identification process and look up source code references below 
    data_analysis
    configurations
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Identification Process
+
+   theory
+   design
+   implementation
 
 .. toctree::
    :maxdepth: 1
@@ -24,12 +31,4 @@ Learn about the identification process and look up source code references below 
    vertex
    constants
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Identification Process
-
-   molecule
-   edge
-   vertex
-   constants
 
