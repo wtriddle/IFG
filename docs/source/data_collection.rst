@@ -51,13 +51,13 @@ Script Outputs
 The script outputs two data sheets in its output excel file according to the two types of functional group definitions in this project: ``all`` and ``exact``
 
 ``All Definition``
-    Includes functional groups which overlap with larger functional groups in the overall number of times a particular functional group appears in a structure. 
-    A common example is including an ether count in its total count while it overlaps with an ester.
+    Includes overlapped functional groups in the overall number of times a particular functional group appears in a structure. 
+    A common example is including a ketone count while it overlaps with an ester.
 
 
 ``Exact Definition``
-    Excludes functional groups which overlap with larger functional groups in the overall number of times a particular functional group appears in a structure. 
-    A common example is ignoring an ether count in its total count if it overlaps with an with ester. 
+    Excludes overlapped functional groups in the overall number of times a particular functional group appears in a structure. 
+    A common example is excluding a ketone count while it overlaps with an ester. 
 
 
 
