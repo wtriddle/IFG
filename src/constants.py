@@ -1,19 +1,27 @@
-"""Constant Variables used across the program source files"""
+"""Constant variables used across the program source files"""
 
 import re
 
 ##### Regular Expressions #####
 ATOM_REGEX = re.compile(r'Br[+-]?|Cl[+-]?|[a-zA-Z][+-]?')
+"""Regular Expression that captures all atom symbols in a hydrogen-supressed SMILES code, inclusive of charge and double lettered atoms"""
 CHARGE_REGEX = re.compile(r'[+-]{1}')
+"""Regular Expression that captures a charged symbol"""
 BOND_REGEX = re.compile(r'[=#]')
+"""Regular Expression that captures a bond symbol"""
 DIGIT_REGEX = re.compile(r'[0-9]{1}')
+"""Regular Expression that captures a digit symbol"""
 PARENTH_REGEX = re.compile(r'[()]')
+"""Regular Expression that captures a parenthetical symbol"""
 BRACKET_REGEX = re.compile(r'[\[\]]')
+"""Regular Expression that captures a bracketed symbol"""
 SMILES_REGEX = re.compile(r'(Br[+-]?|Cl[+-]?|[a-zA-Z][+-]?|[=#]|[0-9]{1}|[()])')
+"""Regular Expression that captures all individual symbols of significance in a hydrogen-supressed SMILES code"""
 AMINO_ACID_REGEX = re.compile(r'[nN]H[23]?\+')
+"""Regular Expression that matches an amino acid"""
 
-##### Valence Electrons Per-Atomic Orbital Counts #####
-VALENCE_COUNTS = {
+##### Required Valence Electrons Per-Atomic Orbital To Fulfill Electron Configuration Counts #####
+REQUIRED_VALENCE_COUNTS = {
     'C': 4,
     'N': 3,
     'P': 3,
@@ -26,6 +34,7 @@ VALENCE_COUNTS = {
     'I': 1,
     'R': 1
 }
+"""Dictionary of atomic symbol to valence electrons required"""
 
 ##### Electrons Per-Bond Counts #####
 ELECTRON_BOND_COUNTS = {
@@ -33,3 +42,4 @@ ELECTRON_BOND_COUNTS = {
     '=': 2,
     '#': 3
 }
+"""Dictionary of bond symbol to number of valence electrons given"""

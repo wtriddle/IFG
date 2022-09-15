@@ -1,12 +1,4 @@
-"""An Edge is representative of a bond in the molecule, and appears as the edges of a simple undirected connected graph (graph theory)
-
-The Edge index is the index of the edge in the graph
-The Edge atoms are the Vertex objects involved in the edge
-The Edge indices are the two vertex indices involved in the edge (these indices are local to the graph and cannot be overwritten)
-The Edge bond_type is the type of bond between two vertices (i.e atoms) in the molecular graph
-The Edge symbols are the two atomic symbols of the vertices involved in the edge
-The Edge core_type is if both symbols of the edge are non-R atoms (the negation of core_type is called an R_type which has an R atom involved in the edge connection)
-"""
+"""An edge of a molecular graph, representative of a bond in a molecule"""
 
 from typing import Literal, TypeVar
 from vertex import Vertex
@@ -15,7 +7,24 @@ from vertex import Vertex
 EdgeType = TypeVar('EdgeType', bound='Edge')
 
 class Edge():
-    """An Edge that connects two vertices of a software molecule graph together"""
+    """An edge connecting two vertices in a molecular graph together.
+    
+        Parameters
+        ----------
+        vertices : "list[Vertex]"
+            The two vertex objects connected together by an edge
+        
+        bond_type : Literal["", "=", "#"]
+            The symbol of the bond involved in the molecular edge
+
+        index: int
+            The unique integer index identifier for a particular edge in a molecular graph
+    
+        Returns 
+        -------
+        Edge
+            The edge object representative of a bond in a molecular graph
+    """
 
     def __init__(self, 
         vertices: "list[Vertex]",
@@ -26,19 +35,31 @@ class Edge():
 
         ##### Unique Edge Identifier #####
         self.index: int = index
+        """The index identifier of the edge"""
 
         ##### Vertex Identifiers #####
         self.atoms: "list[Vertex]" = vertices
+        """The two vertex objects involved in the edge connection"""
         self.indices: list[int] = list(int(vertex.index) for vertex in vertices)
+        """The two vertex indices involved in the edge connection"""
 
         ##### Structural Edge Identifiers #####
         self.bond_type: Literal["", "=", "#"] = bond_type
+        """The type of bond between the two atomic vertices"""
+
         self.symbols: list[str] = list(str(vertex.symbol) for vertex in vertices)
+        """The two symbols of the vertex objects involved in the edge connection"""
+
         self.core_type: bool = not 'R' in self.symbols
+        """The assertion of a core type edge without any R vertices involved in the edge connection"""
         
 
     def __eq__(self: EdgeType, __o: EdgeType) -> bool:
-        """Tests Structural Edge Equality"""
+        """Tests Structural Edge Equality.
+        
+            Structural equality is when the symbols of both vertices and the bond between them are both identical.
+
+        """
         return (self.bond_type == __o.bond_type) and (set(self.symbols) == set(__o.symbols))
     
     def __hash__(self):
@@ -54,9 +75,20 @@ class Edge():
         return self.bond_type.join([''.join([str(r) for r in list(z)]) for z in zip(self.symbols, self.indices)])
 
     def mirror(self: EdgeType, __o: EdgeType) -> bool:
-        """Tests Unique Edge (Inclusive of Strucutre) Equality"""
+        """Returns true if the index, bond and symbols involved in two different edges are all equivalent."""
         return (self.bond_type == __o.bond_type) & (self.symbols == __o.symbols) & (self.index == __o.index)
 
-    def complement_vertex(self, vertex_index) -> Vertex:
-        """Gets the complementary (or opposite) vertex involved in the edge when given one of the two vertex indices of the edge"""
+    def complement_vertex(self, vertex_index: int) -> Vertex:
+        """Gets the complementary (or opposite) vertex involved in the edge when given one of the two vertex indices of the edge.
+
+        Parameters
+        ----------
+        vertex_index: int
+            The index of one of the vertices involved in the edge
+
+        Returns
+        -------
+        Vertex
+            The vertex object of the other vertex involved in the edge
+        """
         return [vertex for vertex in self.atoms if vertex.index != vertex_index][0]

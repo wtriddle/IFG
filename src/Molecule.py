@@ -6,12 +6,34 @@ from typing import Literal
 from vertex import Vertex
 from edge import Edge
 from config import FUNCTIONAL_GROUPS_PATH
-from constants import ATOM_REGEX, BOND_REGEX, CHARGE_REGEX, DIGIT_REGEX, PARENTH_REGEX, AMINO_ACID_REGEX, SMILES_REGEX, VALENCE_COUNTS, ELECTRON_BOND_COUNTS
+from constants import ATOM_REGEX, BOND_REGEX, CHARGE_REGEX, DIGIT_REGEX, PARENTH_REGEX, AMINO_ACID_REGEX, SMILES_REGEX, REQUIRED_VALENCE_COUNTS, ELECTRON_BOND_COUNTS
 
 class Molecule():
-    """ Defines a Simple Connected Undirected Graph for a molecule using a SMILES code
-        Determines the number of aromatic and non-aromatic rings of a molecule using a SMILES code
-        Determines the number of unique ring-classified instances of functional groups using the software molecule graph format
+    """ A python class for the SMILES.
+
+        Derives a Simple Connected Undirected Molecular Graph.
+        Determines the number of aromatic and non aromatic rings for organic molecules.
+        Determines the frequency of each unique ring-classified functional group.
+        
+        Parameters
+        ----------
+        smiles : str
+            A hydrogen-supressed SMILES code 
+        name : str
+            A name identifier for the molecule or functional group
+        type : Literal["mol", "fg"]
+            An organic molecule (mol) or functional group (fg) SMILES code
+
+        Returns
+        -------
+        Molecule
+            An instance of a molecule object
+
+        Example
+        -------
+            >>> mol = Molecule("O=C1NCCCN1", "APYFEB01", "mol")
+            >>> fg = Molecule("[R]C(=O)O[R]", "Ester" , "fg")
+
     """
 
     def __init__(self, smiles: str, name: str, type: Literal["mol", "fg"]):
@@ -20,42 +42,70 @@ class Molecule():
         """
 
         ##### Input Data #####
-        self.smiles: list[str] = [symbol for symbol in SMILES_REGEX.findall(smiles)]
+        self.smiles: list[str] = SMILES_REGEX.findall(smiles)
+        """The list of all smiles code symbols, with charges attached to atoms as needed, according to the SMILES_REGEX capture groups"""
         self.atoms: list[str] = ATOM_REGEX.findall(smiles)
+        """The list of all smiles code atoms, inclusive of charges, according to the ATOM_REGEX capture groups"""
         self.name: str = name
+        """The name identifier for the smiles code"""
         assert ['[', ']'] not in self.atoms
 
         ##### Software Molecule Graph (Graph Theory) #####
         self.vertices: "list[Vertex]" = self.createVertices()
+        """The list of vertices of the molecular graph"""
         self.order: int = len(self.vertices)
+        """The number of vertices of the molecular graph"""
         self.edges: "list[Edge]" = self.createEdges()
+        """The list of edges of the molecular graph"""
         self.size: int = len(self.edges)
+        """The number of edges of the molecular graph"""
         assert self.order == len(self.atoms)
 
         ##### Ring Data #####
         self.ring_atoms: set[int]
+        """The vertex indices which are apart of a ring structure"""
         self.aromatic_ring_count: int
+        """The number of aromatic rings in the molecule"""
         self.non_aromatic_ring_count: int
+        """The number of non aromatic rings in the molecule"""
         self.ring_atoms, self.aromatic_ring_count, self.non_aromatic_ring_count = self.createRings()
         self.total_ring_count: int = self.aromatic_ring_count + self.non_aromatic_ring_count
+        """The total number of rings in the molecule"""
         self.total_ring_atom_count: int = len(self.ring_atoms)
+        """The total number of atoms apart of rings in the molecule"""
         self.total_aromatic_atoms: int = len([symbol for symbol in self.atoms if symbol.islower()])
+        """The total number of aromatic atoms in the molecule"""
         self.total_non_aromatic_atoms: int = self.total_ring_atom_count-self.total_aromatic_atoms
+        """The total number of non aromatic atoms in the molecule"""
     
         ##### Atom Counts #####
-        self.atom_counts: dict[str, int] = Counter([v.symbol for v in self.vertices])
+        self.atom_freq: dict[str, int] = Counter([v.symbol for v in self.vertices])
+        """The frequency of each atom in the molecule"""
     
         ##### Miscellaneous Molecular Data #####
         self.amino_acid: bool = len(AMINO_ACID_REGEX.findall(smiles)) != 0 
+        """The assertion of a present amino acid in the molecule"""
 
         ##### Functional Groups #####
         self.functional_groups_all: dict[str, int]
+        """The frequency of each functional group inclusive of overlapped functional groups"""
         self.functional_groups_exact: dict[str, int]
+        """The frequency of each functional group exclusive of overlapped functional groups"""
         self.functional_groups_all, self.functional_groups_exact = self.createFunctionalGroups() if type == "mol" else ({}, {})
 
 
     def createVertices(self) -> "list[Vertex]":
-        """Create the vertices of a software molecule graph using the SMILES code"""
+        """Creates the vertices of a software molecule graph using the SMILES code.
+
+        Creates a vertex object for each atomic symbol inclusive of charge and 
+        computes their valence electrons required to set up hidden hydrogen counting.
+        
+        Returns
+        -------
+        list[Vertex]
+            A list of Vertex objects
+
+        """
 
         ##### Vertex List and Objects #####
         vertices: list[Vertex] = []
@@ -75,7 +125,7 @@ class Molecule():
                 index=index, 
                 symbol=symbol.upper() + charge, 
                 is_aromatic=symbol.islower(), 
-                valence_electrons_required=VALENCE_COUNTS[symbol.upper()],
+                valence_electrons_required=REQUIRED_VALENCE_COUNTS[symbol.upper()],
                 charge=charge
             )
 
@@ -89,7 +139,18 @@ class Molecule():
         return vertices
             
     def createEdges(self) -> "list[Edge]":
-        """Create the edges and the vertex degrees of a software molecule graph using the SMILES code"""
+        """Creates the edges and the vertex degrees of a software molecule graph using the SMILES code.
+        
+            Creates an edge object for every bond between two atomic symbols, inclusive of 
+            indirect parenthetical bonds and indirect ring bonds. Computes the hidden hydrogen count for each 
+            vertex. View the implementation doc for algorithm details.
+
+            Returns
+            -------
+            list[Edge]
+                A list of Edge objects
+
+        """
 
         ##### Algorithm Variables #####
         atom_index: int = 0
@@ -169,11 +230,18 @@ class Molecule():
 
         
     def createRings(self):
-        """ Determine the number of aromatic and non-aromatic rings using the SMILES code
-            Distinguish all atoms as aromatic, non-aromatic, or non-cyclic using the SMILES code
+        """ Creates the rings of the software molecule graph from a SMILES code by identifying them.
+        
+            Determines the number of aromatic and non-aromatic rings, and 
+            distinguishes all atoms as aromatic, non-aromatic, or non-cyclic.
+            View implementation doc for algorithm details.
+
+            Returns
+            -------
+            None
         """
 
-        ########## Algorithm Preparation ##########
+        ########## Parenthetical Groups Preparation ##########
 
         ##### Preparation Variables #####
         ring_index: int = 0
@@ -322,7 +390,21 @@ class Molecule():
 
 
     def createFunctionalGroups(self):
-        """Determine the number of unique ring classified functional groups from a list of identifiable functional groups using the software molecule graph format"""
+        """Determine the frequency of the unique ring classified functional groups given a list of identifiable functional groups using the software molecule graph format.
+        
+            Loops over a set of identifiable functional groups, generates each graph, and executes the DFS algorithm using all possible starting vertex pairs 
+            in the molecule and functional group. Adds ring-classification to each functional group, applies accuracy filters and returns the 
+            frequency counts in the overlap inclusive and exclusive formats. View implementation doc for algorithm details.
+
+            Returns
+            -------
+            all_fgs_dict
+                A frequency dictionary with the count of each functional group inclusive of overlapped functional groups
+
+            exact_fgs_dict
+                A frequency dictionary with the count of each functional group exclusive of overlapped functional groups
+        
+        """
 
         ##### All Functional Group Matches #####
         all_fgs: list[Molecule] = []
@@ -408,7 +490,39 @@ class Molecule():
         return (all_fgs_dict, exact_fgs_dict)
 
     def DFS(self, fg: "Molecule", fg_vertex: Vertex, mol_vertex: Vertex, used_mol_edges: "list[int]", used_fg_edges: "list[int]"):
-        """Search an organic molecule software graph for the presence of a functional group sub-graph structure"""
+        """Searches an organic molecule software graph for the presence of a functional group sub-graph using a recursive depth first search and backtracking algorithm.
+        
+            View implementation doc for details.
+
+            Parameters
+            ----------
+            fg : Molecule
+                The functional group graph being searched for
+
+            fg_vertex : Vertex
+                The current functional group vertex
+
+            mol_vertex : Vertex
+                The current molecular vertex 
+
+            used_mol_edges : list[int]
+                The list of molecular edge indices that have already been paired with functional group edges
+
+            used_fg_edges
+                The list of functional group edge indices that have already been paired with molecular edges
+
+            Returns
+            -------
+            matched_path_atoms: dict[int, int]
+                A recusivly cumulative dictionary of matched vertex pairs by index in the form functional_group_index : molecular_index
+            
+            matched_mol_path_edges: list[int]
+                A recursivly cumulative list of used molecular edges during a search path
+
+            matched_fg_path_edges: list[int]
+                A recursivly cumulative list of used functional group edges during a search path
+
+        """
 
         ##### New Atom-Pair Backtrack Variable #####
         matched_indices = {fg_vertex.index: mol_vertex.index}
@@ -478,8 +592,26 @@ class Molecule():
         ##### All Functional Group Core Edges Satisfied #####
         return (matched_indices, used_mol_edges, used_fg_edges)
 
-    def hierarchyFilter(self, all_fgs) -> "list[Molecule]":
-        """Identify and filter hierarchically related functional group matches"""
+    def hierarchyFilter(self, all_fgs: "list[Molecule]") -> "list[Molecule]":
+        """Identifies and filters hierarchically related functional group matches.
+
+            Uses the theory of hierarchically related functional groups to identify 
+            the set of functional groups involved in such relationships, then identifies
+            the most accurate out of the hierarchy with respect to hydrogen-sensetive R vertices
+            exhibited in the organic molecule. View implementation doc for details.
+
+            Parameters
+            ----------
+            all_fgs : list[Molecule]
+                A list of matched molecular functional group objects
+
+            Returns
+            -------
+            list[Molecule]
+                A list of matched molecular functional groups filtered hierarchically for the most accurate group
+
+        
+        """
 
         ##### Matches List Evaluation Indices #####
         eval_indices: set[int] = set()
@@ -517,8 +649,25 @@ class Molecule():
         ##### Apply Skips For Accurate Results #####
         return [fg for i, fg in enumerate(all_fgs) if not i in skip_indices]
         
-    def overlapFilter(self, all_fgs) -> "list[Molecule]":
-        """Identify and filter overlapping functional group matches"""
+    def overlapFilter(self, all_fgs: "list[Molecule]") -> "list[Molecule]":
+        """Identifies and filters overlapping functional group matches.
+        
+            Uses the overlapped functional groups theory to identify groups which are overalpped 
+            over another group (i.e. a ketone overlapped with an ester) and removed the overlapped
+            group from the list of input matches.
+
+            Parameters
+            ----------
+            all_fgs : list[Molecule]
+                A list of matched molecular functional group objects
+
+            Returns
+            -------
+            list[Molecule]
+                A list of matched molecular functional groups with overlapped functional group occurences removed
+
+
+        """
 
         ##### Indices To-Be Skipped From Matches List #####
         skip_indices: set[int] = set()
@@ -536,8 +685,24 @@ class Molecule():
         ##### Apply Skips For Accurate Results #####
         return [fg for i, fg in enumerate(all_fgs) if not i in skip_indices]
 
-    def repetitionFilter(self, fg_matches) -> "list[Molecule]":
-        """Identify and filter repeated functional group matches"""
+    def repetitionFilter(self, fg_matches: "list[Molecule]") -> "list[Molecule]":
+        """Identifies and filters repeated functional group matches.
+
+            Uses the fact that functional groups with the exact same vertex indices after identification 
+            in the organic molecule will indicate a repeated match to identify and remove repeated 
+            functional group matches.
+        
+            Parameters
+            ----------
+            fg_matches : list[Molecule]
+                A list of matched molecular functional group objects all pertaining to the same functional group 
+
+            Returns
+            -------
+            list[Molecule]
+                A list of matched molecular functional groups where repeated match instances are removed 
+
+        """
 
         ##### Repeat Filteres List Of Matches #####
         repeat_filtered_fg_matches: list[Molecule] = []

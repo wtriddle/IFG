@@ -1,19 +1,34 @@
-"""The Vertex is representative of an atom in a molecule, and it is a vertex of part of the simple undirected connected molecular graph (graph theory)
-
-The Vertex index is the particular index of an atom inside of the SMILES code
-The Vertex symbol is the atomic symbol associated with a particular atom at a particular index in the SMILES code
-The Vertex ring_type is the classification of the atom within a ring
-The Vertex implicit_degree is the number of single bonded hydrogens implicitly connected to a vertex to satisfy its valence structure
-The Vertex explicit_degree is the number of edges where the vertex appears in the edge set
-The Vertex total_degree is the sum of the implicit and explicit degrees
-The Vertex valence_electrons_required is the number of electrons required for a Vertex (atom) to fill its atomic orbital, charge inclusive
-The Vertex charge is the assigned charge symbol of a Vertex and alters the valence_electrons_required 
-"""
+"""A vertex of a molecular graph, representative of an atom in a molecule"""
 
 from typing import Literal
 
 class Vertex():
-    """A Vertex of a software molecule graph"""
+    """A vertex of a molecular graph.
+
+        Parameters
+        ----------
+        index : int
+            The unique integer index identifier for a particular vertex in a molecular graph
+        
+        symbol : str
+            The atomic symbol inclusive of charge for the vertex object
+
+        is_aromatic : bool
+            The assertion of if the vertex is aromatic or non-aromatic
+
+        valence_electrons_required : int
+            The integer number of valence electrons required to fill the outermost atomic orbital, considering impact of charge
+
+        charge: str
+            The symbol of a charge attached to a vertex
+
+    
+        Returns 
+        -------
+        Vertex
+            The vertex object representative of an atom in a molecular graph
+    
+    """
 
     def __init__(self, 
         index: int = 0, 
@@ -26,17 +41,25 @@ class Vertex():
 
         ##### Vertex Identifiers #####
         self.index: int = index
+        """The unique integer index identifier for this vertex"""
         self.symbol: str = symbol
+        """The atomic symbol inclusive of charge for this vertex"""
 
         ##### Ring Classification #####
         self.ring_type: Literal["aromatic", "non-aromatic", "non-cyclic"] = "aromatic" if is_aromatic else "non-cyclic"
+        """The type of ring, if any, that a vertex is apart of"""
 
         ##### Degree & Atomic Valence Structure #####
         self.implicit_degree: int = 0
+        """The number of hidden hydrogens connected to the vertex"""
         self.explicit_degree: int = 0
+        """The number of explictly connected edges to the vertex"""
         self.total_degree: int = self.explicit_degree + self.implicit_degree
+        """The total number of bonds (single, double, or triple) connected to a vertex"""
         self.valence_electrons_required: int = valence_electrons_required
+        """The total number of valence electrons required to fill the outermost atomic orbital (i.e. its preferred electron configuration)"""
         self.charge = charge
+        """The charge symbol attached to an atomic vertex"""
 
         ##### Charge Valence Electrons #####
         if charge == '+': self.valence_electrons_required+=1
