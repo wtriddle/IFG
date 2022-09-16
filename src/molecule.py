@@ -420,7 +420,7 @@ class Molecule():
             fg: Molecule = Molecule(fg_smiles, fg_name, "fg")
 
             ##### Functional Group Matches #####
-            fg_matches: list[Molecule] = []   
+            fg_matches: list[dict[int,int]] = []
 
             ##### Functional Group Mol Vertex Start Locations #####
             matched_core_fg_atoms: dict[int, list[Vertex]] = {
@@ -445,30 +445,34 @@ class Molecule():
                     fg_matched_atoms, _, _ = self.DFS(fg, fg_vertex, mol_vertex, [], [])
 
                     ##### Functional Group Match Case #####
-                    if len(fg_matched_atoms) == len([vertex for vertex in fg.vertices if vertex.symbol != 'R']):
+                    if (
+                        len(fg_matched_atoms) == len([vertex for vertex in fg.vertices if vertex.symbol != 'R'])
+                        and
+                        not set(fg_matched_atoms.values()) in [set(match.values()) for match in fg_matches]
+                    ):
+                        ##### Unique Matched Functional Group Add ##### 
+                        fg_matches.append(fg_matched_atoms)
 
-                        ##### Functional Group Extraction #####
-                        fg_match: Molecule = Molecule(fg_smiles, fg_name, "fg")
-                        for (fg_atom_index, om_atom_index) in fg_matched_atoms.items():
-                            fg_match.vertices[fg_atom_index].index = self.vertices[om_atom_index].index
-                            fg_match.vertices[fg_atom_index].ring_type = self.vertices[om_atom_index].ring_type
 
-                        ##### Ring Classification #####
-                        aromatic_tally: int = len([fg_vertex for fg_vertex in fg_match.vertices if fg_vertex.symbol != 'R' and fg_vertex.ring_type == "aromatic"])
-                        non_aromatic_tally: int = len([fg_vertex for fg_vertex in fg_match.vertices if fg_vertex.symbol != 'R' and fg_vertex.ring_type == "non-aromatic"])
-                        if aromatic_tally != 0 or non_aromatic_tally != 0:
-                            nomenclature: str = "Aromatic " if aromatic_tally >= non_aromatic_tally else "Non Aromatic "
-                            fg_match.name = nomenclature + fg_match.name
+            ##### Functional Group Molecular Object Creations #####
+            for fg_matched_atoms in fg_matches:
+                
+                ##### Functional Group Extraction #####
+                fg_match: Molecule = Molecule(fg_smiles, fg_name, "fg")
+                for (fg_atom_index, om_atom_index) in fg_matched_atoms.items():
+                    fg_match.vertices[fg_atom_index].index = self.vertices[om_atom_index].index
+                    fg_match.vertices[fg_atom_index].ring_type = self.vertices[om_atom_index].ring_type
 
-                        ##### Match Add #####                        
-                        fg_matches.append(fg_match)
+                ##### Ring Classification #####
+                aromatic_tally: int = len([fg_vertex for fg_vertex in fg_match.vertices if fg_vertex.symbol != 'R' and fg_vertex.ring_type == "aromatic"])
+                non_aromatic_tally: int = len([fg_vertex for fg_vertex in fg_match.vertices if fg_vertex.symbol != 'R' and fg_vertex.ring_type == "non-aromatic"])
+                if aromatic_tally != 0 or non_aromatic_tally != 0:
+                    nomenclature: str = "Aromatic " if aromatic_tally >= non_aromatic_tally else "Non Aromatic "
+                    fg_match.name = nomenclature + fg_match.name
+                
+                ##### Match Add #####                        
+                all_fgs.append(fg_match)
 
-            ##### Repeat Functional Group Match Filter #####
-            repeat_filtered_fg_matches: list[Molecule] = self.repetitionFilter(fg_matches)
-
-            ##### All Functional Group Matches Add #####
-            for fg in repeat_filtered_fg_matches:
-                all_fgs.append(fg)  
 
         ##### Hierarchical Functional Group Filter #####
         all_fgs: list[Molecule] = self.hierarchyFilter(all_fgs)
@@ -684,39 +688,6 @@ class Molecule():
 
         ##### Apply Skips For Accurate Results #####
         return [fg for i, fg in enumerate(all_fgs) if not i in skip_indices]
-
-    def repetitionFilter(self, fg_matches: "list[Molecule]") -> "list[Molecule]":
-        """Identifies and filters repeated functional group matches.
-
-            Uses the fact that functional groups with the exact same vertex indices after identification 
-            in the organic molecule will indicate a repeated match to identify and remove repeated 
-            functional group matches.
-        
-            Parameters
-            ----------
-            fg_matches : list[Molecule]
-                A list of matched molecular functional group objects all pertaining to the same functional group 
-
-            Returns
-            -------
-            list[Molecule]
-                A list of matched molecular functional groups where repeated match instances are removed 
-
-        """
-
-        ##### Repeat Filteres List Of Matches #####
-        repeat_filtered_fg_matches: list[Molecule] = []
-
-        ##### Repeat Identification and Removal #####
-        for fg in fg_matches:
-            for already_appeared_fg in repeat_filtered_fg_matches:
-                if set([fg_vertex.index for fg_vertex in fg.vertices if not 'R' in fg_vertex.symbol]) == set([fg_vertex.index for fg_vertex in already_appeared_fg.vertices if not 'R' in fg_vertex.symbol]):
-                    break
-            else:
-                repeat_filtered_fg_matches.append(fg)
-
-        ##### Return Filtered Set For Accurate Results #####
-        return repeat_filtered_fg_matches
 
     def __str__(self):
         """String Representation of a Molecule"""
