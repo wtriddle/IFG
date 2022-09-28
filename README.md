@@ -25,6 +25,8 @@ To set up IFG for functional group data collection and analysis from SMILES code
     ```cmd
       C:\IFG> poetry install
     ```
+    
+5. Add IFG/src to your system PYTHONPATH environemnt variable. See this [tutorial](https://www.simplilearn.com/tutorials/python-tutorial/python-path)
 
 You are now ready to use IFG! Read usage to find out how to use the program.
 
