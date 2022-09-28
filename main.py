@@ -31,6 +31,7 @@ def main():
             ##### All Functional Group Format Data #####
             all_data.append({
                 "Refcode": mol.name,
+                "SMILES": smiles,
                 "Aromatic Rings": mol.aromatic_ring_count,
                 "Non Aromatic Rings": mol.non_aromatic_ring_count,
                 "Rings": mol.total_ring_count,
@@ -41,6 +42,7 @@ def main():
             ##### Exact Functional Group Format Data #####
             exact_data.append({
                 "Refcode": mol.name,
+                "SMILES": smiles,
                 "Aromatic Rings": mol.aromatic_ring_count,
                 "Non Aromatic Rings": mol.non_aromatic_ring_count,
                 "Rings": mol.total_ring_count,
