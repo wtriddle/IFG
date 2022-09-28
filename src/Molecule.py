@@ -18,7 +18,7 @@ class Molecule():
         Parameters
         ----------
         smiles : str
-            A hydrogen-supressed SMILES code 
+            A hydrogen-suppressed SMILES code 
         name : str
             A name identifier for the molecule or functional group
         type : Literal["mol", "fg"]
@@ -95,15 +95,30 @@ class Molecule():
 
 
     def createVertices(self) -> "list[Vertex]":
-        """Creates the vertices of a software molecule graph using the SMILES code.
+        """Creates the vertices of a software molecule graph using a hydrogen-suppressed SMILES code.
 
-        Creates a vertex object for each atomic symbol inclusive of charge and 
-        computes their valence electrons required to set up hidden hydrogen counting.
-        
-        Returns
-        -------
-        list[Vertex]
-            A list of Vertex objects
+            Creates a vertex object for each unique atomic symbol, inclusive of their charge, and 
+            computes their valence electrons required to set up :ref:`hidden-hydrogens-computation-ref`.
+            
+            Returns
+            -------
+            list[Vertex]
+                A list of Vertex objects
+
+            Notes
+            -----
+            This algorithm iterates over each unique atomic symbol in the SMILES code, inclusive of their charge, and creates 
+            a vertex object for each one. The constructor parameters of integer index, atomic symbol with charge, aromatic conditional 
+            (if the atomic symbol is lower case), and number of valence electrons required to be provided by edge bonds to fulfill the atom's preferred 
+            electronic configuration are all input into each individual ``vertex`` constructor. Each ``vertex`` is appended to the list of ``vertices``
+            until all unique atomic symbols in the SMILES code have been processed. The :py:attr:`vertex.Vertex.valence_electrons_required` computation 
+            in this method sets up :ref:`Hidden Hydrogen Computation <hidden-hydrogens-computation-ref>` for each ``vertex`` in ``vertices`` to take place 
+            during the :py:meth:`molecule.Molecule.createEdges` method. Vertex indices are assigned in ascending order for unique atomic symbols left to right.
+
+            | `Algorithm Variables Reference`
+            | ``vertices``  (list[Vertex]):     cumulative list of vertex objects
+            | ``vertex``    (Vertex):           vertex object per unique atomic symbol
+            | ``charge``    (str):              charge symbol attached to an atom symbol
 
         """
 
@@ -139,16 +154,28 @@ class Molecule():
         return vertices
             
     def createEdges(self) -> "list[Edge]":
-        """Creates the edges and the vertex degrees of a software molecule graph using the SMILES code.
+        """Creates the edges and the vertex degrees of a software molecule graph using a hydrogen-suppressed SMILES code.
         
-            Creates an edge object for every bond between two atomic symbols, inclusive of 
-            indirect parenthetical bonds and indirect ring bonds. Computes the hidden hydrogen count for each 
-            vertex. View the implementation doc for algorithm details.
+            Creates an edge object for every bond between two atomic symbols 
+            and computes the hidden hydrogen count for each vertex. 
 
             Returns
             -------
             list[Edge]
                 A list of Edge objects
+
+            Notes
+            -----
+                View :ref:`edges-algorithm-ref` under :ref:`implementation-ref` for algorithm details.
+                    
+                | `Algorithm Variables Reference`
+                | ``atom_index``                (int):                          an index counter for each unique atomic symbol (synonomous with vertex index counter)
+                | ``match_index``               (int):                          a unique atomic symbol index variable for :ref:`direct-edge-ref` and :ref:`indirect-parenthetical-edge-ref` pairing
+                | ``edge_index``                (int):                          an index counter variable for each unique edge
+                | ``open_ring_table``           (dict[str, int]):               a dictionary for :ref:`open-rings-ref` that key-value pairs start digit value with start atom index for :ref:`Indirect Number Edges <indirect-number-edge-ref>`
+                | ``parenth_start_atom_stack``  (list[int]):                    an atom index stack pushed with parenthetical start atom index upon open parenthesis and popped into ``match_index`` upon close parenthesis
+                | ``bond``                      (Literal["", "=", "#"]):        the most recently viewed bond symbol in the iteration, cleared after use in a :ref:`direct-edge-ref`
+                | ``edges``                     (list[Edge]):                   cumulative list of edge objects
 
         """
 
@@ -156,8 +183,8 @@ class Molecule():
         atom_index: int = 0
         match_index: int = 0
         edge_index: int = 0 
-        ring_queue: "dict[str, int]" = {}
-        parenth_stack: list[int] = []
+        open_ring_table: "dict[str, int]" = {}
+        parenth_start_atom_stack: list[int] = []
         bond: Literal["", "=", "#"] = ""
         edges: "list[Edge]" = []
         
@@ -180,30 +207,30 @@ class Molecule():
 
             ##### Digit Symbol Case #####
             if DIGIT_REGEX.match(symbol):
-                if symbol in ring_queue:
-                    ring_atom_index = ring_queue.pop(symbol)
+                if symbol in open_ring_table:
+                    ring_atom_index = open_ring_table.pop(symbol)
                     edge_atoms = [self.vertices[ring_atom_index], self.vertices[atom_index]]
                     new_edge = Edge(edge_atoms, "", edge_index)
                     edge_index+=1
                     edges.append(new_edge)
                 else:
-                    ring_queue[symbol] = atom_index 
+                    open_ring_table[symbol] = atom_index 
 
             ##### Parenthesis Symbol Case #####
             if PARENTH_REGEX.match(symbol):
                 if symbol == '(':    
-                    # double parenthetical groups will re-append the match index
+                    # double parenthetical groups [i.e. C(C)(C)] will re-append the match index 
                     if self.smiles[1:][i-1] == ')':
-                        parenth_stack.append(match_index)
+                        parenth_start_atom_stack.append(match_index)
                     else:
-                        parenth_stack.append(atom_index)
+                        parenth_start_atom_stack.append(atom_index)
                 else:
-                    match_index = parenth_stack.pop()
+                    match_index = parenth_start_atom_stack.pop()
 
         
         ##### Algorithm Check #####
-        assert not parenth_stack
-        assert not ring_queue
+        assert not parenth_start_atom_stack
+        assert not open_ring_table
         assert not bond
 
 
@@ -234,11 +261,28 @@ class Molecule():
         
             Determines the number of aromatic and non-aromatic rings, and 
             distinguishes all atoms as aromatic, non-aromatic, or non-cyclic.
-            View implementation doc for algorithm details.
 
             Returns
             -------
             None
+
+            Notes
+            -----
+            View the :ref:`rings-algorithm-ref` under :ref:`implementation-ref` for algorithm details.
+            
+            | `Algorithm Variables Reference`
+            | ``ring_index``              (int):                  an index counter for unique :ref:`Like Number Pairs <like-number-pair-ref>`
+            | ``p_group_counter``         (int):                  an index counter for :ref:`parenthetical-groups-ref`
+            | ``parenth_group_stack``     (list[int]):            a stack of ``p_group_counter`` for *open* parenthetical groups (always has root group 0)
+            | ``open_ring_table``         (dict[str, int]):       a dictionary of key ring digit value to value ``ring_index`` for :ref:`open-rings-ref`
+            | ``ring_info``               (dict[int, list[int]]): a dictionary of key ``ring_index`` to value set of allowable parenthetical groups for :ref:`ring-assigned-parenthetical-groups-ref` 
+            | ``atom_index``              (int):                  an index counter for each unique atomic symbol (synonomous with vertex index counter)
+            | ``ring_stack``              (list[int]):            a stack of ``ring_index`` for the order of :ref:`open-rings-ref` (``ring_stack[-1]`` is the most recently opened ring)
+            | ``ring_set``                (dict[int, list[int]]): a dictionary of key ``ring_index`` to value set of atomic indices
+            | ``ring_p_groups``           (set[int]):             a set of :ref:`Open Ring <open-rings-ref>` parenthetical group indices
+            | ``ring_atom_indices``       (set[int]):             the set of atom indices apart of rings (aromatic or non-aromatic)
+            | ``aromatic_ring_count``     (int):                  the number of aromatic rings
+            | ``non_aromatic_ring_count`` (int):                  the number of non-aromatic rings 
         """
 
         ########## Parenthetical Groups Preparation ##########
@@ -246,8 +290,8 @@ class Molecule():
         ##### Preparation Variables #####
         ring_index: int = 0
         p_group_counter: int = 0
-        parenth_stack: list[int] = [0]
-        ring_queue: dict[str, int] = {}
+        parenth_group_stack: list[int] = [0]
+        open_ring_table: dict[str, int] = {}
         ring_info: dict[int, list[int]] = {}
 
         ##### Preparation Implementation #####
@@ -256,12 +300,12 @@ class Molecule():
             ##### Digit Symbol Case #####
             if DIGIT_REGEX.match(symbol):
 
-                if symbol in ring_queue:
-                    ring_queue.pop(symbol)
+                if symbol in open_ring_table:
+                    open_ring_table.pop(symbol)
 
                 else:
-                    ring_queue[symbol] = ring_index
-                    ring_info[ring_index] = [parenth_stack[-1]]
+                    open_ring_table[symbol] = ring_index
+                    ring_info[ring_index] = [parenth_group_stack[-1]]
                     ring_index+=1
 
             ##### Parenthesis Symbol Case #####
@@ -269,18 +313,18 @@ class Molecule():
 
                 if symbol == '(':
                     p_group_counter+=1
-                    parenth_stack.append(p_group_counter)
-                    for ring_idx in ring_queue.values():
+                    parenth_group_stack.append(p_group_counter)
+                    for ring_idx in open_ring_table.values():
                         ring_info[ring_idx].append(p_group_counter)
 
                 else:
-                    closing_p_group = parenth_stack.pop(-1)
-                    for ring_idx in ring_queue.values():
+                    closing_p_group = parenth_group_stack.pop(-1)
+                    for ring_idx in open_ring_table.values():
                         ring_info[ring_idx] = [p_group for p_group in ring_info[ring_idx] if p_group != closing_p_group]
 
         ##### Preparation Check #####
-        assert not ring_queue
-        assert parenth_stack == [0]
+        assert not open_ring_table
+        assert parenth_group_stack == [0]
 
         ##### Preparation Results #####
         # print(ring_info)
@@ -294,7 +338,7 @@ class Molecule():
         ring_stack: list[int] = []
         ring_set: dict[int, list[int]] = {}
         ring_p_groups: set[int] = set()
-        ring_atom_indices: list[int] = []
+        ring_atom_indices: set[int] = set()
 
         ##### Algorithm Implementation #####
         for symbol in self.smiles[1:]:
@@ -303,22 +347,22 @@ class Molecule():
             if ATOM_REGEX.match(symbol):
                 atom_index+=1
 
-                if ring_queue:
+                if open_ring_table:
 
-                    if parenth_stack[-1] in ring_p_groups:
-                        ring_atom_indices.append(atom_index)
+                    if parenth_group_stack[-1] in ring_p_groups:
+                        ring_atom_indices.add(atom_index)
 
-                    if parenth_stack[-1] in ring_info[ring_stack[-1]]:
+                    if parenth_group_stack[-1] in ring_info[ring_stack[-1]]:
                         ring_set[ring_stack[-1]].append(atom_index)
 
             ##### Digit Symbol Case #####
             if DIGIT_REGEX.match(symbol):
 
-                if symbol in ring_queue:
+                if symbol in open_ring_table:
 
-                    close_ring_index = ring_queue.pop(symbol)
+                    close_ring_index = open_ring_table.pop(symbol)
 
-                    if ring_queue:
+                    if open_ring_table:
                         prev_ring_index = ring_stack[ring_stack.index(close_ring_index)-1]
                         p_end_group = ring_info[close_ring_index][-1]
                         if p_end_group in ring_info[prev_ring_index]:
@@ -327,15 +371,15 @@ class Molecule():
                     if not atom_index in ring_set[close_ring_index]:
                         ring_set[close_ring_index].append(atom_index)
                 else:
-                    ring_queue[symbol] = ring_index
+                    open_ring_table[symbol] = ring_index
                     ring_set[ring_index] = [atom_index]
-                    ring_atom_indices.append(atom_index)
+                    ring_atom_indices.add(atom_index)
                     ring_index+=1
                 
-                ring_stack = list(ring_queue.values())
+                ring_stack = list(open_ring_table.values())
                 ring_p_groups = set(
                     itertools.chain.from_iterable(
-                        [p_groups for ring_idx, p_groups in ring_info.items() if ring_idx in ring_queue.values()]
+                        [p_groups for ring_idx, p_groups in ring_info.items() if ring_idx in open_ring_table.values()]
                     )
                 )
 
@@ -345,15 +389,15 @@ class Molecule():
 
                 if symbol == '(':
                     p_group_counter+=1
-                    parenth_stack.append(p_group_counter)
+                    parenth_group_stack.append(p_group_counter)
 
                 else:
-                    parenth_stack.pop(-1)
+                    parenth_group_stack.pop(-1)
 
 
         ##### Algorithm Check #####
-        assert not ring_queue
-        assert parenth_stack == [0]
+        assert not open_ring_table
+        assert parenth_group_stack == [0]
 
         ##### Algorithm Results #####
         # print(ring_set)
@@ -383,7 +427,7 @@ class Molecule():
 
         ##### Collection Results #####
         return (
-            set(ring_atom_indices),  
+            ring_atom_indices,  
             aromatic_ring_count,
             non_aromatic_ring_count,
         )
@@ -394,7 +438,7 @@ class Molecule():
         
             Loops over a set of identifiable functional groups, generates each graph, and executes the DFS algorithm using all possible starting vertex pairs 
             in the molecule and functional group. Adds ring-classification to each functional group, applies accuracy filters and returns the 
-            frequency counts in the overlap inclusive and exclusive formats. View implementation doc for algorithm details.
+            frequency counts in the overlap inclusive and exclusive formats.
 
             Returns
             -------
@@ -403,7 +447,20 @@ class Molecule():
 
             exact_fgs_dict
                 A frequency dictionary with the count of each functional group exclusive of overlapped functional groups
-        
+
+            Notes
+            -----
+                View :ref:`functional-groups-algorithm-ref` under :ref:`implementation-ref` for algorithm details
+                Only "mol" type given in constructor calls this function
+
+            | `Algorithm Variables Reference`
+            | ``all_fgs``                 (list[Molecule]):             a list of all functional group matches under the Molecule class type, hierarchically filtered
+            | ``fg``                      (Molecule):                   a functional group graph template built from its hydrogen-suppressed SMILES code
+            | ``fg_matches``              (list[dict[int,int]]):        a list of ``matched_indices`` results from the DFS algorithm 
+            | ``like_vertex_pairs``       (dict[int, list[Vertex]]):    a dicitonary of *core* functional group vertex index to all :ref:`Like Vertex Paired <like-vertex-pair-ref>` organic molecule vertex indices
+            | ``fg_vertex``               (Vertex):                     a *core* functional group vertex which will begin the DFS algorithm
+            | ``fg_match``                (Molecule):                   a Molecule generated functional group match with overwritten :ref:`Like Vertex Paired <like-vertex-pair-ref>` organic moleulce vertex indices
+            | ``exact_fgs``               (list[int]):                  a list of matches after ``all_fgs`` is overlap filtered
         """
 
         ##### All Functional Group Matches #####
@@ -423,7 +480,7 @@ class Molecule():
             fg_matches: list[dict[int,int]] = []
 
             ##### Functional Group Mol Vertex Start Locations #####
-            matched_core_fg_atoms: dict[int, list[Vertex]] = {
+            like_vertex_pairs: dict[int, list[Vertex]] = {
                 fg_vertex.index: [
                     mol_vertex for mol_vertex in self.vertices 
                     if mol_vertex.symbol == fg_vertex.symbol and 
@@ -433,7 +490,7 @@ class Molecule():
             }
 
             ##### Functional Group Mol Vertex Start Locations Loop #####
-            for fg_vertex_index, matched_mol_vertices in matched_core_fg_atoms.items():
+            for fg_vertex_index, matched_mol_vertices in like_vertex_pairs.items():
 
                 ##### Functional Group Start Vertex #####
                 fg_vertex: Vertex = fg.vertices[fg_vertex_index]
@@ -496,8 +553,6 @@ class Molecule():
     def DFS(self, fg: "Molecule", fg_vertex: Vertex, mol_vertex: Vertex, used_mol_edges: "list[int]", used_fg_edges: "list[int]"):
         """Searches an organic molecule software graph for the presence of a functional group sub-graph using a recursive depth first search and backtracking algorithm.
         
-            View implementation doc for details.
-
             Parameters
             ----------
             fg : Molecule
@@ -526,6 +581,19 @@ class Molecule():
             matched_fg_path_edges: list[int]
                 A recursivly cumulative list of used functional group edges during a search path
 
+            Notes
+            -----
+                View :ref:`depth-first-search-ref` under :ref:`implementation-ref` for algorithm details.
+
+            | `Algorithm Variables Reference`
+            | ``matched_indices``         (dict[int,int]):        a backtracking-cumulative dictionary of key functional group vertex index to value organic molecule vertex index for :ref:`like-vertex-pair-ref`
+            | ``fg_core_edges``           (list[Edge]):           a list of functional group edges to unfulfilled *core* functional group vertices
+            | ``om_edges``                (list[Edge]):           a list of organic molecule edges to un-used organic molecule vertices
+            | ``fg_complement_vertex``    (Vertex):               an *unfulfilled* core functional group vertex 
+            | ``path``                    :                       a recursive call to the DFS algorithm which searches into new vertices and accumulates backtracking data
+            | ``matched_path_atoms``      (dict[int,int]):        a backtracking-cumulative version of ``matched_indices``
+            | ``matched_mol_path_edges``  (list[int]):            a backtracking-cumulative version of ``used_mol_edges``
+            | ``matched_fg_path_edges``   (list[int]):            a backtracking-cumulative version of ``used_fg_edges``
         """
 
         ##### New Atom-Pair Backtrack Variable #####
@@ -599,10 +667,10 @@ class Molecule():
     def hierarchyFilter(self, all_fgs: "list[Molecule]") -> "list[Molecule]":
         """Identifies and filters hierarchically related functional group matches.
 
-            Uses the theory of hierarchically related functional groups to identify 
-            the set of functional groups involved in such relationships, then identifies
-            the most accurate out of the hierarchy with respect to hydrogen-sensetive R vertices
-            exhibited in the organic molecule. View implementation doc for details.
+            Uses the theory of :ref:`hierarchical-functional-groups-ref` to identify 
+            the hierarchical functional groups from ``all_fgs`` matches, then identifies
+            the most accurate group out of the hierarchy using the hidden hydrogen exactness test 
+            for exact hydrogen-sensetive R vertices exhibited in the organic molecule. 
 
             Parameters
             ----------
@@ -614,6 +682,13 @@ class Molecule():
             list[Molecule]
                 A list of matched molecular functional groups filtered hierarchically for the most accurate group
 
+            Notes
+            -----
+                View :ref:`hierarchy-filter-implementation-ref` under :ref:`implementation-ref` for algorithm details
+
+            | `Algorithm Variables Reference`
+            | ``eval_indices``  (list[int]):   a list of index positions in ``all_fgs`` where hierarchical functional groups are
+            | ``skip_indices``  (list[int]):   a list of index positions to remove from ``all_fgs``
         
         """
 
@@ -626,7 +701,7 @@ class Molecule():
                 if i == j:
                     continue
                 if (
-                    set([edge for edge in fg.edges if edge.core_type]) == set([edge for edge in fg_compare.edges if edge.core_type]) 
+                    set([edge for edge in fg.edges if not 'R' in edge.symbols]) == set([edge for edge in fg_compare.edges if not 'R' in edge.symbols]) 
                     and 
                     set([fg_vertex.index for fg_vertex in fg.vertices if 'R' not in fg_vertex.symbol]) == set([fg_vertex.index for fg_vertex in fg_compare.vertices if 'R' not in fg_vertex.symbol])
                 ):
@@ -656,9 +731,9 @@ class Molecule():
     def overlapFilter(self, all_fgs: "list[Molecule]") -> "list[Molecule]":
         """Identifies and filters overlapping functional group matches.
         
-            Uses the overlapped functional groups theory to identify groups which are overalpped 
-            over another group (i.e. a ketone overlapped with an ester) and removed the overlapped
-            group from the list of input matches.
+            Uses the theory of :ref:`overlapping-functional-groups-ref` to identify and remove 
+            smaller functional groups overlapped with larger functional groups from the 
+            list of matches ``all_fgs``
 
             Parameters
             ----------
