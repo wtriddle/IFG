@@ -2,6 +2,7 @@
 
 from pandas import read_excel
 from molecule import Molecule
+from config import MAIN_OUTPUT_PATH
 
 def commonKeys(a,b):
     common_keys_set = set()
@@ -14,7 +15,7 @@ def commonKeys(a,b):
 
 def genDiffList(): 
 
-    ifg_original_set = read_excel("output/ref.xlsx", sheet_name="Precise Functional Groups")
+    ifg_original_set = read_excel("output/ref_test.xlsx", sheet_name="exact_data")
     ifg_original_set = ifg_original_set.set_index("Refcode")
 
     diff_list: "list[tuple]" = []
@@ -22,7 +23,7 @@ def genDiffList():
         _, smiles, name = [x for x in line.strip().split(" ") if x]
         mol = Molecule(smiles, name, "mol")
         d = ifg_original_set.loc[name]
-        ref_fgs = {fg: fg_count for (fg, fg_count) in dict(d[2:-5]).items() if fg_count != 0}
+        ref_fgs = {fg: fg_count for (fg, fg_count) in dict(d[4:]).items() if fg_count != 0}
         mol_fgs = mol.functional_groups_exact
 
         if ref_fgs != mol_fgs:
@@ -45,17 +46,22 @@ def testSingleMol(smiles, name):
     
 
 diff_list = genDiffList()
-for v in diff_list:
-    print("smiles = ", v[0])
-    print("name = ", v[1])
-    print("mol_fgs = ", v[2])
-    print("ref_fgs = ", v[3])
+# print(diff_list[0])
+# for v in diff_list:
+#     print("smiles = ", v[0])
+#     print("name = ", v[1])
+#     print("mol_fgs = ", v[2])
+#     print("ref_fgs = ", v[3])
 print(len(diff_list))
+
+# print(str(MAIN_OUTPUT_PATH.resolve()))
+
 
 
 # testSingleMol('COC(=O)C1CNc2ccccc2N2C=CN=C2C1O', 'APENIT')
 
-# # # mol_test = Molecule("OCC1OC(CC1O)N1C=NC2=C1C(=O)NC=N2", "APENIT", "mol")
+mol_test = Molecule("CC(=O)NCCNC(C)=O", "APENIT", "mol")
+print(mol_test.functional_groups_exact)
 # mol_test = Molecule("CC(=C)C1CCC23OC2C(CC2(C)CC(=O)C(CC(=O)C1)O2)OC3=O", "YEGVUC", "mol")
 # print(mol_test.ring_atoms)
 # print(mol_test.edges)
