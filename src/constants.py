@@ -21,7 +21,7 @@ AMINO_ACID_REGEX = re.compile(r'[nN]H[23]?\+')
 """Regular Expression that matches an amino acid"""
 
 ##### Required Valence Electrons Per-Atomic Orbital To Fulfill Electron Configuration Counts #####
-REQUIRED_VALENCE_COUNTS: dict[str, int] = {
+REQUIRED_VALENCE_COUNTS: "dict[str, int]" = {
     'C': 4,
     'N': 3,
     'P': 3,
@@ -37,7 +37,7 @@ REQUIRED_VALENCE_COUNTS: dict[str, int] = {
 """Dictionary of atomic symbol to valence electrons required"""
 
 ##### Electrons Per-Bond Counts #####
-ELECTRON_BOND_COUNTS: dict[str, int] = {
+ELECTRON_BOND_COUNTS: "dict[str, int]" = {
     '': 1,
     '=': 2,
     '#': 3
