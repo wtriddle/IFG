@@ -12,6 +12,7 @@ pandas = "^1.4.4"
 tqdm = "^4.64.1"
 XlsxWriter = "^3.0.3"
 openpyxl = "^3.0.10"
+Sphinx = "4.5.0"
 
 
 [build-system]
