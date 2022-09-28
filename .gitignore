@@ -9,3 +9,4 @@ docs/make.bat
 poetry.lock
 test.py
 docx.log
+notes.txt
