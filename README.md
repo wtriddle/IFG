@@ -1,8 +1,8 @@
 # IFG (Identify Functional Groups)
 
-Python algorithms which extract functional group data from SMILES (Simplified molecular-input line-entry system) codes <br>
+Python algorithms which extract functional group data from hydrogen-suppressed 
+SMILES (Simplified molecular-input line-entry system) codes <br>
 Project and Research Overview: https://youtu.be/yOdvyQ0seAc <br>
-Alternative Research Overview: https://youtu.be/uLXFk1nZ5vU <br>
 <p align="center">
   <!-- <img src="https://github.com/wtriddle/IFG/blob/master/MoleculeGifSmall.gif" />
   <img src="https://github.com/wtriddle/IFG/blob/master/MoleculeGifSmall.gif" /> -->
@@ -10,37 +10,64 @@ Alternative Research Overview: https://youtu.be/uLXFk1nZ5vU <br>
 
 # Installation
 
-A detailed install video for beginners is here:
-https://www.youtube.com/watch?v=kU3W452HC9s
+To set up IFG for functional group data collection and analysis from SMILES codes, follow the steps below:
 
-Otherwise, follow these steps: <br>
+1. Install [git](<https://git-scm.com/downloads>)
+2. Install [poetry](<https://python-poetry.org/docs/>)
+3. Clone this github repository into a desired folder with: 
 
-1. Download anaconda and git <br>
-https://www.anaconda.com/products/individual <br>
-https://git-scm.com/downloads <br>
+    ```cmd
+      C:\> git clone https://github.com/wtriddle/IFG.git
+    ```
 
-2. Download the repository to your computer with:
-```
-  git clone https://github.com/wtriddle/IFG.git
-```
-3. Set your PYTHONPATH to include the /src folder <br>
-On Windows, edit environemnt variables and create PYTHONPATH to your /src location <br>
-On Linux, open .bashrc and place the following line
-```
-  export PYTHONPATH="Your/Path/To/Ifg/Source:$PYTHONPATH"
-```
-4. Create a folder called output in the root directory
-5. Activate the base anaconda environment in the root directory of IFG with
-```
-  conda activate base
-```
-6. Run index.py in the anaconda base environemnt to test the program
+4. Install the python packages required for IFG with poetry:
+
+    ```cmd
+      C:\IFG> poetry install
+    ```
+
+You are now ready to use IFG! Read usage to find out how to use the program.
 
 # Usage
 
-Index.py is a top-level script which handles the src files, but those files can be directly used as well. This algorithm provides a decoded digital model of molecular SMILES codes. The implementation of IFG itself is an extension of this digital molecular model.
+There are two scripts that are available in the root directory of IFG to retireve and analyze functional group data.
 
-Digital Molecule:
+## Main.py
+
+The main script creates an excel data sheet with functional groups data by using the algorithm source code.
+Three file path variables in ``config.py`` are relevant for the script to run: ``STRUCTURES_PATH``, ``FUNCTIONAL_GROUPS_PATH``, and ``MAIN_OUTPUT_PATH``. Please view the ``config.py`` file for descriptions of each variable. 
+
+To execute the ``main.py`` file with the desires structure list, functional groups list, and excel file output path, 
+run the following command after installation:
+
+```cmd
+  poetry run python main.py
+```
+
+Allow the script to run and view the output in the desired excel sheet location. 
+For more information about the output, please read the paper.
+
+## Analysis.py
+
+The analysis script creates an excel data sheet with functional groups property relationship data by using data from ``main.py`` 
+in a staistical manner. This is a detailed procedure which has extensive discussion in the paper, so please read the paper for this.
+Three file path variables in ``config.py`` are relevant for the script to run: ``BANDGAPS_PATH``, ``ANALYSIS_PATH``, and ``MAIN_OUTPUT_PATH``. Please view the ``config.py`` file for descriptions of each variable. 
+
+To execute the ``analysis.py`` file with the desires structure list, functional groups list, and excel file output path, 
+run the following command after installation:
+
+```cmd
+  poetry run python analysis.py
+```
+
+Allow the script to run and view the output in the desired excel sheet location. 
+For more information about the output, please read the paper.
+
+## Software Interface
+
+If the library is to be ported into other code, then utilze the following example to do so:
+
+Molecule Class:
 ```python
     >>> from Molecule import Molecule
     >>> mol = Molecule('O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O', 'ABEGOH')
@@ -48,36 +75,10 @@ Digital Molecule:
     ABEGOH : O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O
 ```
 
-
-Identification of functional groups in a SMILES code:
-```python
-    >>> from ifg import ifg
-    >>> functionalGroups = ifg(SMILES="COC(=O)C(C)(O)NC(C)=O",REFCODE="LAQSOM")
-    >>> print(functionalGroups)
-    all_fgs : [Ether, Ketone, Ester, Amide, SecondaryAmine, Ketone, Alcohol]
-    exact_fgs : [Ester, Amide, Alcohol]
-```
-
-# Configuration
-Use the config.py file to route resources files to IFG src algorithm for processing of new SMILES codes, FGs, and redirecting the output.
-The output is an excel file with path defined in config.py
-
-## Adding Functional Groups
-Go into the FGlist.txt file and add the template with the name of the functional group to the end of the text file. <br>
-Ensure that the format contains [R] for R group atoms and that the atoms included in the new FG are all presente in Molecule <br>
-
-## Choosing a new set of SMILES codes
-Go into <b> config.py <b> and edit the ``` SMILESPATH ``` variable to target the new SMILES text list. <br>
-Ensure that the new set of SMILES codes is disjointed and follows the form for each line
-```
-  SMILES REFOCDE
-```
-
 # Contributing
 
 When contributing, open an issue for suggestions and follow the commenting style observed across the repository <br>
-New formats of SMILES codes can be supported by updating and contributing to ``` Molecule ``` <br>
-Optimization of the DFS algorithm can be changed in ``` ifg ```
+New formats of SMILES codes can be supported by updating and contributing to the repository <br>
 
 # License
 [MIT](https://choosealicense.com/licenses/mit/)
