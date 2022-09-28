@@ -32,14 +32,14 @@ then run the following command line interface command in your IFG root directory
 This will execute the data collection process for all target SMILES structures and generate an excel sheet at the configured output file path with the identified data.
 
 .. warning::
-    Ensure that all SMILES codes are hydrogen-supressed.
+    Ensure that all SMILES codes are hydrogen-suppressed.
     Otherwise, the script will fail.
 
 View The Output
 ---------------
 
 The output of the ``main.py`` script is an excel file at the configured output path with two sheets: ``all_data`` and ``exact_data``.
-Each sheet lists the functional groups, rings, and amino acid present per structure according to the definitions of `all` and `exact`.
+Each sheet lists the functional groups and rings present per structure according to the definitions of `all` and `exact`.
 View the `all` and `exact` definitions in the `Script Outputs`_ section below.
 
 

@@ -28,8 +28,8 @@ View any of the source modules listed below for library reference.
    :caption: Source Code Reference
 
    molecule
-   edge
    vertex
+   edge
    constants
 
 

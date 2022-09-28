@@ -14,7 +14,7 @@ File paths to sets of SMILES codes used during computation.
     The path to a file with a list of organic molecule SMILES codes to process in the ``main.py`` script
 
 .. warning:: 
-    The organic molecule SMILES codes must be hydrogen-supressed
+    The organic molecule SMILES codes must be hydrogen-suppressed
 
 `FUNCTIONAL_GROUPS_PATH`
     The path to a file with the list of identifiable functional group SMILES codes
