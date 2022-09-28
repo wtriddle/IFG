@@ -50,9 +50,6 @@ class Edge():
         self.symbols: list[str] = list(str(vertex.symbol) for vertex in vertices)
         """The two symbols of the vertex objects involved in the edge connection"""
 
-        self.core_type: bool = not 'R' in self.symbols
-        """The assertion of a core type edge without any R vertices involved in the edge connection"""
-        
 
     def __eq__(self: EdgeType, __o: EdgeType) -> bool:
         """Tests Structural Edge Equality.
@@ -64,7 +61,7 @@ class Edge():
     
     def __hash__(self):
         """Hash of the Edge defined by the Structural Identifier"""
-        return hash((self.bond_type, self.symbols[0], self.symbols[1], self.core_type))
+        return hash((self.bond_type, self.symbols[0], self.symbols[1]))
 
     def __str__(self) -> str:
         """String Representation of the Edge"""
