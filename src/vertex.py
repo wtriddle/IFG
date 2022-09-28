@@ -58,7 +58,7 @@ class Vertex():
         """The total number of bonds (single, double, or triple) connected to a vertex"""
         self.valence_electrons_required: int = valence_electrons_required
         """The total number of valence electrons required to fill the outermost atomic orbital (i.e. its preferred electron configuration)"""
-        self.charge = charge
+        self.charge: str = charge
         """The charge symbol attached to an atomic vertex"""
 
         ##### Charge Valence Electrons #####
