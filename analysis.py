@@ -10,7 +10,6 @@ from datetime import datetime
 ##### User Defined Relational Functional Group Sets #####
 SETS = [
     ["PrimaryAmine", "SecondaryAmine", "TertiaryAmine"],
-    ["Aromatic Rings", "Non Aromatic Rings"],
 ]
 
 ##### Relational Functional Groups Color Schemes #####
@@ -192,14 +191,14 @@ def main():
 
         ##### Stacked Chart Axis Labeling #####
         stacked_chart.set_x_axis({
-            'name': 'Bandgap Ranges',
-            'name_font': {'size': 18, 'bold': True},
+            'name': 'Optical Band Gaps (eV)',
+            'name_font': {'size': 30, 'bold': True},
             'num_font':  {'italic': True },
         })
 
         stacked_chart.set_y_axis({
             'name': 'Structure Count',
-            'name_font': {'size': 18, 'bold': True},
+            'name_font': {'size': 30, 'bold': True},
             'num_font':  {'italic': True },
         })
 
