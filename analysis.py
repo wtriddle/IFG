@@ -73,7 +73,7 @@ def main():
     ##### Data Load #####
     bandgap_data: pandas.Series = pandas.read_excel(str(BANDGAPS_PATH.resolve()), sheet_name="All")["bandgap"]
     fg_data: pandas.DataFrame = pandas.read_excel(str(MAIN_OUTPUT_PATH.resolve()), sheet_name="exact_data").drop("AminoAcid", axis=1)
-    bandgap_fg_data: pandas.DataFrame = pandas.concat([fg_data, bandgap_data], axis=1).set_index("Refcode")
+    bandgap_fg_data: pandas.DataFrame = pandas.concat([fg_data, bandgap_data], axis=1).set_index("Refcode").drop("SMILES", axis=1)
 
     ##### Bandgap Bins #####
     max_bandgap: int = max(bandgap_fg_data["bandgap"])
