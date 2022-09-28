@@ -8,3 +8,4 @@ docs/Makefile
 docs/make.bat
 poetry.lock
 test.py
+docx.log
