@@ -36,7 +36,7 @@ def main():
 
             ##### Molecule Data #####
             try:
-                mol = Molecule(smiles, refcode, type='mol')
+                mol = Molecule(smiles, name=refcode, type='mol')
             except:
                 failed_mols.append(smiles + " " + refcode)
                 print("  ", smiles, "Failed to be processed")
