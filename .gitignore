@@ -8,3 +8,4 @@ poetry.lock
 test.py
 docx.log
 notes.txt
+main.log

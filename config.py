@@ -3,7 +3,7 @@
 from pathlib import Path
 
 ##### Target Molecular SMILES Codes #####
-STRUCTURES_PATH = Path("resources") / 'smiles.txt'
+STRUCTURES_PATH = Path("resources") / 'masterSmiles.txt'
 """The path to a file with a list of hydrogen-suppressed organic molecule SMILES codes to process in the main.py script"""
 
 ##### Target Functional Groups #####

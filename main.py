@@ -5,6 +5,13 @@ from tqdm import tqdm
 from molecule import Molecule
 from datetime import datetime
 from config import STRUCTURES_PATH, MAIN_OUTPUT_PATH
+import logging
+import traceback
+
+with open("main.log", mode="w") as file:
+    file.truncate(0)
+
+logging.basicConfig(format='%(message)s', filename='main.log')
 
 def main():
     """Creates a chemical data excel sheet from a set of SMILES according to the data extracted from the Molecule class"""
@@ -15,6 +22,8 @@ def main():
     ##### Data Variables #####
     all_data: list[dict] = []
     exact_data: list[dict] = []
+    mol: Molecule
+    failed_mols: list[str] = []
 
     ##### Input Structure Data Load #####
     STRUCTURES = open(str(STRUCTURES_PATH.resolve()), "r+").readlines()
@@ -23,10 +32,16 @@ def main():
     with tqdm(total=len(STRUCTURES)) as bar:
 
         ##### SMILES Structure Loop #####
-        for (_, smiles, refcode) in [[y for y in x.strip().split(' ') if y] for x in STRUCTURES]:
+        for (smiles, refcode) in [[y for y in x.strip().split() if y] for x in STRUCTURES]:
 
             ##### Molecule Data #####
-            mol = Molecule(smiles, refcode, type='mol')
+            try:
+                mol = Molecule(smiles, refcode, type='mol')
+            except:
+                failed_mols.append(smiles + " " + refcode)
+                print("  ", smiles, "Failed to be processed")
+                logging.error(refcode + " " + smiles + " Failed to be processed " + "\n" + traceback.format_exc())
+                continue
 
             ##### All Functional Group Format Data #####
             all_data.append({
@@ -80,6 +95,11 @@ def main():
 
     ##### Excel File Save #####
     writer.save()
+
+    ##### Structure Error Result Logging #####
+    logging.error("##### Failed SMILES codes #####")
+    for failed_mol in failed_mols:
+        logging.error(failed_mol)
 
 if __name__ == "__main__":
     main()
