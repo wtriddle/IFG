@@ -36,7 +36,7 @@ class Molecule():
 
     """
 
-    def __init__(self, smiles: str, name: str, type: Literal["mol", "fg"]):
+    def __init__(self, smiles: str, name: str = "", type: Literal["mol", "fg"] = "mol"):
         """ Generates a software molecule graph for any smiles code. 
             Generates ring and functional group data for organic molecules
         """
