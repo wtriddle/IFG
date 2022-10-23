@@ -1,26 +1,33 @@
 Identify Functional Groups Docs
 ===============================
 
-A python library to identify functional groups from SMILES codes. 
-Follow :ref:`script-setup-ref` to begin using IFG.
-Learn about the identification process by starting at the :ref:`theory-overview-ref`.
-View any of the source modules listed below for library reference.
+A python package for SMILES-based functional group identification. To begin using the python package for SMILES-based data collection and analysis, 
+follow the :ref:`installation-ref`.
 
-Please note that the discussions presented in this documentation are 
+| View the :ref:`theory-overview-ref` and follow through the doc pages to learn about the computation details of the SMILES-based functional group identification process.
+
+| View the :ref:`chem-package-ref` to learn about the SMILES-based python computation source modules of this package. 
+
+| View the :ref:`ifg-scripts-ref` after the :ref:`installation-ref` to learn about and use the available SMILES-based data collection and analysis scripts of this package.
+
+Please note that the documentation presented here is 
 tentative and self-published by William Riddle, the developer 
 of the project software, and remain unreviwed for the time being. 
 Nevertheless, this documentation will assist anyone who 
-wishes to seek a better understanding of the software, 
-particularly in the User Guide and Source Code Reference.
+wishes to seek a better understanding of the software
+or who wishes to utilize this software in their own work.
 
 .. toctree::
    :maxdepth: 1
-   :caption: User Guide
+   :caption: Package Information Guide
 
-   setup
-   data_collection
-   data_analysis
-   configurations
+   installation
+   smiles
+   contributing
+   chem/index
+   scripts/index
+   tests/index
+
 
 .. toctree::
    :maxdepth: 1
@@ -30,13 +37,5 @@ particularly in the User Guide and Source Code Reference.
    design
    implementation
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Source Code Reference
-
-   molecule
-   vertex
-   edge
-   constants
 
 
