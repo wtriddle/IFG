@@ -1,86 +1,75 @@
 # IFG (Identify Functional Groups)
 
-Python algorithms which extract functional group data from hydrogen-suppressed 
-SMILES (Simplified molecular-input line-entry system) codes <br>
-Project and Research Overview: https://youtu.be/yOdvyQ0seAc <br>
-<p align="center">
-  <!-- <img src="https://github.com/wtriddle/IFG/blob/master/MoleculeGifSmall.gif" />
-  <img src="https://github.com/wtriddle/IFG/blob/master/MoleculeGifSmall.gif" /> -->
-</p>
+A python package which identifies functional groups in
+canonicalized non-isomeric non-isotopic hydrogen-suppressed
+[SMILES](https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html) codes <br>
+(The Simplified Molecular-Input Line-Entry System) <br>
+
+This package contains python data collection and analysis scripts, as well as a portable python package that can integrate
+SMILES-based data processing into other python modules, packages, and scripts. To see detailed information about the IFG
+python pacakge usage in computers, supported SMILES code variations, script usages, SMILES-based algorithm computation details and more, please read the [IFG docs]().
+
+To get a quick start on the python package and its research goals, please view the
+[Project and Research Overview Video](https://youtu.be/yOdvyQ0seAc).
 
 # Installation
 
-To set up IFG for functional group data collection and analysis from SMILES codes, follow the steps below:
+To install IFG for SMILES-based functional group data collection and data analysis, follow the steps below:
 
-1. Install [git](<https://git-scm.com/downloads>)
-2. Install [poetry](<https://python-poetry.org/docs/>)
-3. Clone this github repository into a desired folder with: 
+1. Install [git](https://git-scm.com/downloads)
+2. Install [poetry](https://python-poetry.org/docs/)
+3. Clone this github repository into a desired folder with:
 
-    ```cmd
-      C:\> git clone https://github.com/wtriddle/IFG.git
-    ```
+   ```cmd
+     C:\> git clone https://github.com/wtriddle/IFG.git
+   ```
 
 4. Install the python packages required for IFG with poetry:
 
-    ```cmd
-      C:\IFG> poetry install
-    ```
-    
-5. Add IFG/src to your system PYTHONPATH environemnt variable. See this [tutorial](https://www.simplilearn.com/tutorials/python-tutorial/python-path)
+   ```cmd
+     C:\IFG> poetry install
+   ```
 
-You are now ready to use IFG! Read usage to find out how to use the program.
+5. Add the absolute IFG/ifg path to your system PYTHONPATH environemnt variable (example C:\IFG\ifg).
+   See this [tutorial](https://www.simplilearn.com/tutorials/python-tutorial/python-path) to set this up on your computer
 
-# Usage
+You are now ready to use the IFG package! Please read the [IFG docs]() to view how to use the python package in your own work.
 
-There are two scripts that are available in the root directory of IFG to retireve and analyze functional group data.
+# Examples
 
-## Main.py
+The python code examples below show the SMILES-based functional group identification in action using the IFG python package defined in this repository:
 
-The main script creates an excel data sheet with functional groups data by using the algorithm source code.
-Three file path variables in ``config.py`` are relevant for the script to run: ``STRUCTURES_PATH``, ``FUNCTIONAL_GROUPS_PATH``, and ``MAIN_OUTPUT_PATH``. Please view the ``config.py`` file for descriptions of each variable. 
-
-To execute the ``main.py`` file with the desires structure list, functional groups list, and excel file output path, 
-run the following command after installation:
-
-```cmd
-  poetry run python main.py
-```
-
-Allow the script to run and view the output in the desired excel sheet location. 
-For more information about the output, please read the paper.
-
-## Analysis.py
-
-The analysis script creates an excel data sheet with functional groups property relationship data by using data from ``main.py`` 
-in a staistical manner. This is a detailed procedure which has extensive discussion in the paper, so please read the paper for this.
-Three file path variables in ``config.py`` are relevant for the script to run: ``BANDGAPS_PATH``, ``ANALYSIS_PATH``, and ``MAIN_OUTPUT_PATH``. Please view the ``config.py`` file for descriptions of each variable. 
-
-To execute the ``analysis.py`` file with the desires structure list, functional groups list, and excel file output path, 
-run the following command after installation:
-
-```cmd
-  poetry run python analysis.py
-```
-
-Allow the script to run and view the output in the desired excel sheet location. 
-For more information about the output, please read the paper.
-
-## Software Interface
-
-If the library is to be ported into other code, then utilze the following example to do so:
-
-Molecule Class:
 ```python
-    >>> from Molecule import Molecule
-    >>> mol = Molecule('O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O', 'ABEGOH')
+    >>> from chem.molecule import Molecule
+    >>> mol = Molecule('O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O', name='ABEGOH', type="mol")
     >>> print(mol)
-    ABEGOH : O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O
+    O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O
+    >>> mol.functional_groups_all
+    {'Non Aromatic Ketone': 1, 'Non Aromatic Amide': 2, 'Non Aromatic SecondaryAmine': 1, 'Non Aromatic TertiaryAmine': 3, 'Nitro': 3}
+    >>> mol.non_aromatic_ring_count
+    2
+```
+
+```python
+    >>> from chem.molecule import Molecule
+    >>> mol = Molecule('CC(=O)Oc1ccccc1', name="AXUDIH", type="mol")
+    >>> print(mol)
+    CC(=O)Oc1ccccc1
+    >>> mol.functional_groups_all
+    {'Ketone': 1, 'Ester': 1, 'Ether': 1}
+    >>> mol.aromatic_ring_count
+    1
 ```
 
 # Contributing
 
-When contributing, open an issue for suggestions and follow the commenting style observed across the repository <br>
-New formats of SMILES codes can be supported by updating and contributing to the repository <br>
+If you would like to contribute to the repository by including support of different SMILES code, or by incorporating new SMILES-based computation,
+please open an issue for the modification suggestion. It will be seen by the maintainer of this project and reviwed, then allowed or rejected.
+
+If an error or problem with the software arises, please open an issue so the maintainer of this project can review it and understand the problem.
+Be as detailed as possible and make sure it is relevant to the code which has already been developed. If you have developed a plugin or
+included a new feature that you would like to see work with the code, please open an issue and still inform the maintainer of this.
 
 # License
+
 [MIT](https://choosealicense.com/licenses/mit/)
