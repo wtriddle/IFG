@@ -5,7 +5,11 @@ _source
 *.json
 docs/build
 poetry.lock
-test.py
 docx.log
 notes.txt
 main.log
+TODO
+.pytest_cache
+.vscode
+.pylintrc
+.ipynb_checkpoints
