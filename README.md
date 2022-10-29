@@ -2,15 +2,13 @@
 
 A python package which identifies functional groups in
 canonicalized non-isomeric non-isotopic hydrogen-suppressed
-[SMILES](https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html) codes <br>
+[SMILES](https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html) codes 
 (The Simplified Molecular-Input Line-Entry System) <br>
 
-This package contains python data collection and analysis scripts, as well as a portable python package that can integrate
-SMILES-based data processing into other python modules, packages, and scripts. To see detailed information about the IFG
-python pacakge usage in computers, supported SMILES code variations, script usages, SMILES-based algorithm computation details and more, please read the
-[IFG docs](https://wtriddle.github.io/IFG/) online through Github Pages.
+This package has been documented at the [IFG docs](https://wtriddle.github.io/IFG/) online through Github Pages. Please view this documentation 
+to get started using this package for identification of functional groups in SMILES codes on your computer.
 
-To get a quick start on the python package and its research goals, please view the
+To get a quick start on the IFG python package and its research goals, please view the
 [Project and Research Overview Video](https://youtu.be/yOdvyQ0seAc).
 
 # Installation
@@ -71,8 +69,7 @@ The python code examples below show the SMILES-based functional group identifica
 
 # Contributing
 
-If you would like to contribute to the repository by including support of different SMILES code, or by incorporating new SMILES-based computation,
-please open an issue for the modification suggestion. It will be seen by the maintainer of this project and reviwed, then allowed or rejected.
+If you would like to contribute to the repository by including support of different SMILES codes, or by incorporating new SMILES-based computation, or by including new features, please open an issue in this repository about your topic. It will be seen by the maintainer of this project and reviewed, then allowed or rejected.
 
 If an error or problem with the software arises, please open an issue so the maintainer of this project can review it and understand the problem.
 Be as detailed as possible and make sure it is relevant to the code which has already been developed. If you have developed a plugin or
