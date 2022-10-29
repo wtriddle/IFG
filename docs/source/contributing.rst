@@ -5,7 +5,7 @@ Contributing
 
 
 If you would like to contribute to the repository by including support of different SMILES codes, or by incorporating new SMILES-based computation,
-please open an issue for the modification suggestion. It will be seen by the maintainer of this project and reviwed, then allowed or rejected.
+please open an issue for the modification suggestion. It will be seen by the maintainer of this project and reviewed, then allowed or rejected.
 
 If an error or problem with the software arises, please open an issue so the maintainer of this project can review it and understand the problem.
 Be as detailed as possible and make sure it is relevant to the code which has already been developed. If you have developed a plugin or
