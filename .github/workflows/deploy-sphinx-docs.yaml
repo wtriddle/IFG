@@ -1,0 +1,38 @@
+name: deploy-sphinx-docs
+run-name: IFG docs deployment
+on: [push]
+jobs:
+  vm-build-html-from-source-and-upload:
+    name: build-html-from-source-and-upload
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt update
+      - run: sudo apt-get install python3-pip -y
+      - run: sudo pip install -I sphinx==4.5.0
+      - run: sudo pip install docxsphinx sphinx-book-theme
+      - run: make -C docs html
+      - run: mkdir /tmp/artifacts
+      - uses: actions/upload-pages-artifact@v1
+        with:
+          path: docs/build/html
+
+  deploy-to-github-pages:
+    name: deploy-to-github-pages
+
+    needs: vm-build-html-from-source-and-upload
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
