@@ -7,7 +7,8 @@ canonicalized non-isomeric non-isotopic hydrogen-suppressed
 
 This package contains python data collection and analysis scripts, as well as a portable python package that can integrate
 SMILES-based data processing into other python modules, packages, and scripts. To see detailed information about the IFG
-python pacakge usage in computers, supported SMILES code variations, script usages, SMILES-based algorithm computation details and more, please read the [IFG docs]().
+python pacakge usage in computers, supported SMILES code variations, script usages, SMILES-based algorithm computation details and more, please read the
+[IFG docs](https://wtriddle.github.io/IFG/) online through Github Pages.
 
 To get a quick start on the python package and its research goals, please view the
 [Project and Research Overview Video](https://youtu.be/yOdvyQ0seAc).
@@ -33,7 +34,8 @@ To install IFG for SMILES-based functional group data collection and data analys
 5. Add the absolute IFG/ifg path to your system PYTHONPATH environemnt variable (example C:\IFG\ifg).
    See this [tutorial](https://www.simplilearn.com/tutorials/python-tutorial/python-path) to set this up on your computer
 
-You are now ready to use the IFG package! Please read the [IFG docs]() to view how to use the python package in your own work.
+You are now ready to use the IFG package! Please read the
+[IFG docs](https://wtriddle.github.io/IFG/) to view how to use the python package in your own work.
 
 # Examples
 
@@ -45,7 +47,13 @@ The python code examples below show the SMILES-based functional group identifica
     >>> print(mol)
     O=C1NC2C(N(CN2N(=O)=O)N(=O)=O)N1N(=O)=O
     >>> mol.functional_groups_all
-    {'Non Aromatic Ketone': 1, 'Non Aromatic Amide': 2, 'Non Aromatic SecondaryAmine': 1, 'Non Aromatic TertiaryAmine': 3, 'Nitro': 3}
+    {
+      'Non Aromatic Ketone': 1,
+      'Non Aromatic Amide': 2,
+      'Non Aromatic SecondaryAmine': 1,
+      'Non Aromatic TertiaryAmine': 3,
+      'Nitro': 3
+    }
     >>> mol.non_aromatic_ring_count
     2
 ```
