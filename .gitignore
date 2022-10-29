@@ -2,6 +2,8 @@ __pycache__
 _build
 _source
 *.xlsx
+!ifg/scripts/output/functional_groups.xlsx
+!ifg/scripts/output/stats.xlsx
 *.json
 docs/build
 poetry.lock
