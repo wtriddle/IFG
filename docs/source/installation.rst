@@ -19,6 +19,9 @@ To install IFG for SMILES-based functional group data collection and data analys
     
     C:\IFG> poetry install
 
+5. Add the absolute IFG/ifg path to your system PYTHONPATH environemnt variable (example C:\IFG\ifg).
+   See this `tutorial <https://www.simplilearn.com/tutorials/python-tutorial/python-path>`_ to set this up on your computer
+
 You are now ready to use IFG!
 View the :ref:`collection-script-ref` and the :ref:`analysis-script-ref` to collect and analyze functional group data from SMILES defined structures.
 Please view the :ref:`smiles-code-support-ref` to see the types of SMILES code that IFG supports for functional group identification.
