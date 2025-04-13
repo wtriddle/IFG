@@ -78,3 +78,7 @@ included a new feature that you would like to see work with the code, please ope
 # License
 
 [MIT](https://choosealicense.com/licenses/mit/)
+
+
+# Doc Relaunch
+Planning on relaunching docs through github pages again.
